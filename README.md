@@ -56,6 +56,9 @@ Cloud-Barista Integrated Monitoring Framework
         - `$ sudo chown -R etcd:etcd /var/lib/etcd/` (/var/lib/etcd/ 폴더 소유권을 etcd사용자로 설정)
     
         - `$ sudo vim /etc/systemd/system/etcd.service` (etcd에 대한 새로운 시스템 서비스 파일 작성)
+        (붙여넣기 후)
+        - `$ sudo systemctl  daemon-reload` (데몬 재시작)
+        - `$ sudo systemctl  start etcd.service` (etcd 서비스 시작)
   - etcd.service 붙여넣기
 ```Shell 
 [Unit]
@@ -77,19 +80,17 @@ LimitNOFILE=40000
 WantedBy=multi-user.target
 ```
 
-    -- `$ sudo systemctl  daemon-reload` (데몬 재시작)
-    -- `$ sudo systemctl  start etcd.service` (etcd 서비스 시작)
-
   - influxdb (1.7.8) 및 실행
-    -- `$ wget https://dl.influxdata.com/influxdb/releases/influxdb_1.7.8_amd64.deb` (다운로드)
-    -- `$ sudo dpkg -i influxdb_1.7.8_amd64.deb` (압축해제)
-    -- `$ sudo apt-get update && sudo apt-get install influxdb` (InfluxDB 서비스 설치)
-    -- `$ sudo systemctl start influxdb` (influxDB 서비스 시작)
-    -- `$ influx --version` (버전 확인)
+  
+        - `$ wget https://dl.influxdata.com/influxdb/releases/influxdb_1.7.8_amd64.deb` (다운로드)
+        - `$ sudo dpkg -i influxdb_1.7.8_amd64.deb` (압축해제)
+        - `$ sudo apt-get update && sudo apt-get install influxdb` (InfluxDB 서비스 설치)
+        - `$ sudo systemctl start influxdb` (influxDB 서비스 시작)
+        - `$ influx --version` (버전 확인)
     
-    -- `$ influx` (influxDB 사용하기)
-    --- CREATE DATABASE cbmon
-    --- USE cbmon
+        - `$ influx` (influxDB 사용하기)
+            - CREATE DATABASE cbmon
+            - USE cbmon
 
 - 멀티 클라우드 모니터링 설치
 
