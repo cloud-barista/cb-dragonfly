@@ -39,10 +39,8 @@ Cloud-Barista Integrated Monitoring Framework
   - `$ sudo tar -C /usr/local -xzf go1.13.4.linux-amd64.tar.gz` (압축해제)
   - `$ export PATH=$PATH:/usr/local/go/bin` (PATH 환경변수에 추가)
   - `$ go version` (버전 확인)
-  
-  - `$ source $HOME/.profile` (추가한 환경변수 즉시 반영)
 
-- 모니터링 데이터베이스 저장소 (의존 라이브러리 다운로드)
+- 모니터링 데이터베이스 저장소(의존 라이브러리 다운로드)
   - etcd 설치(3.3.11) 및 실행
         - `$ wget https://github.com/coreos/etcd/releases/download/v3.3.11/etcd-v3.3.11-linux-amd64.tar.gz` (파일 다운로드)
         - `$ sudo tar -xvf etcd-v3.3.11-linux-amd64.tar.gz` (압축해제)
