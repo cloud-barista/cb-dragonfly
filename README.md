@@ -121,11 +121,12 @@ Cloud-Barista Integrated Monitoring Framework
                 ```shell
                 export CBSTORE_ROOT=~/cb-mon
                 export CBLOG_ROOT=~/cb-mon
+                export CBMON_PATH=~/cb-mon
                 export SPIDER_URL=http://localhost:1024
                 ```
           - `$ source conf/setup.env` (수정한 setup.env 반영)         
           - `$ go run pkg/manager/main/main.go` (실행)
     
     - config 파일 설정
-          - `
+          - `` 
 
