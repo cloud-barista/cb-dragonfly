@@ -56,6 +56,7 @@ Cloud-Barista Integrated Monitoring Framework
         - `$ sudo chown -R etcd:etcd /var/lib/etcd/` (/var/lib/etcd/ 폴더 소유권을 etcd사용자로 설정)
     
         - `$ sudo vim /etc/systemd/system/etcd.service` (etcd에 대한 새로운 시스템 서비스 파일 작성)
+  - etcd.service 붙여넣기
 ```Shell 
 [Unit]
 Description=etcd key-value store
