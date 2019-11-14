@@ -16,7 +16,7 @@ Cloud-Barista Integrated Monitoring Framework
 ## [VM 접속]
 
 - PrivateKey.pem 사용 SSH 접속
-  - `$ ssh cb-user@52.141.22.160 -i CB-Test.pem` 으로 vm에 접속 ($Home = /home/cb-user)
+  - `$ ssh cb-user@52.141.22.160 -i CB-Test.pem`    vm에 접속 ($Home = /home/cb-user)
 
 ## [설치 개요]
 - 설치 환경: 리눅스(검증시험:Ubuntu 18.04)
@@ -31,13 +31,15 @@ Cloud-Barista Integrated Monitoring Framework
 - Git 설치
   - `$ sudo apt update`
   - `$ sudo apt install git`
+  - `$ sudo apt-get install git-core`
 
 - Go 설치
   - https://golang.org/doc/install 
   (2019년 11월 현재 `$ sudo apt install golang` 으로 설치하면 1.10 설치됨. 이 링크에서 1.12 이상 버전으로 설치할 것)
   - `$ wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz` (파일 다운로드)
   - `$ sudo tar -C /usr/local -xzf go1.13.4.linux-amd64.tar.gz` (압축해제)
-  - `$ export PATH=$PATH:/usr/local/go/bin` (PATH 환경변수에 추가)
+  - `$ sudo vim ~/.bashrc 파일 맨 아래에 export GOROOT=$PATH:/usr/local/go/bin` (GOPATH 환경변수 추가)
+  - `$ source ~/.bashrc` (수정한 bashrc 파일 반영)
   - `$ go version` (버전 확인)
 
 - 모니터링 데이터베이스 저장소(의존 라이브러리 다운로드)
@@ -97,8 +99,7 @@ Cloud-Barista Integrated Monitoring Framework
 - 멀티 클라우드 모니터링 설치
 
     - Git Project Clone
-    
-          - `$ sudo apt-get install git-core` (Git 설치)
+
           - `$ sudo git config --global color.ui "auto"`
           - `$ sudo git clone https://github.com/cloud-barista/cb-dragonfly.git` (Git 프로젝트 CLone)
           - `username = {{GitUserEmail}}` (자신의 Git Email 입력)
@@ -113,7 +114,7 @@ Cloud-Barista Integrated Monitoring Framework
     - Go mod 의존성 라이브러리 다운로드 확인
           - `$ go mod verify`
     
-    - 라이브러리 실행 (go run ....)
+    - 라이브러리 실행
           
           - `$ sudo vim conf/setup.env` (실행에 필요한 PATH를 처리할 파일 생성  (현 위치: ~/cb-mon))
                setup.env에 추가
@@ -126,4 +127,5 @@ Cloud-Barista Integrated Monitoring Framework
           - `$ go run pkg/manager/main/main.go` (실행)
     
     - config 파일 설정
+          - `
 
