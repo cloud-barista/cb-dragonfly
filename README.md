@@ -56,29 +56,31 @@ Cloud-Barista Integrated Monitoring Framework
         - `$ sudo chown -R etcd:etcd /var/lib/etcd/` (/var/lib/etcd/ 폴더 소유권을 etcd사용자로 설정)
     
         - `$ sudo vim /etc/systemd/system/etcd.service` (etcd에 대한 새로운 시스템 서비스 파일 작성)
-        (붙여넣기 후)
+        (바로 밑에 코드 붙여넣기 후)
         - `$ sudo systemctl  daemon-reload` (데몬 재시작)
         - `$ sudo systemctl  start etcd.service` (etcd 서비스 시작)
+        
   - etcd.service 붙여넣기
-```Shell 
-[Unit]
-Description=etcd key-value store
-Documentation=https://github.com/etcd-io/etcd
-After=network.target
+          
+          ```Shell 
+          [Unit]
+          Description=etcd key-value store
+          Documentation=https://github.com/etcd-io/etcd
+          After=network.target
 
-[Service]
-User=etcd
-Type=notify
-Environment=ETCD_DATA_DIR=/var/lib/etcd
-Environment=ETCD_NAME=%m
-ExecStart=/usr/local/bin/etcd
-Restart=always
-RestartSec=10s
-LimitNOFILE=40000
+          [Service]
+          User=etcd
+          Type=notify
+          Environment=ETCD_DATA_DIR=/var/lib/etcd
+          Environment=ETCD_NAME=%m
+          ExecStart=/usr/local/bin/etcd
+          Restart=always
+          RestartSec=10s
+          LimitNOFILE=40000
 
-[Install]
-WantedBy=multi-user.target
-```
+          [Install]
+          WantedBy=multi-user.target
+          ```
 
   - influxdb (1.7.8) 및 실행
   
@@ -95,7 +97,6 @@ WantedBy=multi-user.target
 - 멀티 클라우드 모니터링 설치
 
     - Git Project Clone
-    
           - `$ sudo apt-get install git-core` (Git 설치)
           - `$ sudo git config --global color.ui "auto"`
           - `$ sudo git clone https://github.com/cloud-barista/cb-dragonfly.git` (Git 프로젝트 CLone)
