@@ -96,7 +96,13 @@ WantedBy=multi-user.target
 
     - Git Project Clone
     
+          - `$ sudo apt-get install git-core` (Git 설치)
+          - `$ sudo git clone https://github.com/cloud-barista/cb-dragonfly.git` (Git 프로젝트 CLone)
+          - `username = {{GitUserEmail}}
+          - `Password = {{GitUserPW}}
+    
     - Go mod 의존성 라이브러리 로드
+          
     
     - 라이브러리 실행 (go run ....)
     
