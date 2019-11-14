@@ -97,9 +97,10 @@ WantedBy=multi-user.target
     - Git Project Clone
     
           - `$ sudo apt-get install git-core` (Git 설치)
+          - `$ sudo git config --global color.ui "auto"`
           - `$ sudo git clone https://github.com/cloud-barista/cb-dragonfly.git` (Git 프로젝트 CLone)
-          - `username = {{GitUserEmail}} (자신의 Git Email 입력)
-          - `Password = {{GitUserPW}} (자신의 Git PW 입력)
+          - `username = {{GitUserEmail}}` (자신의 Git Email 입력)
+          - `Password = {{GitUserPW}}` (자신의 Git PW 입력)
     
     - Go mod 의존성 라이브러리 로드
           
@@ -108,7 +109,7 @@ WantedBy=multi-user.target
           
     
     - Go mod 의존성 라이브러리 다운로드 확인
-          - `$ go mod verify
+          - `$ go mod verify`
     
     - 라이브러리 실행 (go run ....)
           
