@@ -65,7 +65,6 @@ Cloud-Barista Integrated Monitoring Framework
         
   - etcd.service 붙여넣기
           
-          ```Shell 
           [Unit]
           Description=etcd key-value store
           Documentation=https://github.com/etcd-io/etcd
@@ -83,7 +82,6 @@ Cloud-Barista Integrated Monitoring Framework
 
           [Install]
           WantedBy=multi-user.target
-          ```
 
   - influxdb (1.7.8) 및 실행
   
@@ -118,12 +116,12 @@ Cloud-Barista Integrated Monitoring Framework
           
           - `$ sudo vim conf/setup.env` (실행에 필요한 PATH를 처리할 파일 생성  (현 위치: ~/cb-mon))
                setup.env에 추가
-                ```shell
+                
                 export CBSTORE_ROOT=~/cb-mon
                 export CBLOG_ROOT=~/cb-mon
                 export CBMON_PATH=~/cb-mon
                 export SPIDER_URL=http://localhost:1024
-                ```
+                
           - `$ source conf/setup.env` (수정한 setup.env 반영)         
           - `$ go run pkg/manager/main/main.go` (실행)
     
