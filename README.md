@@ -94,13 +94,11 @@ WantedBy=multi-user.target
 
 - 멀티 클라우드 모니터링 설치
 
-    Git Project Clone
+    - Git Project Clone
     
-    Go mod 의존성 라이브러리 로드
+    - Go mod 의존성 라이브러리 로드
     
-    라이브러리 실행 (go run ....)
+    - 라이브러리 실행 (go run ....)
     
-    config 파일 설정
+    - config 파일 설정
 
-  
-### 수정중
