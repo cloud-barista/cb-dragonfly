@@ -16,44 +16,27 @@ Cloud-Barista Integrated Monitoring Framework
 
 ## [설치 절차]
 
+- PrivateKey.pem 사용 SSH 접속
 - Go 설치 & Git 설치
 - 환경 변수 설정
-- MCISM 소스 다운로드 (Git clone MCISM)
-- 의존 라이브러리 다운로드
-  - Cloud-Barista alliance 설치 (CB-Store, CB-Log, CB-Spider)
-  - 기타 라이브러리
-- mcism 빌드 (go build -o mcism)
-- mcism 실행 (./mcism)
 
 ## [설치 & 실행 상세 정보]
 
+- PrivateKey.pem 사용 SSH 접속
+
 - Git 설치
-  - `# apt update`
-  - `# apt install git`
+  - `$ sudo apt update`
+  - `$ sudo apt install git`
 
 - Go 설치
-  - https://golang.org/doc/install (2019년 11월 현재 `apt install golang` 으로 설치하면 1.10 설치됨. 이 링크에서 1.12 이상 버전으로 설치할 것)
-  - `wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz`
-  - `tar -C /usr/local -xzf go1.13.4.linux-amd64.tar.gz`
-  - `.bashrc` 파일 하단에 다음을 추가: `export PATH=$PATH:/usr/local/go/bin`
+  - https://golang.org/doc/install 
+  (2019년 11월 현재 `$ sudo apt install golang` 으로 설치하면 1.10 설치됨. 이 링크에서 1.12 이상 버전으로 설치할 것)
+  - `$ wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz` (파일 다운로드)
+  - `$ sudo tar -C /usr/local -xzf go1.13.4.linux-amd64.tar.gz` (압축해제)
+  - `$ export PATH=$PATH:/usr/local/go/bin` (PATH 환경변수에 추가)
+  - `$ source $HOME/.profile` (환경변수 추가 즉시 반영)
+  - `$ go version` (Version 확인)
 
-
-- `.bashrc` 에 기재한 내용을 적용하기 위해, 다음 중 하나를 수행
-  - bash 재기동
-  - `source ~/.bashrc`
-  - `. ~/.bashrc`
-
-- MCISM 소스 다운로드
-  - `# go get -u -v github.com/cloud-barista/cb-tumblebug`
-
-- 의존 라이브러리 다운로드
-  - etcd 설치 및 실행
-  ```Shell
-  # apt install etcd-server
-  # etcd --version
-  # ETCD_IP=<ETCD-Host-IPAddress>
-  # etcd --name etcd-01 --initial-advertise-peer-urls http://$ETCD_IP:2380 --listen-peer-urls http://$ETCD_IP:2380 --listen-client-urls http://$ETCD_IP:2379,http://127.0.0.1:2379 --advertise-client-urls http://$ETCD_IP:2379 --initial-cluster-token "etcd-cluster-1" --initial-cluster etcd-01=http://$ETCD_IP:2380 --initial-cluster-state new  &
-  ```
 
   - Cloud-Barista alliance 설치 (CB-Log)
     - `go get -u -v github.com/cloud-barista/cb-log`
