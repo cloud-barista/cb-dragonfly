@@ -16,7 +16,7 @@ Cloud-Barista Integrated Monitoring Framework
 ## [VM 접속]
 
 - PrivateKey.pem 사용 SSH 접속
-  - `$ ssh cb-user@52.141.22.160 -i CB-Test.pem` 으로 vm에 접속
+  - `$ ssh cb-user@52.141.22.160 -i CB-Test.pem` 으로 vm에 접속 ($Home = /home/cb-user)
 
 ## [설치 개요]
 - 설치 환경: 리눅스(검증시험:Ubuntu 18.04)
@@ -97,6 +97,7 @@ Cloud-Barista Integrated Monitoring Framework
 - 멀티 클라우드 모니터링 설치
 
     - Git Project Clone
+    
           - `$ sudo apt-get install git-core` (Git 설치)
           - `$ sudo git config --global color.ui "auto"`
           - `$ sudo git clone https://github.com/cloud-barista/cb-dragonfly.git` (Git 프로젝트 CLone)
