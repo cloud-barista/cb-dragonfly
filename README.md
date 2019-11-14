@@ -15,8 +15,8 @@ Cloud-Barista Integrated Monitoring Framework
 
 ## [VM 접속]
 
-- PrivateKey.pem 사용 SSH 접속
-  - `$ ssh cb-user@52.141.22.160 -i CB-Test.pem`    vm에 접속 ($Home = /home/cb-user)
+- CB-Dragonfly.pem 키를 사용 SSH 접속
+  - `$ ssh cb-user@52.141.22.160 -i CB-Dragonfly.pem`    vm에 접속 ($Home = /home/cb-user)
 
 ## [설치 개요]
 - 설치 환경: 리눅스(검증시험:Ubuntu 18.04)
@@ -24,6 +24,7 @@ Cloud-Barista Integrated Monitoring Framework
 ## [설치 절차]
 
 - Go 설치 & Git 설치
+- etcd 설치 & influxdb 설치
 - 환경 변수 설정
 
 ## [설치 & 실행 상세 정보]
@@ -35,8 +36,8 @@ Cloud-Barista Integrated Monitoring Framework
 
 - Go 설치
   - https://golang.org/doc/install 
-  (2019년 11월 현재 `$ sudo apt install golang` 으로 설치하면 1.10 설치됨. 이 링크에서 1.12 이상 버전으로 설치할 것)
-  - `$ wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz` (파일 다운로드)
+  (2019년 11월 현재 `$ sudo apt install golang` 으로 설치하면 1.10 설치됨. 이 링크에서 1.12 이상 버전으로 설치할 것(Go-mod 호환성 문제))
+  - `$ wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz` (설치 파일 다운로드)
   - `$ sudo tar -C /usr/local -xzf go1.13.4.linux-amd64.tar.gz` (압축해제)
   - `$ sudo vim ~/.bashrc 파일 맨 아래에 export GOROOT=$PATH:/usr/local/go/bin` (GOPATH 환경변수 추가)
   - `$ source ~/.bashrc` (수정한 bashrc 파일 반영)
@@ -45,7 +46,7 @@ Cloud-Barista Integrated Monitoring Framework
 - 모니터링 데이터베이스 저장소(의존 라이브러리 다운로드)
   - etcd 설치(3.3.11) 및 실행
   
-        - `$ wget https://github.com/coreos/etcd/releases/download/v3.3.11/etcd-v3.3.11-linux-amd64.tar.gz` (파일 다운로드)
+        - `$ wget https://github.com/coreos/etcd/releases/download/v3.3.11/etcd-v3.3.11-linux-amd64.tar.gz` (설치 파일 다운로드)
         - `$ sudo tar -xvf etcd-v3.3.11-linux-amd64.tar.gz` (압축해제)
         - `$ sudo mv etcd-v3.3.11-linux-amd64/etcd* /usr/local/bin/` (추출된 실행파일을 로컬 저장소로 이동)
         - `$ etcd --version` (버전 확인)
@@ -94,25 +95,24 @@ Cloud-Barista Integrated Monitoring Framework
     
         - `$ influx` (influxDB 사용하기)
             - CREATE DATABASE cbmon
-            - USE cbmon
 
 - 멀티 클라우드 모니터링 설치
 
     - Git Project Clone
 
-          - `$ sudo git config --global color.ui "auto"`
+          - `$ sudo git config --global color.ui "auto"` (Git 소스에 색 구분)
           - `$ sudo git clone https://github.com/cloud-barista/cb-dragonfly.git` (Git 프로젝트 CLone)
-          - `username = {{GitUserEmail}}` (자신의 Git Email 입력)
-          - `Password = {{GitUserPW}}` (자신의 Git PW 입력)
+          - `username = {{GitUserEmail}}` (Clone시 자격여부 확인 : 자신의 Git Email 입력)
+          - `Password = {{GitUserPW}}`    (Clone시 자격여부 확인 : 자신의 Git PW 입력)
     
     - Go mod 의존성 라이브러리 로드
           
           - `$ cd ~/cb-mon` (clone한 프로젝트 파일로 들어가기)
-          - `$ go mod download` (go mod 가 있는 폴더에서 download 실행)
-          
+          - `$ go mod download` (go mod 가 있는 폴더에서 다운로드 실행)
     
     - Go mod 의존성 라이브러리 다운로드 확인
-          - `$ go mod verify`
+    
+          - `$ go mod verify` (다운로드 확인)
     
     - 라이브러리 실행
           
@@ -128,5 +128,6 @@ Cloud-Barista Integrated Monitoring Framework
           - `$ go run pkg/manager/main/main.go` (실행)
     
     - config 파일 설정
-          - `` 
+          
+          - `` (수정중)
 
