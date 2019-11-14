@@ -44,10 +44,12 @@ Cloud-Barista Integrated Monitoring Framework
 
 - 모니터링 데이터베이스 저장소 (의존 라이브러리 다운로드)
   - etcd 설치(3.3.11) 및 실행
-    -- `$ wget https://github.com/coreos/etcd/releases/download/v3.3.11/etcd-v3.3.11-linux-amd64.tar.gz` (파일 다운로드)
-    -- `$ sudo tar -xvf etcd-v3.3.11-linux-amd64.tar.gz` (압축해제)
-    -- `$ sudo mv etcd-v3.3.11-linux-amd64/etcd* /usr /local/bin/` (추출된 실행파일을 로컬 저장소로 이동)
-    -- `$ etcd --version` (버전 확인)
+    --- `$ wget https://github.com/coreos/etcd/releases/download/v3.3.11/etcd-v3.3.11-linux-amd64.tar.gz` (파일 다운로드)
+    --- `$ sudo tar -xvf etcd-v3.3.11-linux-amd64.tar.gz` (압축해제)
+    --- `$ sudo mv etcd-v3.3.11-linux-amd64/etcd* /usr/local/bin/` (추출된 실행파일을 로컬 저장소로 이동)
+    --- `$ etcd --version` (버전 확인)
+    
+    --- 
    
   - influxdb (1.7.8) 및 실행
     -- `$ wget https://dl.influxdata.com/influxdb/releases/influxdb_1.7.8_amd64.deb` (다운로드)
