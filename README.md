@@ -38,20 +38,36 @@ Cloud-Barista Integrated Monitoring Framework
   - `$ wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz` (파일 다운로드)
   - `$ sudo tar -C /usr/local -xzf go1.13.4.linux-amd64.tar.gz` (압축해제)
   - `$ export PATH=$PATH:/usr/local/go/bin` (PATH 환경변수에 추가)
-  - `$ source $HOME/.profile` (환경변수 추가 즉시 반영)
-  - `$ go version` (Version 확인)
+  - `$ go version` (버전 확인)
+  
+  - `$ source $HOME/.profile` (추가한 환경변수 즉시 반영)
 
-- 모니터링 데이터베이스 저장소
-    etcd (3.3.11)
-        etcd -v
-    influxdb (1.7.8)
-        influx --version
+- 모니터링 데이터베이스 저장소 (의존 라이브러리 다운로드)
+  - etcd 설치(3.3.11) 및 실행
+    -- `$ wget https://github.com/coreos/etcd/releases/download/v3.3.11/etcd-v3.3.11-linux-amd64.tar.gz` (파일 다운로드)
+    -- `$ sudo tar -xvf etcd-v3.3.11-linux-amd64.tar.gz` (압축해제)
+    -- `$ sudo mv etcd-v3.3.11-linux-amd64/etcd* /usr /local/bin/` (추출된 실행파일을 로컬 저장소로 이동)
+    -- `$ etcd --version` (버전 확인)
+   
+  - influxdb (1.7.8) 및 실행
+    -- `$ wget https://dl.influxdata.com/influxdb/releases/influxdb_1.7.8_amd64.deb` (다운로드)
+    -- `$ sudo dpkg -i influxdb_1.7.8_amd64.deb` (압축해제)
+    -- `$ sudo apt-get update && sudo apt-get install influxdb` (InfluxDB 서비스 설치)
+    -- `$ sudo systemctl start influxdb` (influxDB 서비스 시작)
+    -- `$ influx --version` (버전 확인)
+    
+    -- `$ influx` (influxDB 사용하기)
+    --- CREATE DATABASE cbmon
+    --- USE cbmon
 
 - 멀티 클라우드 모니터링 설치
 
     Git Project Clone
+    
     Go mod 의존성 라이브러리 로드
+    
     라이브러리 실행 (go run ....)
+    
     config 파일 설정
 
   
