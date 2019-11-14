@@ -44,13 +44,41 @@ Cloud-Barista Integrated Monitoring Framework
 
 - 모니터링 데이터베이스 저장소 (의존 라이브러리 다운로드)
   - etcd 설치(3.3.11) 및 실행
-    --- `$ wget https://github.com/coreos/etcd/releases/download/v3.3.11/etcd-v3.3.11-linux-amd64.tar.gz` (파일 다운로드)
-    --- `$ sudo tar -xvf etcd-v3.3.11-linux-amd64.tar.gz` (압축해제)
-    --- `$ sudo mv etcd-v3.3.11-linux-amd64/etcd* /usr/local/bin/` (추출된 실행파일을 로컬 저장소로 이동)
-    --- `$ etcd --version` (버전 확인)
+        - `$ wget https://github.com/coreos/etcd/releases/download/v3.3.11/etcd-v3.3.11-linux-amd64.tar.gz` (파일 다운로드)
+        - `$ sudo tar -xvf etcd-v3.3.11-linux-amd64.tar.gz` (압축해제)
+        - `$ sudo mv etcd-v3.3.11-linux-amd64/etcd* /usr/local/bin/` (추출된 실행파일을 로컬 저장소로 이동)
+        - `$ etcd --version` (버전 확인)
     
-    --- 
-   
+        - `$ sudo mkdir -p /var/lib/etcd/` (Etcd 구성 파일 폴더 생성)
+        - `$ sudo mkdir /etc/etcd` (데이터 폴더 생성)
+    
+        - `$ sudo groupadd --system etcd` (etcd 시스템 그룹 생성)
+        - `$ sudo useradd -s /sbin/nologin --system -g etcd etcd` (etcd 시스템 사용자 생성)
+        - `$ sudo chown -R etcd:etcd /var/lib/etcd/` (/var/lib/etcd/ 폴더 소유권을 etcd사용자로 설정)
+    
+        - `$ sudo vim /etc/systemd/system/etcd.service` (etcd에 대한 새로운 시스템 서비스 파일 작성)
+[Unit]
+Description=etcd key-value store
+Documentation=https://github.com/etcd-io/etcd
+After=network.target
+
+[Service]
+User=etcd
+Type=notify
+Environment=ETCD_DATA_DIR=/var/lib/etcd
+Environment=ETCD_NAME=%m
+ExecStart=/usr/local/bin/etcd
+Restart=always
+RestartSec=10s
+LimitNOFILE=40000
+
+[Install]
+WantedBy=multi-user.target
+
+
+    -- `$ sudo systemctl  daemon-reload` (데몬 재시작)
+    -- `$ sudo systemctl  start etcd.service` (etcd 서비스 시작)
+
   - influxdb (1.7.8) 및 실행
     -- `$ wget https://dl.influxdata.com/influxdb/releases/influxdb_1.7.8_amd64.deb` (다운로드)
     -- `$ sudo dpkg -i influxdb_1.7.8_amd64.deb` (압축해제)
