@@ -98,13 +98,29 @@ WantedBy=multi-user.target
     
           - `$ sudo apt-get install git-core` (Git 설치)
           - `$ sudo git clone https://github.com/cloud-barista/cb-dragonfly.git` (Git 프로젝트 CLone)
-          - `username = {{GitUserEmail}}
-          - `Password = {{GitUserPW}}
+          - `username = {{GitUserEmail}} (자신의 Git Email 입력)
+          - `Password = {{GitUserPW}} (자신의 Git PW 입력)
     
     - Go mod 의존성 라이브러리 로드
           
+          - `$ cd ~/cb-mon` (clone한 프로젝트 파일로 들어가기)
+          - `$ go mod download` (go mod 가 있는 폴더에서 download 실행)
+          
+    
+    - Go mod 의존성 라이브러리 다운로드 확인
+          - `$ go mod verify
     
     - 라이브러리 실행 (go run ....)
+          
+          - `$ sudo vim conf/setup.env` (실행에 필요한 PATH를 처리할 파일 생성  (현 위치: ~/cb-mon))
+               setup.env에 추가
+                ```shell
+                export CBSTORE_ROOT=~/cb-mon
+                export CBLOG_ROOT=~/cb-mon
+                export SPIDER_URL=http://localhost:1024
+                ```
+          - `$ source conf/setup.env` (수정한 setup.env 반영)         
+          - `$ go run pkg/manager/main/main.go` (실행)
     
     - config 파일 설정
 
