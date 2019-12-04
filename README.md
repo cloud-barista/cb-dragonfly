@@ -127,5 +127,5 @@ Cloud-Barista Integrated Monitoring Framework
     
     - config 파일 설정
           
-          - `` (수정중)
+          - ``
 
