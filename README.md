@@ -16,7 +16,7 @@ Cloud-Barista Integrated Monitoring Framework
 ## [VM 접속]
 
 - CB-Dragonfly.pem 키를 사용 SSH 접속
-  - `$ ssh cb-user@52.141.22.160 -i CB-Dragonfly.pem`    vm에 접속 ($Home = /home/cb-user)
+  - `$ ssh cb-user@0.0.0.0 -i CB-Dragonfly.pem`    vm에 접속 ($Home = /home/cb-user)
 
 ## [설치 개요]
 - 설치 환경: 리눅스(검증시험:Ubuntu 18.04)
