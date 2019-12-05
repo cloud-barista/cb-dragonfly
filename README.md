@@ -42,7 +42,7 @@ Cloud-Barista Integrated Monitoring Framework
   - `$ go version` (버전 확인)
 
 - 실시간 모니터링 데이터 저장소 설치
-  - etcd 설치(3.3.11) 및 실행
+  - etcd (3.3.11) 설치 및 실행
   
         - `$ wget https://github.com/coreos/etcd/releases/download/v3.3.11/etcd-v3.3.11-linux-amd64.tar.gz` (설치 파일 다운로드)
         - `$ sudo tar -xvf etcd-v3.3.11-linux-amd64.tar.gz` (압축해제)
@@ -84,7 +84,7 @@ Cloud-Barista Integrated Monitoring Framework
 
 - 모니터링 시계열 데이터 저장소 설치
 
-  - influxdb 설치(1.7.8) 및 실행
+  - influxdb(1.7.8) 설치 및 실행
   
         - `$ wget https://dl.influxdata.com/influxdb/releases/influxdb_1.7.8_amd64.deb` (패키지 파일 다운로드)
         - `$ sudo dpkg -i influxdb_1.7.8_amd64.deb` (패키지 설치)
