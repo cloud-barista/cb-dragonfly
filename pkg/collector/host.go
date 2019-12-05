@@ -4,6 +4,8 @@ import (
 	"sync"
 )
 
+// 전체 호스트 목록 로컬 변수
+// 고루틴에서 호스트 목록 조회 시 Mutex 처리를 위해 사용
 type HostInfo struct {
 	HostMap *map[string]string
 	L       *sync.RWMutex
@@ -27,4 +29,11 @@ func (h HostInfo) DeleteHost(hostArr []string) {
 	for _, hostId := range hostArr {
 		delete(*h.HostMap, hostId)
 	}
+}
+
+func (h HostInfo) Clear() {
+	h.L.Lock()
+	defer h.L.Unlock()
+
+	*h.HostMap = make(map[string]string)
 }

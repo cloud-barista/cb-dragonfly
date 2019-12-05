@@ -9,7 +9,6 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/influxdata/influxdb1-client/models"
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
@@ -17,6 +16,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -106,7 +106,7 @@ func (apiServer *APIServer) GetMCISRealtimeMonInfo(c echo.Context) error {
 func (apiServer *APIServer) GetVMMonInfo(c echo.Context) error {
 
 	// Path 파라미터 가져오기
-	mcisId := c.Param("mcis_id")
+	//mcisId := c.Param("mcis_id")
 	vmId := c.Param("vm_id")
 	metricName := c.Param("metric_name")
 
@@ -114,8 +114,6 @@ func (apiServer *APIServer) GetVMMonInfo(c echo.Context) error {
 	period := c.QueryParam("periodType")
 	aggregateType := c.QueryParam("statisticsCriteria")
 	duration := c.QueryParam("duration")
-
-	fmt.Println(mcisId, vmId, metricName, period, aggregateType, duration)
 
 	var metricKey string
 
@@ -133,7 +131,6 @@ func (apiServer *APIServer) GetVMMonInfo(c echo.Context) error {
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
-		spew.Dump(resultMetric)
 		return c.JSON(http.StatusOK, resultMetric)
 
 	case "memory":
@@ -149,7 +146,6 @@ func (apiServer *APIServer) GetVMMonInfo(c echo.Context) error {
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
-		spew.Dump(resultMetric)
 		return c.JSON(http.StatusOK, resultMetric)
 
 	case "disk":
@@ -171,40 +167,99 @@ func (apiServer *APIServer) GetVMMonInfo(c echo.Context) error {
 			return c.JSON(http.StatusNotFound, err)
 		}
 
-		// Aggregate Metric
 		diskRow := diskMetric.(models.Row)
 		diskIoRow := diskIoMetric.(models.Row)
 
 		// Aggregate Column Info
-		diskRow.Columns = append(diskRow.Columns, diskIoRow.Columns[1:]...)
+		//diskRow.Columns = append(diskRow.Columns, diskIoRow.Columns[1:]...)
 
 		// Aggregate Monitoring data
-		initArr := make([]interface{}, 4)
+		/*initArr := make([]interface{}, 4)
 		for idx := range diskRow.Values {
 			if idx <= len(diskIoRow.Values) {
 				diskRow.Values[idx] = append(diskRow.Values[idx], diskIoRow.Values[idx][1:]...)
 				continue
 			}
 			diskRow.Values[idx] = append(diskRow.Values[idx], initArr...)
-		}
-
-		/*for idx := range diskRow.Values {
-			diskRow.Values[idx] = append(diskRow.Values[idx], diskIoRow.Values[idx][1:]...)
 		}*/
 
-		// Aggregate Monitoring data
-		//for _, disk := range diskRow.Values {
+		// Aggregate Metric
+		var resultRow models.Row
+		resultRow.Name = "disk"
+		resultRow.Tags = diskRow.Tags
+		resultRow.Columns = append(resultRow.Columns, diskRow.Columns[0:]...)
+		resultRow.Columns = append(resultRow.Columns, diskIoRow.Columns[1:]...)
 
-		//timeVal := disk["time"]
-		//diskRowVal := disk.([]string)
+		// TimePoint 맵 생성 (disk, diskio 메트릭)
+		timePointMap := make(map[string]string, len(diskRow.Values))
+		for _, val := range diskRow.Values {
+			timePoint := val[0].(string)
+			timePointMap[timePoint] = timePoint
+		}
+		for _, val := range diskIoRow.Values {
+			timePoint := val[0].(string)
+			if tp, exist := timePointMap[timePoint]; !exist {
+				timePointMap[tp] = tp
+			}
+		}
 
-		/*for idx, diskIoRow := range diskR
+		// TimePoint 배열 생성
+		idx := 0
+		timePointArr := make([]string, len(timePointMap))
+		for _, tp := range timePointMap {
+			timePointArr[idx] = tp
+			idx++
+		}
+		sort.Strings(timePointArr)
 
-		time := diskRowVal["time"]
-		time := (diskRow.([]string))["time"]*/
-		//}
+		// TimePoint 배열 기준 모니터링 메트릭 Aggregate
+		for _, tp := range timePointArr {
 
-		return c.JSON(http.StatusOK, diskRow)
+			metricVal := make([]interface{}, 1)
+			metricVal[0] = tp
+
+			// disk 메트릭 aggregate
+			diskMetricAdded := false
+			for idx, val := range diskRow.Values {
+				t := val[0].(string)
+				if strings.EqualFold(t, tp) {
+					metricVal = append(metricVal, val[1:]...)
+					diskMetricAdded = true
+					break
+				}
+				// 해당 TimePoint에 해당하는 disk 메트릭이 없을 경우 0으로 값 초기화
+				if !diskMetricAdded && (idx == len(diskRow.Values)-1) {
+					initVal := make([]interface{}, len(val)-1)
+					for i := range initVal {
+						initVal[i] = 0
+					}
+					metricVal = append(metricVal, initVal...)
+				}
+			}
+
+			// diskio 메트릭 aggregate
+			diskIoMetricAdded := false
+			for idx, val := range diskIoRow.Values {
+				t := val[0].(string)
+				if strings.EqualFold(t, tp) {
+					metricVal = append(metricVal, val[1:]...)
+					diskIoMetricAdded = true
+					break
+				}
+				// 해당 TimePoint에 해당하는 disk 메트릭이 없을 경우 0으로 값 초기화
+				if !diskIoMetricAdded && (idx == len(diskIoRow.Values)-1) {
+					initVal := make([]interface{}, len(val)-1)
+					for i := range initVal {
+						initVal[i] = 0
+					}
+					metricVal = append(metricVal, initVal...)
+				}
+			}
+
+			resultRow.Values = append(resultRow.Values, metricVal)
+		}
+
+		return c.JSON(http.StatusOK, resultRow)
 
 	case "network":
 
@@ -214,12 +269,14 @@ func (apiServer *APIServer) GetVMMonInfo(c echo.Context) error {
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
+		if netMetric == nil {
+			return c.JSON(http.StatusNotFound, err)
+		}
 
 		resultMetric, err := metricstore.MappingMonMetric(metricKey, &netMetric)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
-		spew.Dump(resultMetric)
 		return c.JSON(http.StatusOK, resultMetric)
 
 	default:
@@ -231,14 +288,12 @@ func (apiServer *APIServer) GetVMMonInfo(c echo.Context) error {
 func (apiServer *APIServer) GetVMRealtimeMonInfo(c echo.Context) error {
 
 	// Path 파라미터 가져오기
-	mcisId := c.Param("mcis_id")
+	//mcisId := c.Param("mcis_id")
 	vmId := c.Param("vm_id")
 	metricName := c.Param("metric_name")
 
 	// Query 파라미터 가져오기
 	aggregateType := c.QueryParam("statisticsCriteria")
-
-	fmt.Println(mcisId, vmId, metricName, aggregateType)
 
 	apiServer.aggregator.Etcd = apiServer.Etcd
 

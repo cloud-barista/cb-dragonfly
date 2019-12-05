@@ -18,7 +18,6 @@ func NewCollectorScheduler(cm *CollectManager) CollectorScheduler {
 func (c CollectorScheduler) CheckScaleCondition() error {
 
 	// 전체 호스트 수 가져오기
-
 	totalHostCnt := c.cm.HostCnt
 	if totalHostCnt == 0 {
 		hostNode, err := c.cm.Etcd.ReadMetric("/host")
@@ -40,6 +39,7 @@ func (c CollectorScheduler) CheckScaleCondition() error {
 	if c.cm.Config.Monitoring.MaxHostCount*len(c.cm.CollectorList) < totalHostCnt {
 		isScaling = true
 		scalingEvent = "out"
+
 		// 스케일 아웃 콜렉터 수 계산
 		var collectCnt int
 		if totalHostCnt%c.cm.Config.Monitoring.MaxHostCount == 0 {
@@ -55,7 +55,6 @@ func (c CollectorScheduler) CheckScaleCondition() error {
 		// 1개 미만으로 떨어질 경우 default 1개
 		if len(c.cm.CollectorList) == 1 {
 			isScaling = false
-			fmt.Println("default collector Count = 1")
 		}
 
 		// 스케일 인 콜렉터 수 계산

@@ -88,22 +88,6 @@ func (s *Storage) ReadMetric(vmId string, metric string, period string, aggregat
 
 func (s *Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.BatchPoints, error) {
 
-	/*
-		batchPointArr := influxdbClient.NewBatchPoints()
-		p1, err := influxdbClient.NewPoint(
-			"test1",
-			map[string]string{"hostname": "test1"},
-			map[string]interface{}{"memory": 1000, "cpu": 0.93},
-			time.Date(2019, 8, 1, 1, 2, 3, 4, time.UTC))
-		p2, err := influxdbClient.NewPoint(
-			"test2",
-			map[string]string{"hostname": "test2"},
-			map[string]interface{}{"memory": 2000, "cpu": 0.43},
-			time.Date(2019, 8, 1, 5, 6, 7, 8, time.UTC))
-		bp.AddPoint(p1)
-		bp.AddPoint(p2)
-	*/
-
 	bp, err := s.newBatchPoints()
 	if err != nil {
 		return nil, err
@@ -175,14 +159,6 @@ func (s *Storage) buildQuery(vmId string, metric string, period string, aggregat
 
 	case "net":
 
-		/*
-			query = influxBuilder.NewQuery().On(metric).
-			Field("bytes_recv", aggregateType).
-			Field("bytes_sent", aggregateType).
-			Field("packets_recv", aggregateType).
-			Field("packets_sent", aggregateType)
-		*/
-
 		fieldArr := []string{"bytes_recv", "bytes_sent", "packets_recv", "packets_sent"}
 		query := s.getPerSecMetric(vmId, metric, period, fieldArr, duration)
 		return query, nil
@@ -208,14 +184,6 @@ func (s *Storage) buildQuery(vmId string, metric string, period string, aggregat
 
 	case "diskio":
 
-		/*
-			query = influxBuilder.NewQuery().On(metric).
-				Field("read_bytes", aggregateType).
-				Field("write_bytes", aggregateType).
-				Field("iops_read", aggregateType).
-				Field("iops_write", aggregateType)
-		*/
-
 		fieldArr := []string{"read_bytes", "write_bytes", "reads", "writes"}
 		query := s.getPerSecMetric(vmId, metric, period, fieldArr, duration)
 		return query, nil
@@ -228,7 +196,7 @@ func (s *Storage) buildQuery(vmId string, metric string, period string, aggregat
 		And("\"hostId\"", influxBuilder.Equal, "'"+vmId+"'").
 		GroupByTime(timeCriteria).
 		GroupByTag("\"hostId\"").
-		Fill(influxBuilder.None).
+		Fill("0").
 		OrderByTime("ASC")
 
 	queryString := query.Build()
@@ -246,7 +214,7 @@ func (s *Storage) getPerSecMetric(vmId string, metric string, period string, fie
 	case "h":
 		timeCriteria = "1h"
 	case "d":
-		timeCriteria = "60h"
+		timeCriteria = "24h"
 	}
 
 	// 메트릭 필드 조회 쿼리 생성
@@ -262,8 +230,8 @@ func (s *Storage) getPerSecMetric(vmId string, metric string, period string, fie
 	}
 
 	// 메트릭 조회 조건 쿼리 생성
-	whereQueryForm := " FROM \"%s\" WHERE time > now() - %s GROUP BY time(%s) fill(none)"
-	query += fmt.Sprintf(whereQueryForm, metric, duration, timeCriteria)
+	whereQueryForm := " FROM \"%s\" WHERE time >= now() - %s AND \"hostId\"='%s' GROUP BY time(%s) fill(0)"
+	query += fmt.Sprintf(whereQueryForm, metric, duration, vmId, timeCriteria)
 
 	return query
 }
