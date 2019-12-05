@@ -146,7 +146,7 @@ Cloud-Barista Integrated Monitoring Framework
               collector_count: 1      # default collector count
     
 
-- 멀티 클라우드 모니터링 프레임워크 실행
+- 멀티 클라우드 모니터링 프레임워크(cb-dragonfly) 실행
 
      - 프로젝트 빌드 및 실행
 
