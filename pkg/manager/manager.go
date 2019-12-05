@@ -39,7 +39,10 @@ type CollectManager struct {
 // 콜렉터 매니저 초기화
 func NewCollectorManager() (*CollectManager, error) {
 	manager := CollectManager{}
-	manager.LoadConfiguration()
+	err := manager.LoadConfiguration()
+	if err != nil {
+		return nil, err
+	}
 
 	influxConfig := influxdbv1.Config{
 		ClientOptions: []influxdbv1.ClientOptions{
@@ -194,12 +197,6 @@ func (manager *CollectManager) StopCollector(uuid string) error {
 		// 실행 중인 콜렉터 고루틴 종료 (콜렉터 활성화 플래그 변경)
 		manager.CollectorList[uuid].Active = false
 		delete(manager.CollectorList, uuid)
-		fmt.Println(fmt.Sprintf("###############################################"))
-		fmt.Println(fmt.Sprintf("[%s] stop collector", uuid))
-		for key := range manager.CollectorList {
-			fmt.Println(key)
-		}
-		fmt.Println(fmt.Sprintf("###############################################"))
 		return nil
 	} else {
 		return errors.New(fmt.Sprintf("failed to get collector by id, uuid: %s", uuid))

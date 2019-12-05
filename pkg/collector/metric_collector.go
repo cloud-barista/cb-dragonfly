@@ -79,9 +79,6 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 	for {
 
 		if !mc.Active {
-			fmt.Println(fmt.Sprintf("###############################################"))
-			fmt.Println(fmt.Sprintf("[%s] stop collector", mc.UUID))
-			fmt.Println(fmt.Sprintf("###############################################"))
 			break
 		}
 
@@ -170,9 +167,6 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 
 			// 콜렉터 비활성화 시 aggregate 채널 삭제
 			if !mc.Active {
-				fmt.Println("###############################################")
-				fmt.Println(fmt.Sprintf("[%s] stop aggregator", mc.UUID))
-				fmt.Println("###############################################")
 				// aggregate 채널 삭제
 				close(*c)
 				delete(mc.CollectorChan, mc.UUID)
@@ -184,26 +178,31 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 
 func (mc *MetricCollector) TagHost(hostId string) error {
 
-	// 전체 호스트 목록에 등록되어 있는 지 체크
+	// 호스트 목록에 등록되어 있는 지 체크
 	isTagged := true
 	hostKey := fmt.Sprintf("/host-list/%s", hostId)
 	_, err := mc.Etcd.ReadMetric(hostKey)
+
 	if err != nil {
-		etcdErr := err.(client.Error)
-		if etcdErr.Code == 100 { // ErrorCode 100 = Key Not Found Error
-			isTagged = false
+		if v, ok := err.(client.Error); ok {
+			if v.Code == 100 { // ErrorCode 100 = Key Not Found Error
+				isTagged = false
+			}
+		} else {
+			logrus.Error("Failed to get host-list", err)
+			return err
 		}
 	}
 
-	/*fmt.Println("===================================================================")
-	fmt.Println("[" + mc.UUID + "] Get Tag info")
-	fmt.Println(mc.HostInfo.HostMap)
-	fmt.Println("isTagged=" + strconv.FormatBool(isTagged))
-	fmt.Println("===================================================================")*/
+	// TODO: 추후 로컬 변수가 아니라 etcd 기준으로 Mutex 처리
+	// 호스트 목록에 등록되지 않았지만 내부 로컬 변수에 남아있는 데이터 삭제 처리
+	if !isTagged && mc.HostInfo.GetHostById(hostId) != "" {
+		mc.HostInfo.DeleteHost([]string{hostId})
+	}
 
 	// 등록되어 있지 않은 호스트라면 호스트 목록에 등록 후 현재 콜렉터 기준으로 태깅
 	if !isTagged && mc.HostInfo.GetHostById(hostId) == "" {
-		// 전체 호스트 목록에 등록
+		// 호스트 목록에 등록
 		mc.HostInfo.AddHost(hostId)
 		err := mc.Etcd.WriteMetric(hostKey, hostKey)
 		if err != nil {
@@ -215,11 +214,6 @@ func (mc *MetricCollector) TagHost(hostId string) error {
 		if err != nil {
 			return err
 		}
-
-		/*fmt.Println("===================================================================")
-		fmt.Println("[" + mc.UUID + "] Add Tag info")
-		fmt.Println(*mc.HostInfo)
-		fmt.Println("===================================================================")*/
 	}
 
 	return nil
