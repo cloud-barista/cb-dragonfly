@@ -1,3 +1,4 @@
+
 # cb-dragonfly
 Cloud-Barista Integrated Monitoring Framework
 
@@ -5,7 +6,6 @@ Cloud-Barista Integrated Monitoring Framework
 
 ## [목차]
 
-0. [VM 접속](#vm-접속)
 1. [설치 개요](#설치-개요)
 2. [설치 절차](#설치-절차)
 3. [설치 & 실행 상세 정보](#설치--실행-상세-정보)
@@ -13,19 +13,17 @@ Cloud-Barista Integrated Monitoring Framework
 ***
 
 
-## [VM 접속]
-
-- CB-Dragonfly.pem 키를 사용 SSH 접속
-  - `$ ssh cb-user@0.0.0.0 -i CB-Dragonfly.pem`    vm에 접속 ($Home = /home/cb-user)
-
 ## [설치 개요]
 - 설치 환경: 리눅스(검증시험:Ubuntu 18.04)
 
 ## [설치 절차]
 
-- Go 설치 & Git 설치
-- etcd 설치 & influxdb 설치
-- 환경 변수 설정
+- Git 설치
+- Go 설치
+- 실시간 모니터링 데이터 저장소 설치
+- 시계열 모니터링 데이터 저장소 설치
+- 멀티 클라우드 모니터링 프레임워크 (cb-dragonfly) 설치
+- 멀티 클라우드 모니터링 프레임워크 (cb-dragonfly) 실행
 
 ## [설치 & 실행 상세 정보]
 
@@ -36,14 +34,14 @@ Cloud-Barista Integrated Monitoring Framework
 
 - Go 설치
   - https://golang.org/doc/install 
-  (2019년 11월 현재 `$ sudo apt install golang` 으로 설치하면 1.10 설치됨. 이 링크에서 1.12 이상 버전으로 설치할 것(Go-mod 호환성 문제))
+  (2019년 11월 현재 `$ sudo apt install golang` 으로 설치하면 1.10 설치됨. 이 링크에서 1.12 이상 버전으로 설치할 것(Go mod 호환성 문제))
   - `$ wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz` (설치 파일 다운로드)
   - `$ sudo tar -C /usr/local -xzf go1.13.4.linux-amd64.tar.gz` (압축해제)
   - `$ sudo vim ~/.bashrc 파일 맨 아래에 export GOROOT=$PATH:/usr/local/go/bin` (GOPATH 환경변수 추가)
   - `$ source ~/.bashrc` (수정한 bashrc 파일 반영)
   - `$ go version` (버전 확인)
 
-- 모니터링 데이터베이스 저장소(의존 라이브러리 다운로드)
+- 실시간 모니터링 데이터 저장소 설치
   - etcd 설치(3.3.11) 및 실행
   
         - `$ wget https://github.com/coreos/etcd/releases/download/v3.3.11/etcd-v3.3.11-linux-amd64.tar.gz` (설치 파일 다운로드)
@@ -63,7 +61,7 @@ Cloud-Barista Integrated Monitoring Framework
         - `$ sudo systemctl  daemon-reload` (데몬 재시작)
         - `$ sudo systemctl  start etcd.service` (etcd 서비스 시작)
         
-  - etcd.service 붙여넣기
+  - etcd.service 등록
           
           [Unit]
           Description=etcd key-value store
@@ -83,18 +81,20 @@ Cloud-Barista Integrated Monitoring Framework
           [Install]
           WantedBy=multi-user.target
 
-  - influxdb (1.7.8) 및 실행
+
+- 모니터링 시계열 데이터 저장소 설치
+
+  - influxdb 설치(1.7.8) 및 실행
   
-        - `$ wget https://dl.influxdata.com/influxdb/releases/influxdb_1.7.8_amd64.deb` (다운로드)
-        - `$ sudo dpkg -i influxdb_1.7.8_amd64.deb` (압축해제)
-        - `$ sudo apt-get update && sudo apt-get install influxdb` (InfluxDB 서비스 설치)
+        - `$ wget https://dl.influxdata.com/influxdb/releases/influxdb_1.7.8_amd64.deb` (패키지 파일 다운로드)
+        - `$ sudo dpkg -i influxdb_1.7.8_amd64.deb` (패키지 설치)
         - `$ sudo systemctl start influxdb` (influxDB 서비스 시작)
         - `$ influx --version` (버전 확인)
     
         - `$ influx` (influxDB 사용하기)
             - CREATE DATABASE cbmon
 
-- 멀티 클라우드 모니터링 설치
+- 멀티 클라우드 모니터링 프레임워크 (cb-dragonfly) 설치
 
     - Git Project Clone
 
@@ -103,16 +103,16 @@ Cloud-Barista Integrated Monitoring Framework
           - `username = {{GitUserEmail}}` (Clone시 자격여부 확인 : 자신의 Git Email 입력)
           - `Password = {{GitUserPW}}`    (Clone시 자격여부 확인 : 자신의 Git PW 입력)
     
-    - Go mod 의존성 라이브러리 로드
+    - Go mod 기반 의존성 라이브러리 로드
           
           - `$ cd ~/cb-mon` (clone한 프로젝트 파일로 들어가기)
-          - `$ go mod download` (go mod 가 있는 폴더에서 다운로드 실행)
+          - `$ go mod download` (.mod 파일에 등록된 라이브러리 다운로드 실행)
     
-    - Go mod 의존성 라이브러리 다운로드 확인
+    - Go mod 기반 의존성 라이브러리 다운로드 확인
     
           - `$ go mod verify` (다운로드 확인)
     
-    - 라이브러리 실행
+    - 환경변수 설정
           
           - `$ sudo vim conf/setup.env` (실행에 필요한 PATH를 처리할 파일 생성  (현 위치: ~/cb-mon))
                setup.env에 추가
@@ -125,7 +125,32 @@ Cloud-Barista Integrated Monitoring Framework
           - `$ source conf/setup.env` (수정한 setup.env 반영)         
           - `$ go run pkg/manager/main/main.go` (실행)
     
-    - config 파일 설정
+    - config 파일 설정 (config 파일에 influxdb IP 및 사용자 정보, etcd IP 정보, cb-dragonfly 호스트 IP 정보를 순차적으로 입력)
           
-          - ``
+          -  # influxdb connection info
+             influxdb:
+              endpoint_url: http://{{influxdb_ip}}:8086
+              database: cbmon
+              user_name: {{user_name}}
+              password: {{password}}
+
+            # etcd connection info
+            etcd:
+              endpoint_url: http://{{etcd_ip}}:2379
+              ttl: 60                 # time to live (s)
+
+            # collect manager configuration info
+            collect_manager:
+              collector_ip: {{collector_ip}}
+              collector_port: 8094    # udp port
+              collector_count: 1      # default collector count
+    
+
+- 멀티 클라우드 모니터링 프레임워크 실행
+
+     - 프로젝트 빌드 및 실행
+
+              - `$ cd ~/cb-mon`
+              - `$ go run pkg/manager/main/main.go` (cb-dragonfly 프로젝트 빌드 및 실행)
+              
 
