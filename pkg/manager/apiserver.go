@@ -59,27 +59,27 @@ func (apiServer *APIServer) StartAPIServer(wg *sync.WaitGroup) error {
 func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 
 	// 멀티 클라우드 인프라 서비스 모니터링/실시간 모니터링 정보 조회
-	e.GET("/mon/mcis/:mcis_id/info", apiServer.GetMCISMonInfo)
-	e.GET("/mon/mcis/:mcis_id/rt-info", apiServer.GetMCISRealtimeMonInfo)
+	e.GET("/dragonfly/mcis/:mcis_id/info", apiServer.GetMCISMonInfo)
+	e.GET("/dragonfly/mcis/:mcis_id/rt-info", apiServer.GetMCISRealtimeMonInfo)
 
 	// 멀티 클라우드 인프라 VM 모니터링/실시간 모니터링 정보 조회
-	e.GET("/mon/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/info", apiServer.GetVMMonInfo)
-	e.GET("/mon/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/rt-info", apiServer.GetVMRealtimeMonInfo)
+	e.GET("/dragonfly/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/info", apiServer.GetVMMonInfo)
+	e.GET("/dragonfly/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/rt-info", apiServer.GetVMRealtimeMonInfo)
 
 	// 멀티 클라우드 모니터링 정책 설정
-	e.PUT("/mon/config", apiServer.SetMonConfig)
-	e.GET("/mon/config", apiServer.GetMonConfig)
-	e.PUT("/mon/config/reset", apiServer.ResetMonConfig)
+	e.PUT("/dragonfly/config", apiServer.SetMonConfig)
+	e.GET("/dragonfly/config", apiServer.GetMonConfig)
+	e.PUT("/dragonfly/config/reset", apiServer.ResetMonConfig)
 
 	// 에이전트 설치 스크립트 다운로드
-	e.GET("/mon/file/agent/install", apiServer.GetTelegrafInstallScript)
+	e.GET("/dragonfly/file/agent/install", apiServer.GetTelegrafInstallScript)
 
 	// 에이전트 config, package 파일 다운로드
-	e.GET("/mon/file/agent/conf", apiServer.GetTelegrafConfFile)
-	e.GET("/mon/file/agent/pkg", apiServer.GetTelegrafPkgFile)
+	e.GET("/dragonfly/file/agent/conf", apiServer.GetTelegrafConfFile)
+	e.GET("/dragonfly/file/agent/pkg", apiServer.GetTelegrafPkgFile)
 
 	// 에이전트 설치
-	e.POST("/mon/agent/install", apiServer.InstallTelegraf)
+	e.POST("/dragonfly/agent/install", apiServer.InstallTelegraf)
 }
 
 // 멀티 클라우드 인프라 서비스 모니터링 정보 조회
