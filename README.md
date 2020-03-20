@@ -20,6 +20,7 @@ Cloud-Barista Integrated Monitoring Framework
 
 - Git 설치
 - Go 설치
+- Go 환경 변수 설정 
 - 실시간 모니터링 데이터 저장소 설치
 - 시계열 모니터링 데이터 저장소 설치
 - 멀티 클라우드 모니터링 프레임워크 (cb-dragonfly) 설치
@@ -37,9 +38,11 @@ Cloud-Barista Integrated Monitoring Framework
   (2019년 11월 현재 `$ sudo apt install golang` 으로 설치하면 1.10 설치됨. 이 링크에서 1.12 이상 버전으로 설치할 것(Go mod 호환성 문제))
   - `$ wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz` (설치 파일 다운로드)
   - `$ sudo tar -C /usr/local -xzf go1.13.4.linux-amd64.tar.gz` (압축해제)
-  - `$ sudo vim ~/.bashrc 파일 맨 아래에 export GOROOT=$PATH:/usr/local/go/bin` (GOPATH 환경변수 추가)
+  
+- Go 환경 변수 설정
+  - `$ sudo echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc` (GOROOT{/usr/local/go/bin}를 PATH 환경 변수에 추가하여 ~/.bashrc 맨 아래줄에 추가)
   - `$ source ~/.bashrc` (수정한 bashrc 파일 반영)
-  - `$ go version` (버전 확인)
+  - `$ go version` (GO 버전 확인)
 
 - 실시간 모니터링 데이터 저장소 설치
   - etcd (3.3.11) 설치 및 실행
@@ -105,7 +108,7 @@ Cloud-Barista Integrated Monitoring Framework
     
     - Go mod 기반 의존성 라이브러리 로드
           
-          - `$ cd ~/cb-mon` (clone한 프로젝트 파일로 들어가기)
+          - `$ cd ~/cb-dragonfly` (clone한 프로젝트 파일로 들어가기)
           - `$ go mod download` (.mod 파일에 등록된 라이브러리 다운로드 실행)
     
     - Go mod 기반 의존성 라이브러리 다운로드 확인
@@ -114,12 +117,12 @@ Cloud-Barista Integrated Monitoring Framework
     
     - 환경변수 설정
           
-          - `$ sudo vim conf/setup.env` (실행에 필요한 PATH를 처리할 파일 생성  (현 위치: ~/cb-mon))
+          - `$ sudo vim conf/setup.env` (실행에 필요한 PATH를 처리할 파일 생성  (현 위치: ~/cb-dragonfly))
                setup.env에 추가
                 
-                export CBSTORE_ROOT=~/cb-mon
-                export CBLOG_ROOT=~/cb-mon
-                export CBMON_PATH=~/cb-mon
+                export CBSTORE_ROOT=~/cb-dragonfly
+                export CBLOG_ROOT=~/cb-dragonfly
+                export CBMON_PATH=~/cb-dragonfly
                 export SPIDER_URL=http://localhost:1024
                 
           - `$ source conf/setup.env` (수정한 setup.env 반영)         
@@ -150,7 +153,7 @@ Cloud-Barista Integrated Monitoring Framework
 
      - 프로젝트 빌드 및 실행
 
-              - `$ cd ~/cb-mon`
+              - `$ cd ~/cb-dragonfly`
               - `$ go run pkg/manager/main/main.go` (cb-dragonfly 프로젝트 빌드 및 실행)
               
 
