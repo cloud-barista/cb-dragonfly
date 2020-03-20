@@ -39,7 +39,7 @@ Cloud-Barista Integrated Monitoring Framework
   - `$ wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz` (설치 파일 다운로드)
   - `$ sudo tar -C /usr/local -xzf go1.13.4.linux-amd64.tar.gz` (압축해제)
   
-- Go 환경 변수 설절
+- Go 환경 변수 설정
   - `$ sudo echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc` (GOROOT{/usr/local/go/bin}를 PATH 환경 변수에 추가하여 ~/.bashrc 맨 아래줄에 추가)
   - `$ source ~/.bashrc` (수정한 bashrc 파일 반영)
   - `$ go version` (GO 버전 확인)
