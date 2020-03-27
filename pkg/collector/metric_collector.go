@@ -96,7 +96,7 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 			continue
 		}
 
-		hostId := metric.Tags["hostID"].(string)
+		hostId := metric.Tags["hostID"].(string) + ":" + metric.Tags["osType"].(string)
 
 		// Tagging host
 		if mc.Active {

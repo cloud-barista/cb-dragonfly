@@ -7,6 +7,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	influxdbClient "github.com/influxdata/influxdb1-client/v2"
 	"github.com/sirupsen/logrus"
+	"strings"
 	"time"
 )
 
@@ -95,9 +96,11 @@ func (s *Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.Ba
 
 	now := time.Now().UTC()
 
-	for hostId, v := range metrics {
+	for hostIdOsType, v := range metrics {
 		tagArr := map[string]string{}
-		tagArr["hostId"] = hostId
+		temp := strings.Split(hostIdOsType,":")
+		tagArr["hostId"] = temp[0]
+		tagArr["osType"] = temp[1]
 
 		for metricName, metric := range v.(map[string]interface{}) {
 			metricPoint, err := influxdbClient.NewPoint(metricName, tagArr, metric.(map[string]interface{}), now)
