@@ -7,7 +7,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	influxdbClient "github.com/influxdata/influxdb1-client/v2"
 	"github.com/sirupsen/logrus"
-	"strings"
 	"time"
 )
 
@@ -96,13 +95,24 @@ func (s *Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.Ba
 
 	now := time.Now().UTC()
 
-	for hostIdOsType, v := range metrics {
+	for hostId, v := range metrics {
 		tagArr := map[string]string{}
-		temp := strings.Split(hostIdOsType,":")
-		tagArr["hostId"] = temp[0]
-		tagArr["osType"] = temp[1]
+		tagArr["hostId"] = hostId
 
-		for metricName, metric := range v.(map[string]interface{}) {
+		vToMap := v.(map[string]interface{})
+		tagMapsInterface := vToMap["tag"].(map[string]interface{})
+
+		tapMapsString := make(map[string]string)
+		for k, v := range tagMapsInterface {
+			tapMapsString[k] = v.(string)
+		}
+
+		tagArr["mcisId"] = tapMapsString["mcisId"]
+		tagArr["osType"] = tapMapsString["osType"]
+
+		delete(vToMap, "tag")
+
+		for metricName, metric := range vToMap {
 			metricPoint, err := influxdbClient.NewPoint(metricName, tagArr, metric.(map[string]interface{}), now)
 			if err != nil {
 				logrus.Error("Failed to create InfluxDB metric point: ", err)
