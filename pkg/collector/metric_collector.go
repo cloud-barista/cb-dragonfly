@@ -32,6 +32,11 @@ type TelegrafMetric struct {
 	Tags      map[string]interface{} `json:"tags"`
 	Fields    map[string]interface{} `json:"fields"`
 	Timestamp int64                  `json:"timestamp"`
+	TagInfo   map[string]interface{} `json:"tagInfo"`
+}
+
+type TagMetric struct {
+	Tags map[string]interface{} `json:"tags"`
 }
 
 type DeviceInfo struct {
@@ -96,7 +101,7 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 			continue
 		}
 
-		hostId := metric.Tags["hostID"].(string) + ":" + metric.Tags["osType"].(string)
+		hostId := metric.Tags["hostID"].(string)
 
 		// Tagging host
 		if mc.Active {
@@ -110,6 +115,7 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		curTimestamp := time.Now().Unix()
 		var diskName string
 		var metricKey string
+		var osTypeKey string
 
 		switch strings.ToLower(metric.Name) {
 		case "disk":
@@ -125,6 +131,17 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		}
 
 		if err := mc.Etcd.WriteMetric(metricKey, metric.Fields); err != nil {
+			logrus.Error(err)
+		}
+
+		metric.TagInfo = map[string]interface{}{}
+		metric.TagInfo["mcisId"] = hostId
+		metric.TagInfo["hostId"] = hostId
+		metric.TagInfo["osType"] = metric.Tags["osType"].(string)
+
+		osTypeKey = fmt.Sprintf("/host/%s/tag", hostId)
+
+		if err := mc.Etcd.WriteMetric(osTypeKey, metric.TagInfo); err != nil {
 			logrus.Error(err)
 		}
 

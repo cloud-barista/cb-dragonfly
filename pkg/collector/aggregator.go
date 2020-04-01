@@ -80,13 +80,19 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 
 	/* 2. 상세 모니터링 데이터 목록 가져오기 */
 	monMap := map[string]map[string]map[string]interface{}{}
+	metricTagMap := make(map[string]interface{})
 
 	for _, vmId := range vmList {
+
+		// Tag data processing
+		metricTag := fmt.Sprintf("/host/%s/tag", vmId)
+		metricTagData, err := a.Etcd.ReadMetric(metricTag)
+
 		metricMap := map[string]map[string]interface{}{}
 		for _, metricName := range metricList {
 
 			if metricName == "disk" || metricName == "diskio" {
-				err = a.AggregateDiskMetric(vmId, metricName)
+				err = a.AggregateDiskMetric(vmId, metricName, metricTagData.Value)
 				if err != nil {
 					logrus.Error("Failed to aggregate disk metric", err)
 				}
@@ -99,11 +105,12 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 			if err != nil {
 				return err
 			}
+			var timestamp string
 
 			// 모니터링 데이터 파싱 (string to json)
 			metricDetailMap := make(map[string]interface{})
 			for _, data := range metricDataNode.Nodes {
-				timestamp := strings.Split(data.Key, "/")[5]
+				timestamp = strings.Split(data.Key, "/")[5]
 				metricData := make(map[string]interface{})
 				err := json.Unmarshal([]byte(data.Value), &metricData)
 				if err != nil {
@@ -115,6 +122,13 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 
 			metricMap[metricName] = metricDetailMap
 		}
+		// Add Vm tag(mcisId, hostId, osType) to metricMap
+		err = json.Unmarshal([]byte(metricTagData.Value), &metricTagMap)
+		if err != nil {
+			logrus.Error("Failed to convert json string to map", err)
+			return err
+		}
+
 		monMap[vmId] = metricMap
 	}
 
@@ -131,6 +145,7 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 			}
 			metricMap[metricName] = aggregateMetric
 		}
+		metricMap["tag"] = metricTagMap
 		aggregateMap[hostId] = metricMap
 	}
 
@@ -149,7 +164,7 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 	return nil
 }
 
-func (a *Aggregator) AggregateDiskMetric(vmId string, metricName string) error {
+func (a *Aggregator) AggregateDiskMetric(vmId string, metricName string, metricTagData string) error {
 
 	/* 1. device 정보 가져오기 */
 	deviceDataKey := fmt.Sprintf("/host/%s/metric/%s", vmId, metricName)
@@ -244,7 +259,15 @@ func (a *Aggregator) AggregateDiskMetric(vmId string, metricName string) error {
 
 	aggregateMap := make(map[string]interface{})
 	metricMap := make(map[string]interface{})
+	metricTagMap := make(map[string]interface{})
 
+	err = json.Unmarshal([]byte(metricTagData), &metricTagMap)
+	if err != nil {
+		logrus.Error("Failed to convert json string to map", err)
+		return err
+	}
+
+	metricMap["tag"] = metricTagMap
 	metricMap[metricName] = resultMap
 	aggregateMap[vmId] = metricMap
 
