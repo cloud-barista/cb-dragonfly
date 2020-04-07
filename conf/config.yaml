@@ -2,19 +2,19 @@
 
 # influxdb connection info
 influxdb:
-  endpoint_url: http://{{influxdb_ip}}:8086
+  endpoint_url: http://192.168.130.7:3848
   database: cbmon
   user_name: cbmon
-  password: {{password}}
+  password: qwe1212!Q
 
 # etcd connection info
 etcd:
-  endpoint_url: http://{{etcd_ip}}:2379
+  endpoint_url: http://192.168.130.7:2379
   ttl: 60                 # time to live (s)
 
 # collect manager configuration info
 collect_manager:
-  collector_ip: {{collector_ip}}
+  collector_ip: 127.0.0.1
   collector_port: 8094    # udp port
   collector_count: 1      # default collector count
 
