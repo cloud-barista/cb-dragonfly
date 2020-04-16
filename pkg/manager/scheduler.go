@@ -1,9 +1,7 @@
 package manager
 
 import (
-	"fmt"
 	"github.com/sirupsen/logrus"
-	"strconv"
 )
 
 type CollectorScheduler struct {
@@ -33,8 +31,8 @@ func (c CollectorScheduler) CheckScaleCondition() error {
 	scalingEvent := ""
 	scaleCnt := 0
 
-	fmt.Println("collector len = " + strconv.Itoa(len(c.cm.CollectorList)))
-	fmt.Println("aggregate len = " + strconv.Itoa(len(c.cm.CollectorChan)))
+	//fmt.Println("collector len = " + strconv.Itoa(len(c.cm.CollectorList)))
+	//fmt.Println("aggregate len = " + strconv.Itoa(len(c.cm.CollectorChan)))
 
 	if c.cm.Config.Monitoring.MaxHostCount*len(c.cm.CollectorList) < totalHostCnt {
 		isScaling = true
