@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	influxBuilder "github.com/Scalingo/go-utils/influx"
-	"github.com/davecgh/go-spew/spew"
 	influxdbClient "github.com/influxdata/influxdb1-client/v2"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -48,17 +47,22 @@ func (s *Storage) Init() error {
 
 //func (s *Storage) WriteMetric(metrics types.Metrics) error {
 func (s *Storage) WriteMetric(metrics map[string]interface{}) error {
+
+	fmt.Println("Aggregating host count : ",len(metrics))
 	bp, err := s.parseMetric(metrics)
 	if err != nil {
 		logrus.Error("Failed to parse collector metrics to influxdb v1")
 		return err
 	}
+	startTime:=time.Now()
 	for _, influx := range s.Clients {
 		if err := influx.Write(bp); err != nil {
 			logrus.Error("Failed to write influxdb")
 			return err
 		}
 	}
+	fmt.Println("InfluxDB write time : ",time.Since(startTime))
+	fmt.Println("")
 	return nil
 }
 
@@ -121,9 +125,7 @@ func (s *Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.Ba
 			bp.AddPoint(metricPoint)
 		}
 	}
-
-	spew.Dump(bp)
-
+	//spew.Dump(bp)
 	return bp, nil
 }
 

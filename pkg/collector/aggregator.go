@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/sirupsen/logrus"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type AggregateType string
@@ -46,7 +46,7 @@ type Aggregator struct {
 // 실시간 모니터링 데이터 Aggregate
 func (a *Aggregator) AggregateMetric(collectorId string) error {
 
-
+	startTime := time.Now()
 	/* Monitoring metric data tree : aggregatedMap
 	Depth : vmId / parentMetricName / childMetricName / value
  	= map[string] interface | map[string] interface | map[string] interface {}
@@ -56,14 +56,20 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 	/*1. Get VM List from ETCD */
 	aggregatedMap := map[string]interface{} {}
 	getVmList, err := a.Etcd.ReadMetric(fmt.Sprintf("/collector/%s/host", collectorId))
-	var vmList []string
 
 	if err != nil {
-		logrus.Error("Failed to get tagging vm list", err)
-		return err
-	}else if getVmList == nil{
+		if err.Error()[0:3] != "100"{
+			logrus.Error("Failed to get vm list from ETCD : ", err)
+			return err
+		}else{
+			logrus.Error("It is empty ETCD. Failed to get vm list from ETCD : ", err)
+			return nil
+		}
+	}else if getVmList == nil {
 		return nil
 	}
+
+	var vmList []string
 
 	for _, vm := range getVmList.Nodes {
 
@@ -181,8 +187,10 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 
 		aggregatedMap[vmId] = parentMetric
 	}
-
 	/* 4. 모니터링 데이터 저장 (InfluxDB) */
+
+	fmt.Println("Aggregating processing time :",time.Since(startTime))
+
 	err = a.InfluxDB.WriteMetric(aggregatedMap)
 	if err != nil {
 		return err
@@ -315,7 +323,7 @@ func (a *Aggregator) CalculateMetric(metricName string, metric map[string]interf
 			}
 		*/
 
-		spew.Dump(resultMap)
+		//spew.Dump(resultMap)
 		//spew.Dump(deviceMap)
 		return resultMap, nil
 }
@@ -440,6 +448,6 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 		}
 	}
 
-	spew.Dump(resultMap)
+	//spew.Dump(resultMap)
 	return resultMap, nil
 }

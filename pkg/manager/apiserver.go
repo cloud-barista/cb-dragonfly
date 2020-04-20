@@ -412,6 +412,10 @@ func (apiServer *APIServer) SetMonConfig(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
+	agentTTL, err := strconv.Atoi(c.FormValue("agent_TTL"))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
 	collectorInterval, err := strconv.Atoi(c.FormValue("collector_interval"))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
@@ -428,6 +432,7 @@ func (apiServer *APIServer) SetMonConfig(c echo.Context) error {
 	// etcd 저장소에 모니터링 정책 정보 저장
 	monConfig := MonConfig{
 		AgentInterval:      agentInterval,
+		AgentTtl : agentTTL,
 		CollectorInterval:  collectorInterval,
 		SchedulingInterval: schedulingInterval,
 		MaxHostCount:       maxHostCnt,
@@ -479,6 +484,7 @@ func (apiServer *APIServer) ResetMonConfig(c echo.Context) error {
 	// config 파일 기준 모니터링 정책 초기화
 	monConfig := MonConfig{
 		AgentInterval:      apiServer.config.Monitoring.AgentInterval,
+		AgentTtl : apiServer.config.Monitoring.AgentTtl,
 		CollectorInterval:  apiServer.config.Monitoring.CollectorInterval,
 		SchedulingInterval: apiServer.config.Monitoring.ScheduleInterval,
 		MaxHostCount:       apiServer.config.Monitoring.MaxHostCount,

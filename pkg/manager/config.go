@@ -19,6 +19,7 @@ type Config struct {
 		Port int `yaml:"port"`
 	} `yaml:"api_server"`
 	Monitoring struct {
+		AgentTtl		int `yaml:"agent_TTL"`
 		AgentInterval     int `yaml:"agent_interval"`
 		CollectorInterval int `yaml:"collector_interval"`
 		ScheduleInterval  int `yaml:"schedule_interval"`
@@ -27,6 +28,7 @@ type Config struct {
 }
 
 type MonConfig struct {
+	AgentTtl      int `json:"agent_TTL"`     // 모니터링 에이전트 info TTL
 	AgentInterval      int `json:"agent_interval"`     // 모니터링 에이전트 수집주기
 	CollectorInterval  int `json:"collector_interval"` // 모니터링 콜렉터 Aggregate 주기
 	SchedulingInterval int `json:"schedule_interval"`  // 모니터링 콜렉터 스케줄링 주기 (스케일 인/아웃 로직 체크 주기)

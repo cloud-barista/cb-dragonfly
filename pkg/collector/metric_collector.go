@@ -1,13 +1,11 @@
 package collector
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"go.etcd.io/etcd/client"
 	"net"
 	"strings"
 	"sync"
@@ -15,14 +13,15 @@ import (
 )
 
 type MetricCollector struct {
+	MarkingAgent	  map[string] string
 	UUID              string
-	UDPPort           int
 	AggregateInterval int
 	InfluxDB          metricstore.Storage
 	Etcd              realtimestore.Storage
 	Aggregator        Aggregator
-	HostInfo          *HostInfo
-	CollectorChan     map[string]*chan string
+	//HostInfo          *HostInfo
+	AggregatingChan     map[string]*chan string
+	TransmitDataChan       map[string]*chan TelegrafMetric
 	Active            bool
 	//UdpConn         net.UDPConn
 }
@@ -46,15 +45,16 @@ type DeviceInfo struct {
 }
 
 // 메트릭 콜렉터 초기화
-func NewMetricCollector(udpPort int, interval int, etcd *realtimestore.Storage, influxDB *metricstore.Storage, aggregateType AggregateType, hostList *HostInfo, collectorChan map[string]*chan string) MetricCollector {
+func NewMetricCollector(markingAgent map[string] string,interval int, etcd *realtimestore.Storage, influxDB *metricstore.Storage, aggregateType AggregateType, /*hostList *HostInfo, */aggregatingChan map[string]*chan string, transmitDataChan map[string]* chan TelegrafMetric) MetricCollector {
 
 	// UUID 생성
 	uuid := uuid.New().String()
 
 	// 모니터링 메트릭 Collector 초기화
 	mc := MetricCollector{
+		//MetricCollectorIdx:	   metricCollectorIdx,
+		MarkingAgent:	   markingAgent,
 		UUID:              uuid,
-		UDPPort:           udpPort,
 		AggregateInterval: interval,
 		Etcd:              *etcd,
 		Aggregator: Aggregator{
@@ -62,8 +62,9 @@ func NewMetricCollector(udpPort int, interval int, etcd *realtimestore.Storage, 
 			InfluxDB:      *influxDB,
 			AggregateType: aggregateType,
 		},
-		HostInfo:      hostList,
-		CollectorChan: collectorChan,
+		//HostInfo:      hostList,
+		AggregatingChan: aggregatingChan,
+		TransmitDataChan : transmitDataChan,
 		Active:        true,
 	}
 
@@ -71,45 +72,41 @@ func NewMetricCollector(udpPort int, interval int, etcd *realtimestore.Storage, 
 }
 
 //func (mc *MetricCollector) Start(listenConfig net.ListenConfig, wg *sync.WaitGroup) {
-func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitGroup) {
+func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitGroup, ch *chan TelegrafMetric) error{
 	// TODO: UDP 멀티 소켓 처리
 	/*udpConn, err := listenConfig.ListenPacket(context.Background(), "udp", fmt.Sprintf(":%d", mc.UDPPort))
 	if err != nil {
 		panic(err)
 	}*/
-
 	// Telegraf 에이전트에서 보내는 모니터링 메트릭 수집
 	defer wg.Done()
 
 	for {
 
-		if !mc.Active {
-			break
-		}
-
-		//logrus.Debug("[" + mc.UUID + "] Waiting...")
-
-		buf := make([]byte, 1024*10)
-		n, _, err := udpConn.ReadFrom(buf)
-		if err != nil {
-			logrus.Error("[+"+mc.UUID+"] Failed to read bytes: ", err)
-			continue
-		}
 		metric := TelegrafMetric{}
-		if err := json.Unmarshal(buf[0:n], &metric); err != nil {
-			logrus.Error("[+"+mc.UUID+"] Failed to decode json to buf: ", string(buf[0:n]))
-			continue
+
+		select {
+		case metric = <-*ch:
+
+			if !mc.Active {
+				// tagging 채널 삭제
+				close(*ch)
+				delete(mc.TransmitDataChan, mc.UUID)
+				break
+			}
+
+			goto Start
 		}
+
+
+	Start :
 
 		hostId := metric.Tags["hostID"].(string)
 
-		// Tagging host
-		if mc.Active {
-			err = mc.TagHost(hostId)
-			if err != nil {
-				logrus.Error("[+"+mc.UUID+"] Failed to tagging host: ", err)
-				continue
-			}
+		collectorInfo := fmt.Sprintf("/collector/%s/host/%s", mc.UUID, hostId)
+		err := mc.Etcd.WriteMetric(collectorInfo, "")
+		if err != nil {
+			return err
 		}
 
 		curTimestamp := time.Now().Unix()
@@ -139,6 +136,7 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		metric.TagInfo["hostId"] = hostId
 		metric.TagInfo["osType"] = metric.Tags["osType"].(string)
 
+		//fmt.Println(metric.TagInfo["hostId"])
 		osTypeKey = fmt.Sprintf("/host/%s/tag", hostId)
 
 		if err := mc.Etcd.WriteMetric(osTypeKey, metric.TagInfo); err != nil {
@@ -160,37 +158,80 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 	}
 }
 
-func (mc *MetricCollector) Stop() {
-	// TODO: 모니터링 메트릭 수집 고루틴 종료
-}
-
 func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 	defer wg.Done()
 	for {
 		select {
-		// TODO: 모니터링 메트릭 Aggregate 고루틴 종료
+		// check aggregating model
 		case <-*c:
 			logrus.Debug("======================================================================")
 			logrus.Debug("[" + mc.UUID + "]Start Aggregate!!")
+			fmt.Println("[" + mc.UUID + "] Start Aggregate!!", time.Now())
 			err := mc.Aggregator.AggregateMetric(mc.UUID)
 			if err != nil {
 				logrus.Error("["+mc.UUID+"]Failed to aggregate meric", err)
 			}
-			err = mc.UntagHost()
-			if err != nil {
-				logrus.Error("["+mc.UUID+"]Failed to untag host", err)
-			}
+			//err = mc.UntagHost()
+			//if err != nil {
+			//	logrus.Error("["+mc.UUID+"]Failed to untag host", err)
+			//}
 			logrus.Debug("======================================================================")
+
+			fmt.Print("mc.MarkingAgent : ")
+			for key, _ := range mc.MarkingAgent{
+				print(key, ", ")
+			}
+			fmt.Println("")
+			//fmt.Println("mc.MetricCollectorIdx : ", mc.MetricCollectorIdx)
 
 			// 콜렉터 비활성화 시 aggregate 채널 삭제
 			if !mc.Active {
 				// aggregate 채널 삭제
 				close(*c)
-				delete(mc.CollectorChan, mc.UUID)
+				delete(mc.AggregatingChan, mc.UUID)
 				return
 			}
 		}
 	}
+}
+
+/*
+func (mc *MetricCollector) UntagHost() error {
+
+	// 현재 콜렉터에 태그된 호스트 목록 가져오기
+	var hostArr []string
+	tagKey := fmt.Sprintf("/collector/%s/host", mc.UUID)
+	resp, err := mc.Etcd.ReadMetric(tagKey)
+	if err != nil {
+		return err
+	}
+
+	// 호스트 목록 슬라이스 생성
+	for _, vm := range resp.Nodes {
+		hostId := strings.Split(vm.Key, "/")[4]
+		hostArr = append(hostArr, hostId)
+	}
+
+	// 전체 호스트 목록에서 VM 태그 목록 삭제
+	for _, hostId := range hostArr {
+		hostKey := fmt.Sprintf("/host-list/%s", hostId)
+		err := mc.Etcd.DeleteMetric(hostKey)
+		if err != nil {
+			logrus.Error("Failed to untag VM", err)
+			return err
+		}
+	}
+	mc.HostInfo.DeleteHost(hostArr)
+
+	// 콜렉터에 등록된 VM 태그 목록 삭제
+	tagKey = fmt.Sprintf("/collector/%s", mc.UUID)
+	err = mc.Etcd.DeleteMetric(tagKey)
+	if err != nil {
+		logrus.Error("Failed to untag VM", err)
+		return err
+	}
+
+	return nil
 }
 
 func (mc *MetricCollector) TagHost(hostId string) error {
@@ -200,6 +241,7 @@ func (mc *MetricCollector) TagHost(hostId string) error {
 	hostKey := fmt.Sprintf("/host-list/%s", hostId)
 	_, err := mc.Etcd.ReadMetric(hostKey)
 
+	//fmt.Println(hostId)
 	if err != nil {
 		if v, ok := err.(client.Error); ok {
 			if v.Code == 100 { // ErrorCode 100 = Key Not Found Error
@@ -214,12 +256,14 @@ func (mc *MetricCollector) TagHost(hostId string) error {
 	// TODO: 추후 로컬 변수가 아니라 etcd 기준으로 Mutex 처리
 	// 호스트 목록에 등록되지 않았지만 내부 로컬 변수에 남아있는 데이터 삭제 처리
 	if !isTagged && mc.HostInfo.GetHostById(hostId) != "" {
+		//fmt.Println(hostId)
 		mc.HostInfo.DeleteHost([]string{hostId})
 	}
 
 	// 등록되어 있지 않은 호스트라면 호스트 목록에 등록 후 현재 콜렉터 기준으로 태깅
 	if !isTagged && mc.HostInfo.GetHostById(hostId) == "" {
 		// 호스트 목록에 등록
+		//fmt.Println(hostId)
 		mc.HostInfo.AddHost(hostId)
 		err := mc.Etcd.WriteMetric(hostKey, hostKey)
 		if err != nil {
@@ -273,3 +317,4 @@ func (mc *MetricCollector) UntagHost() error {
 
 	return nil
 }
+*/
