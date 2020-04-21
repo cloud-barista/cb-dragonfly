@@ -6,7 +6,7 @@ import (
 
 type CollectorScheduler struct {
 	cm *CollectManager
-//	LoadQueue [] map[string] TelegrafMetric
+	//	LoadQueue [] map[string] TelegrafMetric
 }
 
 func NewCollectorScheduler(cm *CollectManager) CollectorScheduler {
@@ -25,7 +25,7 @@ func (c CollectorScheduler) CheckScaleCondition() error {
 	currentCollectorN := len(c.cm.CollectorIdx)
 	collectorAddr := c.cm.CollectorUUIDAddr
 
-	if maxHostCount*currentCollectorN < totalHostCnt{
+	if maxHostCount*currentCollectorN < totalHostCnt {
 
 		scaleCnt = totalHostCnt/maxHostCount - currentCollectorN
 
@@ -36,10 +36,9 @@ func (c CollectorScheduler) CheckScaleCondition() error {
 		scalingEvent = "out"
 	}
 
+	for _, colAddr := range collectorAddr {
 
-	for _, colAddr := range collectorAddr{
-
-		if currentCollectorN != 1 && len((*colAddr).MarkingAgent) == 0{
+		if currentCollectorN != 1 && len((*colAddr).MarkingAgent) == 0 {
 			isScaling = true
 			scalingEvent = "in"
 			break
@@ -63,22 +62,22 @@ func (c CollectorScheduler) CheckScaleCondition() error {
 
 func (c CollectorScheduler) ScaleIn() error {
 	/*
-	for collectorId := range c.cm.CollectorUUIDAddr {
-		if scaleCnt == 0 {
-			break
-		}
-		if err := c.cm.StopCollector(collectorId); err != nil {
-			logrus.Error("failed to stop collector")
-			continue
-		}
-		scaleCnt--
-	}*/
+		for collectorId := range c.cm.CollectorUUIDAddr {
+			if scaleCnt == 0 {
+				break
+			}
+			if err := c.cm.StopCollector(collectorId); err != nil {
+				logrus.Error("failed to stop collector")
+				continue
+			}
+			scaleCnt--
+		}*/
 	collectorIdx := c.cm.CollectorIdx
 	collectorUUIDAddr := c.cm.CollectorUUIDAddr
 
-	for idx, uuid := range collectorIdx{
+	for idx, uuid := range collectorIdx {
 
-		if len((*collectorUUIDAddr[uuid]).MarkingAgent) ==0 {
+		if len((*collectorUUIDAddr[uuid]).MarkingAgent) == 0 {
 			//delete(c.cm.CollectorUUIDAddr, uuid)
 			c.cm.CollectorIdx = c.cm.CollectorIdx[:idx]
 			c.cm.StopCollector(uuid)

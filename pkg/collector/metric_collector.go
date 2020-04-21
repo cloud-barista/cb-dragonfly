@@ -13,16 +13,16 @@ import (
 )
 
 type MetricCollector struct {
-	MarkingAgent	  map[string] string
+	MarkingAgent      map[string]string
 	UUID              string
 	AggregateInterval int
 	InfluxDB          metricstore.Storage
 	Etcd              realtimestore.Storage
 	Aggregator        Aggregator
 	//HostInfo          *HostInfo
-	AggregatingChan     map[string]*chan string
-	TransmitDataChan       map[string]*chan TelegrafMetric
-	Active            bool
+	AggregatingChan  map[string]*chan string
+	TransmitDataChan map[string]*chan TelegrafMetric
+	Active           bool
 	//UdpConn         net.UDPConn
 }
 
@@ -45,7 +45,7 @@ type DeviceInfo struct {
 }
 
 // 메트릭 콜렉터 초기화
-func NewMetricCollector(markingAgent map[string] string,interval int, etcd *realtimestore.Storage, influxDB *metricstore.Storage, aggregateType AggregateType, /*hostList *HostInfo, */aggregatingChan map[string]*chan string, transmitDataChan map[string]* chan TelegrafMetric) MetricCollector {
+func NewMetricCollector(markingAgent map[string]string, interval int, etcd *realtimestore.Storage, influxDB *metricstore.Storage, aggregateType AggregateType /*hostList *HostInfo, */, aggregatingChan map[string]*chan string, transmitDataChan map[string]*chan TelegrafMetric) MetricCollector {
 
 	// UUID 생성
 	uuid := uuid.New().String()
@@ -53,7 +53,7 @@ func NewMetricCollector(markingAgent map[string] string,interval int, etcd *real
 	// 모니터링 메트릭 Collector 초기화
 	mc := MetricCollector{
 		//MetricCollectorIdx:	   metricCollectorIdx,
-		MarkingAgent:	   markingAgent,
+		MarkingAgent:      markingAgent,
 		UUID:              uuid,
 		AggregateInterval: interval,
 		Etcd:              *etcd,
@@ -63,16 +63,16 @@ func NewMetricCollector(markingAgent map[string] string,interval int, etcd *real
 			AggregateType: aggregateType,
 		},
 		//HostInfo:      hostList,
-		AggregatingChan: aggregatingChan,
-		TransmitDataChan : transmitDataChan,
-		Active:        true,
+		AggregatingChan:  aggregatingChan,
+		TransmitDataChan: transmitDataChan,
+		Active:           true,
 	}
 
 	return mc
 }
 
 //func (mc *MetricCollector) Start(listenConfig net.ListenConfig, wg *sync.WaitGroup) {
-func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitGroup, ch *chan TelegrafMetric) error{
+func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitGroup, ch *chan TelegrafMetric) error {
 	// TODO: UDP 멀티 소켓 처리
 	/*udpConn, err := listenConfig.ListenPacket(context.Background(), "udp", fmt.Sprintf(":%d", mc.UDPPort))
 	if err != nil {
@@ -98,8 +98,7 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 			goto Start
 		}
 
-
-	Start :
+	Start:
 
 		hostId := metric.Tags["hostID"].(string)
 
@@ -166,7 +165,7 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 		case <-*c:
 			logrus.Debug("======================================================================")
 			logrus.Debug("[" + mc.UUID + "]Start Aggregate!!")
-			fmt.Println("[" + mc.UUID + "] Start Aggregate!!", time.Now())
+			fmt.Println("["+mc.UUID+"] Start Aggregate!!", time.Now())
 			err := mc.Aggregator.AggregateMetric(mc.UUID)
 			if err != nil {
 				logrus.Error("["+mc.UUID+"]Failed to aggregate meric", err)
@@ -178,7 +177,7 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 			logrus.Debug("======================================================================")
 
 			fmt.Print("mc.MarkingAgent : ")
-			for key, _ := range mc.MarkingAgent{
+			for key, _ := range mc.MarkingAgent {
 				print(key, ", ")
 			}
 			fmt.Println("")

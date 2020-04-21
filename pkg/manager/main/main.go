@@ -70,7 +70,6 @@ func main() {
 	}
 	go apiServer.StartAPIServer(&wg)
 
-
 	// 모든 고루틴이 종료될 때까지 대기
 	wg.Wait()
 }
