@@ -34,6 +34,7 @@ ENV CBMON_PATH $GOPATH/cb-dragonfly
 RUN cd $GOPATH/cb-dragonfly/pkg/manager/main;go build -o runMyapp;cp runMyapp $GOPATH/cb-dragonfly
 
 #ENTRYPOINT ["./runMyapp"]
+ENV DRAGONFLY_INFLUXDB_URL 127.0.0.1:8086
 ENTRYPOINT ["./wait-for-it-wrapper.sh"]
 
 EXPOSE 8094/udp 9090
