@@ -2,19 +2,19 @@
 
 # influxdb connection info
 influxdb:
-  endpoint_url: http://{{influxdb_ip}}:8086
+  endpoint_url: http://127.0.0.1:8086 # endpoint for influxDB
   database: cbmon
   user_name: cbmon
-  password: {{password}}
+  password: password
 
 # etcd connection info
 etcd:
-  endpoint_url: http://{{etcd_ip}}:2379
+  endpoint_url: http://127.0.0.1:2379 # endpoint to etcd storage
   ttl: 60                 # time to live (s)
 
 # collect manager configuration info
 collect_manager:
-  collector_ip: {{collector_ip}}
+  collector_ip: 127.0.0.1 # local access endpoint to cb-dragonfly API server
   collector_port: 8094    # udp port
   collector_count: 1      # default collector count
 
