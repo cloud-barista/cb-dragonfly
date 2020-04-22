@@ -33,6 +33,7 @@ ENV CBMON_PATH $GOPATH/cb-dragonfly
 
 RUN cd $GOPATH/cb-dragonfly/pkg/manager/main;go build -o runMyapp;cp runMyapp $GOPATH/cb-dragonfly
 
-ENTRYPOINT ["./runMyapp"]
+#ENTRYPOINT ["./runMyapp"]
+ENTRYPOINT ["./wait-for-it-wrapper.sh"]
 
 EXPOSE 8094/udp 9090
