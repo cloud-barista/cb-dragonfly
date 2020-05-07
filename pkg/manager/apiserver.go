@@ -9,6 +9,8 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
+	"github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
+	"github.com/google/uuid"
 	"github.com/influxdata/influxdb1-client/models"
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
@@ -612,6 +614,41 @@ func (apiServer *APIServer) GetTelegrafPkgFile(c echo.Context) error {
 	return c.File(filePath)
 }
 
+func (apiServer *APIServer) createTelegrafConfigFile(mcisId string, vmId string) (string, error) {
+
+	collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.CollectManager.CollectorPort)
+
+	rootPath := os.Getenv("CBMON_PATH")
+	filePath := rootPath + "/file/conf/telegraf.conf"
+
+	read, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		// ERROR 정보 출럭
+		logrus.Error("failed to read telegraf.conf file.")
+		return "", err
+	}
+
+	// 파일 내의 변수 값 설정 (hostId, collectorServer)
+	strConf := string(read)
+	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", mcisId)
+	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
+	strConf = strings.ReplaceAll(strConf, "{{collector_server}}", collectorServer)
+	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", apiServer.config.InfluxDB.EndpointUrl)
+
+	// telegraf.conf 파일 생성
+	telegrafFilePath := rootPath + "/file/conf/"
+	createFileName := "telegraf-" + uuid.New().String() + ".conf"
+	telegrafConfFile := telegrafFilePath + createFileName
+
+	err = ioutil.WriteFile(telegrafConfFile, []byte(strConf), os.FileMode(777))
+	if err != nil {
+		logrus.Error("failed to create telegraf.conf file.")
+		return "", err
+	}
+
+	return telegrafConfFile, err
+}
+
 func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 	// form 파라미터 값 가져오기
 	mcisId := c.FormValue("mcis_id")
@@ -626,24 +663,93 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
+	sshInfo := sshrun.SSHInfo{
+		ServerPort: publicIp,       //serverEndPoint
+		UserName:   userName,       //userName
+		PrivateKey: []byte(sshKey), //[]byte(privateKey)
+	}
+
+	// {사용자계정}/cb-dragonfly 폴더 생성
+	createFolderCmd := fmt.Sprintf("mkdir /%s/cb-dragonfly", userName)
+	if _, err := sshrun.SSHRun(sshInfo, createFolderCmd); err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	// 리눅스 OS 환경 체크
+	osType, err := sshrun.SSHRun(sshInfo, "hostnamectl | grep 'Operating System' | awk '{print $3}' | tr 'a-z' 'A-Z'")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	rootPath := os.Getenv("CBMON_PATH")
+
+	var sourceFile, targetFile, installCmd string
+	if strings.Contains(osType, "CENTOS") {
+		sourceFile = rootPath + "/file/pkg/centos/x64/telegraf-1.12.0~f09f2b5-0.x86_64.rpm"
+		targetFile = fmt.Sprintf("/%s/cb-dragonfly/cb-agent.rpm", userName)
+		installCmd = fmt.Sprintf("rpm -ivh /%s/cb-dragonfly/cb-agent.rpm", userName)
+	} else if strings.Contains(osType, "UBUNTU") {
+		sourceFile = rootPath + "/file/pkg/ubuntu/x64/telegraf_1.12.0~f09f2b5-0_amd64.deb"
+		targetFile = fmt.Sprintf("/%s/cb-dragonfly/cb-agent.deb", userName)
+		installCmd = fmt.Sprintf("dpkg -i /%s/cb-mon/cb-agent.deb", userName)
+	}
+
+	// 에이전트 설치 패키지 다운로드
+	if err := sshrun.SSHCopy(sshInfo, sourceFile, targetFile); err != nil {
+		return err
+	}
+	// 패키지 설치 실행
+	if _, err := sshrun.SSHRun(sshInfo, installCmd); err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	// 공통 서비스 활성화 및 실행
+
+	// 설치시 자동 생성되는 telegraf_conf 파일 제거
+	if _, err := sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf"); err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+	// telegraf_conf 파일 복사
+	telegrafConfSourceFile, err := apiServer.createTelegrafConfigFile(mcisId, vmId)
+	telegrafConfTargetFile := "/etc/telegraf/telegraf.conf"
+	if err != nil {
+		return err
+	}
+
+	if err := sshrun.SSHCopy(sshInfo, telegrafConfSourceFile, telegrafConfTargetFile); err != nil {
+		return err
+	}
+
+	// telegraf UUId conf 파일 삭제
+	err = os.Remove(sourceFile)
+	if err != nil {
+		logrus.Error("failed to remove telegraf_UUID_conf File")
+	}
+
+	// 에이전트 설치에 사용한 파일 폴더 채로 제거
+	removeRpmCmd := fmt.Sprintf("sudo rm -r /%s/cb-dragonfly/", userName)
+	if _, err := sshrun.SSHRun(sshInfo, removeRpmCmd); err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
 	// 설치 스크립트 다운로드
-	apiEndpoint := fmt.Sprintf("%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.APIServer.Port)
+	/*apiEndpoint := fmt.Sprintf("%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.APIServer.Port)
 	downloadCmd := fmt.Sprintf("wget -O agent_install.sh \"http://%s/mon/file/agent/install?mcis_id=%s&vm_id=%s\"", apiEndpoint, mcisId, vmId)
 	if _, err := util.RunCommand(publicIp, userName, sshKey, downloadCmd); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
-	}
+	}*/
 
 	// 설치 스크립트 실행 권한 추가
-	chmodCmd := fmt.Sprintf("chmod +x agent_install.sh")
+	/*chmodCmd := fmt.Sprintf("chmod +x agent_install.sh")
 	if _, err := util.RunCommand(publicIp, userName, sshKey, chmodCmd); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
-	}
+	}*/
 
 	// 설치 스크립트 실행
-	execCmd := fmt.Sprintf("bash agent_install.sh")
+	/*execCmd := fmt.Sprintf("bash agent_install.sh")
 	if _, err := util.RunCommand(publicIp, userName, sshKey, execCmd); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
-	}
+	}*/
 
 	// 정상 설치 확인
 	checkCmd := "telegraf --version"
