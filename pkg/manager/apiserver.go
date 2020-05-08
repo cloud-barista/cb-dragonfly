@@ -705,11 +705,6 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	// 공통 서비스 활성화 및 실행
-	if _, err := sshrun.SSHRun(sshInfo, "sudo systemctl enable telegraf && sudo systemctl restart telegraf"); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-
 	// 설치시 자동 생성되는 telegraf_conf 파일 제거
 	if _, err := sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf"); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
@@ -730,6 +725,11 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 	if _, err := sshrun.SSHRun(sshInfo, "sudo mv $HOME/cb-dragonfly/telegraf.conf /etc/telegraf/"); err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	// 공통 서비스 활성화 및 실행
+	if _, err := sshrun.SSHRun(sshInfo, "sudo systemctl enable telegraf && sudo systemctl restart telegraf"); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
