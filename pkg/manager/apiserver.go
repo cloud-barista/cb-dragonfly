@@ -723,12 +723,15 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 	}
 
 	// telegraf_conf 파일 이동
+	if _, err := sshrun.SSHRun(sshInfo, "sudo chown root:root $HOME/cb-dragonfly/telegraf.conf"); err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
 	if _, err := sshrun.SSHRun(sshInfo, "sudo mv $HOME/cb-dragonfly/telegraf.conf /etc/telegraf/"); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
 	// telegraf UUId conf 파일 삭제
-	err = os.Remove(sourceFile)
+	err = os.Remove(telegrafConfSourceFile)
 	if err != nil {
 		logrus.Error("failed to remove telegraf_UUID_conf File")
 	}
