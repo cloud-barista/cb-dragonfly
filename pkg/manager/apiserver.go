@@ -5,16 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
-	"github.com/cloud-barista/cb-dragonfly/pkg/util"
-	"github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
-	"github.com/google/uuid"
-	"github.com/influxdata/influxdb1-client/models"
-	"github.com/labstack/echo/v4"
-	"github.com/sirupsen/logrus"
-	"go.etcd.io/etcd/client"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -23,6 +13,18 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
+	"github.com/google/uuid"
+	"github.com/influxdata/influxdb1-client/models"
+	"github.com/labstack/echo/v4"
+	"github.com/sirupsen/logrus"
+	"go.etcd.io/etcd/client"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 )
 
 type APIServer struct {
@@ -664,13 +666,13 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 	}
 
 	sshInfo := sshrun.SSHInfo{
-		ServerPort: publicIp,       //serverEndPoint
-		UserName:   userName,       //userName
-		PrivateKey: []byte(sshKey), //[]byte(privateKey)
+		ServerPort: publicIp + ":22", //serverEndPoint
+		UserName:   userName,         //userName
+		PrivateKey: []byte(sshKey),   //[]byte(privateKey)
 	}
 
 	// {사용자계정}/cb-dragonfly 폴더 생성
-	createFolderCmd := fmt.Sprintf("mkdir /%s/cb-dragonfly", userName)
+	createFolderCmd := fmt.Sprintf("mkdir $HOME/cb-dragonfly")
 	if _, err := sshrun.SSHRun(sshInfo, createFolderCmd); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
@@ -686,12 +688,12 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 	var sourceFile, targetFile, installCmd string
 	if strings.Contains(osType, "CENTOS") {
 		sourceFile = rootPath + "/file/pkg/centos/x64/telegraf-1.12.0~f09f2b5-0.x86_64.rpm"
-		targetFile = fmt.Sprintf("/%s/cb-dragonfly/cb-agent.rpm", userName)
-		installCmd = fmt.Sprintf("rpm -ivh /%s/cb-dragonfly/cb-agent.rpm", userName)
+		targetFile = fmt.Sprintf("$HOME/cb-dragonfly/cb-agent.rpm")
+		installCmd = fmt.Sprintf("sudo rpm -ivh $HOME/cb-dragonfly/cb-agent.rpm")
 	} else if strings.Contains(osType, "UBUNTU") {
 		sourceFile = rootPath + "/file/pkg/ubuntu/x64/telegraf_1.12.0~f09f2b5-0_amd64.deb"
-		targetFile = fmt.Sprintf("/%s/cb-dragonfly/cb-agent.deb", userName)
-		installCmd = fmt.Sprintf("dpkg -i /%s/cb-mon/cb-agent.deb", userName)
+		targetFile = fmt.Sprintf("$HOME/cb-dragonfly/cb-agent.deb")
+		installCmd = fmt.Sprintf("sudo dpkg -i $HOME/cb-dragonfly/cb-agent.deb")
 	}
 
 	// 에이전트 설치 패키지 다운로드
@@ -709,15 +711,20 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 	if _, err := sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf"); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
+
 	// telegraf_conf 파일 복사
 	telegrafConfSourceFile, err := apiServer.createTelegrafConfigFile(mcisId, vmId)
-	telegrafConfTargetFile := "/etc/telegraf/telegraf.conf"
+	telegrafConfTargetFile := "$HOME/cb-dragonfly/telegraf.conf"
 	if err != nil {
 		return err
 	}
-
 	if err := sshrun.SSHCopy(sshInfo, telegrafConfSourceFile, telegrafConfTargetFile); err != nil {
 		return err
+	}
+
+	// telegraf_conf 파일 이동
+	if _, err := sshrun.SSHRun(sshInfo, "sudo mv $HOME/cb-dragonfly/telegraf.conf /etc/telegraf/"); err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
 	}
 
 	// telegraf UUId conf 파일 삭제
@@ -727,7 +734,7 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 	}
 
 	// 에이전트 설치에 사용한 파일 폴더 채로 제거
-	removeRpmCmd := fmt.Sprintf("sudo rm -r /%s/cb-dragonfly/", userName)
+	removeRpmCmd := fmt.Sprintf("sudo rm -rf $HOME/cb-dragonfly")
 	if _, err := sshrun.SSHRun(sshInfo, removeRpmCmd); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
