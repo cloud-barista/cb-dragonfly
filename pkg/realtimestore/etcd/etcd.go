@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/client"
@@ -45,25 +46,24 @@ func (s *Storage) WriteMetric(key string, metric interface{}) error {
 
 	//fmt.Println(fmt.Sprintf("[ETCD] receive &metric : %p", &metric))
 
-	metricVal := metric.(string)
-	//var metricVal string
-	//
-	//_, ok := metric.(map[string]interface{})
-	//if ok {
-	//
-	//	s.L.Lock()
-	//	bytes, err := json.Marshal(metric)
-	//	s.L.Unlock()
-	//
-	//	if err != nil {
-	//		logrus.Error("Failed to marshaling realtime monitoring data to JSON: ", err)
-	//		return err
-	//	}
-	//
-	//	metricVal = fmt.Sprintf("%s", bytes)
-	//} else {
-	//	metricVal = metric.(string)
-	//}
+	var metricVal string
+
+	_, ok := metric.(map[string]interface{})
+	if ok {
+
+		s.L.Lock()
+		bytes, err := json.Marshal(metric)
+		s.L.Unlock()
+
+		if err != nil {
+			logrus.Error("Failed to marshaling realtime monitoring data to JSON: ", err)
+			return err
+		}
+
+		metricVal = fmt.Sprintf("%s", bytes)
+	} else {
+		metricVal = metric.(string)
+	}
 
 	// 실시간 모니터링 데이터 저장
 	// TODO: 추후 모니터링 데이터 TTL(Time To Live) 설정 추가

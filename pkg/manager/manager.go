@@ -30,14 +30,13 @@ type CollectManager struct {
 	Aggregator        collector.Aggregator
 	WaitGroup         *sync.WaitGroup
 	UdpCOnn           *net.UDPConn
-	//metricL			*sync.RWMutex
+	metricL			*sync.RWMutex
 	CollectorIdx      []string
 	CollectorUUIDAddr map[string]*collector.MetricCollector
 	AggregatingChan   map[string]*chan string
 	TransmitDataChan  map[string]*chan collector.TelegrafMetric
 	AgentQueueTTL     map[string]time.Time
 	AgentQueueColN    map[string]int
-	PreventSync 	*sync.RWMutex
 	//HostInfo      collector.HostInfo
 	//HostCnt       int
 }
@@ -82,7 +81,7 @@ func NewCollectorManager() (*CollectManager, error) {
 		return nil, err
 	}
 
-	manager.PreventSync = &sync.RWMutex{}
+	manager.metricL = &sync.RWMutex{}
 
 	manager.Etcd = etcd
 
@@ -155,7 +154,7 @@ func (manager *CollectManager) CreateLoadBalancer(wg *sync.WaitGroup) error {
 func (manager *CollectManager) StartLoadBalancer(udpConn net.PacketConn, wg *sync.WaitGroup) {
 
 	defer wg.Done()
-	metric := collector.TelegrafMetric{}
+	//metric := collector.TelegrafMetric{}
 	//logicStartTime := time.Now()
 	//monConfig, err := manager.GetConfigInfo()
 	//if err != nil {
@@ -163,7 +162,7 @@ func (manager *CollectManager) StartLoadBalancer(udpConn net.PacketConn, wg *syn
 	//}
 
 	for {
-
+		metric := collector.TelegrafMetric{}
 		buf := make([]byte, 1024*10)
 
 		n, _, err := udpConn.ReadFrom(buf)
@@ -171,13 +170,12 @@ func (manager *CollectManager) StartLoadBalancer(udpConn net.PacketConn, wg *syn
 		if err != nil {
 			logrus.Error("UDPLoadBalancer : failed to read bytes: ", err)
 		}
-		manager.PreventSync.RLock()
+		manager.metricL.RLock()
 		if err := json.Unmarshal(buf[0:n], &metric); err != nil {
 			logrus.Error("Failed to decode json to buf: ", string(buf[0:n]))
 			continue
 		}
-		manager.PreventSync.RUnlock()
-
+		manager.metricL.RUnlock()
 		//fmt.Println("\n metric : ", metric)
 		hostId := metric.Tags["hostID"].(string)
 
@@ -380,7 +378,7 @@ func (manager *CollectManager) StartCollector(wg *sync.WaitGroup) error {
 
 func (manager *CollectManager) CreateCollector() error {
 	// 실시간 데이터 저장을 위한 collector 고루틴 실행
-	mc := collector.NewMetricCollector(map[string]string{}, manager.Config.Monitoring.CollectorInterval, &manager.Etcd, &manager.InfluxdDB, collector.AVG, manager.AggregatingChan, manager.TransmitDataChan)
+	mc := collector.NewMetricCollector(map[string]string{}, manager.metricL, manager.Config.Monitoring.CollectorInterval, &manager.Etcd, &manager.InfluxdDB, collector.AVG, manager.AggregatingChan, manager.TransmitDataChan)
 
 	manager.CollectorIdx = append(manager.CollectorIdx, mc.UUID)
 
@@ -444,13 +442,13 @@ func (manager *CollectManager) StartAggregateScheduler(wg *sync.WaitGroup, c *ma
 			logrus.Error("failed to get monitoring config info", err)
 		}
 
-		//fmt.Print("\nmanager.AgentQueueColN : ")
-		//fmt.Print("[0] : ")
-		//for key, val := range manager.AgentQueueColN{
-		//	if val == 0 {
-		//		fmt.Print(key,", ")
-		//	}
-		//}
+		fmt.Print("\nmanager.AgentQueueColN : ")
+		fmt.Print("[0] : ")
+		for key, val := range manager.AgentQueueColN{
+			if val == 0 {
+				fmt.Print(key,", ")
+			}
+		}
 		fmt.Println("")
 		fmt.Print("TTL queue List : ")
 		for key, _ := range manager.AgentQueueTTL{

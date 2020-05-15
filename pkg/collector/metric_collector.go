@@ -57,7 +57,7 @@ type DeviceInfo struct {
 }
 
 // 메트릭 콜렉터 초기화
-func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex, interval int, etcd *realtimestore.Storage, influxDB *metricstore.Storage, aggregateType AggregateType /*hostList *HostInfo, */, aggregatingChan map[string]*chan string, transmitDataChan map[string]*chan TelegrafMetric) MetricCollector {
+func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex,interval int, etcd *realtimestore.Storage, influxDB *metricstore.Storage, aggregateType AggregateType /*hostList *HostInfo, */, aggregatingChan map[string]*chan string, transmitDataChan map[string]*chan TelegrafMetric) MetricCollector {
 
 	// UUID 생성
 	uuid := uuid.New().String()
@@ -158,15 +158,15 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 			metricKey = fmt.Sprintf("/host/%s/metric/%s/%d", hostId, metric.Name, curTimestamp)
 		}
 
-		FieldsBytes, err :=  mc.MyMarshal(metric.Fields)
-		//s.L.Unlock()
-		if err != nil {
-			logrus.Error("Failed to marshaling TagInfo data to JSON: ", err)
-			//	s.L.Unlock()
-			return err
-		}
+		//FieldsBytes, err :=  mc.MyMarshal(metric.Fields)
+		////s.L.Unlock()
+		//if err != nil {
+		//	logrus.Error("Failed to marshaling TagInfo data to JSON: ", err)
+		//	//	s.L.Unlock()
+		//	return err
+		//}
 
-		if err := mc.Etcd.WriteMetric(metricKey, fmt.Sprintf("%s", FieldsBytes)); err != nil {
+		if err := mc.Etcd.WriteMetric(metricKey, metric.Fields); err != nil {
 			logrus.Error(err)
 		}
 
@@ -178,17 +178,19 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		//fmt.Println(metric.TagInfo["hostId"])
 		osTypeKey = fmt.Sprintf("/host/%s/tag", hostId)
 
-		TagInfoBytes, err := mc.MyMarshal(metric.TagInfo)
-		//s.L.Unlock()
-		if err != nil {
-			logrus.Error("Failed to marshaling TagInfo data to JSON: ", err)
-			//	s.L.Unlock()
-			return err
-		}
-		if err := mc.Etcd.WriteMetric(osTypeKey, fmt.Sprintf("%s", TagInfoBytes)); err != nil {
-			logrus.Error(err)
-		}
-
+		//TagInfoBytes, err := mc.MyMarshal(metric.TagInfo)
+		////s.L.Unlock()
+		//if err != nil {
+		//	logrus.Error("Failed to marshaling TagInfo data to JSON: ", err)
+		//	//	s.L.Unlock()
+		//	return err
+		//}
+		//if err := mc.Etcd.WriteMetric(osTypeKey, fmt.Sprintf("%s", TagInfoBytes)); err != nil {
+		//	logrus.Error(err)
+		//}
+		if err := mc.Etcd.WriteMetric(osTypeKey, metric.TagInfo); err != nil {
+				logrus.Error(err)
+			}
 		/*
 			host := metric.Tags["host"].(string)
 			logrus.Debug("======================================================================")
@@ -251,8 +253,9 @@ func (mc *MetricCollector) MyMarshal(metric interface{}) (string, error) {
 
 	_, ok := metric.(map[string]interface{})
 	if ok {
-		//mc.PreventSync.PreventSync.Lock()
+		mc.metricL.Lock()
 		bytes, err := json.Marshal(metric)
+		mc.metricL.Unlock()
 		//mc.PreventSync.PreventSync.Unlock()
 		if err != nil {
 			logrus.Error("Failed to marshaling realtime monitoring data to JSON: ", err)
