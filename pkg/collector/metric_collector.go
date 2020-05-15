@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
@@ -17,6 +18,7 @@ type MetricCollector struct {
 	UUID              string
 	AggregateInterval int
 	InfluxDB          metricstore.Storage
+	metricL 		*sync.RWMutex
 	Etcd              realtimestore.Storage
 	Aggregator        Aggregator
 	//HostInfo          *HostInfo
@@ -38,6 +40,16 @@ type TagMetric struct {
 	Tags map[string]interface{} `json:"tags"`
 }
 
+//type syncTelegrafMetric struct {
+//	syn sync.RWMutex
+//	telegrafMetric TelegrafMetric
+//}
+//
+//type syncTagMetric struct {
+//	syn sync.RWMutex
+//	tagMetric TagMetric
+//}
+
 type DeviceInfo struct {
 	HostID     string `json:"host_id"`
 	MetricName string `json:"host_id"`
@@ -45,7 +57,7 @@ type DeviceInfo struct {
 }
 
 // 메트릭 콜렉터 초기화
-func NewMetricCollector(markingAgent map[string]string, interval int, etcd *realtimestore.Storage, influxDB *metricstore.Storage, aggregateType AggregateType /*hostList *HostInfo, */, aggregatingChan map[string]*chan string, transmitDataChan map[string]*chan TelegrafMetric) MetricCollector {
+func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex, interval int, etcd *realtimestore.Storage, influxDB *metricstore.Storage, aggregateType AggregateType /*hostList *HostInfo, */, aggregatingChan map[string]*chan string, transmitDataChan map[string]*chan TelegrafMetric) MetricCollector {
 
 	// UUID 생성
 	uuid := uuid.New().String()
@@ -57,6 +69,7 @@ func NewMetricCollector(markingAgent map[string]string, interval int, etcd *real
 		UUID:              uuid,
 		AggregateInterval: interval,
 		Etcd:              *etcd,
+		metricL : mutexLock,
 		Aggregator: Aggregator{
 			Etcd:          *etcd,
 			InfluxDB:      *influxDB,
@@ -78,16 +91,20 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 	if err != nil {
 		panic(err)
 	}*/
+
 	// Telegraf 에이전트에서 보내는 모니터링 메트릭 수집
 	defer wg.Done()
-
 	for {
+		//var metric = struct {
+		//	sync.RWMutex
+		//	m TelegrafMetric
+		//}{}
 
 		metric := TelegrafMetric{}
-
 		select {
 		case metric = <-*ch:
-
+			//fmt.Println(fmt.Sprintf("[%s] receive &metric : %p", mc.UUID, &metric))
+			//fmt.Println(fmt.Sprintf("[%s] receive metric %s", mc.UUID, metric))
 			if !mc.Active {
 				// tagging 채널 삭제
 				close(*ch)
@@ -100,10 +117,25 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 
 	Start:
 
-		hostId := metric.Tags["hostID"].(string)
 
+		hostId, ok := metric.Tags["hostID"].(string)
+
+		if !ok {
+			continue
+		}
+
+		if _, ok := mc.MarkingAgent[hostId]; !ok {
+			continue
+		}
 		collectorInfo := fmt.Sprintf("/collector/%s/host/%s", mc.UUID, hostId)
+		//fmt.Print("mc.MarkingAgent : ", mc.MarkingAgent)
+		//fmt.Println("")
+		//fmt.Print(mc.UUID, " : ", hostId)
+		//fmt.Println("")
+		//mc.L.RLock()
 		err := mc.Etcd.WriteMetric(collectorInfo, "")
+		//mc.L.RUnlock()
+
 		if err != nil {
 			return err
 		}
@@ -126,7 +158,15 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 			metricKey = fmt.Sprintf("/host/%s/metric/%s/%d", hostId, metric.Name, curTimestamp)
 		}
 
-		if err := mc.Etcd.WriteMetric(metricKey, metric.Fields); err != nil {
+		FieldsBytes, err :=  mc.MyMarshal(metric.Fields)
+		//s.L.Unlock()
+		if err != nil {
+			logrus.Error("Failed to marshaling TagInfo data to JSON: ", err)
+			//	s.L.Unlock()
+			return err
+		}
+
+		if err := mc.Etcd.WriteMetric(metricKey, fmt.Sprintf("%s", FieldsBytes)); err != nil {
 			logrus.Error(err)
 		}
 
@@ -138,7 +178,14 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		//fmt.Println(metric.TagInfo["hostId"])
 		osTypeKey = fmt.Sprintf("/host/%s/tag", hostId)
 
-		if err := mc.Etcd.WriteMetric(osTypeKey, metric.TagInfo); err != nil {
+		TagInfoBytes, err := mc.MyMarshal(metric.TagInfo)
+		//s.L.Unlock()
+		if err != nil {
+			logrus.Error("Failed to marshaling TagInfo data to JSON: ", err)
+			//	s.L.Unlock()
+			return err
+		}
+		if err := mc.Etcd.WriteMetric(osTypeKey, fmt.Sprintf("%s", TagInfoBytes)); err != nil {
 			logrus.Error(err)
 		}
 
@@ -166,6 +213,7 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 			logrus.Debug("======================================================================")
 			logrus.Debug("[" + mc.UUID + "]Start Aggregate!!")
 			fmt.Println("["+mc.UUID+"] Start Aggregate!!", time.Now())
+			fmt.Println("mc.UUID : ", mc.UUID)
 			err := mc.Aggregator.AggregateMetric(mc.UUID)
 			if err != nil {
 				logrus.Error("["+mc.UUID+"]Failed to aggregate meric", err)
@@ -176,9 +224,12 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 			//}
 			logrus.Debug("======================================================================")
 
+			//fmt.Print("mc.transmitDatachan : ")
+			//fmt.Println(mc.TransmitDataChan)
 			fmt.Print("mc.MarkingAgent : ")
 			for key, _ := range mc.MarkingAgent {
-				print(key, ", ")
+				id := strings.Split(key,"-")[2]
+				print(id, ", ")
 			}
 			fmt.Println("")
 			//fmt.Println("mc.MetricCollectorIdx : ", mc.MetricCollectorIdx)
@@ -186,6 +237,7 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 			// 콜렉터 비활성화 시 aggregate 채널 삭제
 			if !mc.Active {
 				// aggregate 채널 삭제
+				fmt.Println("Deleting aggregate channel!")
 				close(*c)
 				delete(mc.AggregatingChan, mc.UUID)
 				return
@@ -193,6 +245,27 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 		}
 	}
 }
+
+func (mc *MetricCollector) MyMarshal(metric interface{}) (string, error) {
+	var metricVal string
+
+	_, ok := metric.(map[string]interface{})
+	if ok {
+		//mc.PreventSync.PreventSync.Lock()
+		bytes, err := json.Marshal(metric)
+		//mc.PreventSync.PreventSync.Unlock()
+		if err != nil {
+			logrus.Error("Failed to marshaling realtime monitoring data to JSON: ", err)
+			return "", err
+		}
+		metricVal = fmt.Sprintf("%s", bytes)
+	} else {
+		metricVal = metric.(string)
+	}
+
+	return metricVal, nil
+}
+
 
 /*
 func (mc *MetricCollector) UntagHost() error {

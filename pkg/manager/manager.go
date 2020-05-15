@@ -30,12 +30,14 @@ type CollectManager struct {
 	Aggregator        collector.Aggregator
 	WaitGroup         *sync.WaitGroup
 	UdpCOnn           *net.UDPConn
+	//metricL			*sync.RWMutex
 	CollectorIdx      []string
 	CollectorUUIDAddr map[string]*collector.MetricCollector
 	AggregatingChan   map[string]*chan string
 	TransmitDataChan  map[string]*chan collector.TelegrafMetric
 	AgentQueueTTL     map[string]time.Time
 	AgentQueueColN    map[string]int
+	PreventSync 	*sync.RWMutex
 	//HostInfo      collector.HostInfo
 	//HostCnt       int
 }
@@ -79,6 +81,9 @@ func NewCollectorManager() (*CollectManager, error) {
 		logrus.Error("Failed to initialize etcd")
 		return nil, err
 	}
+
+	manager.PreventSync = &sync.RWMutex{}
+
 	manager.Etcd = etcd
 
 	manager.AgentQueueTTL = map[string]time.Time{}
@@ -152,10 +157,10 @@ func (manager *CollectManager) StartLoadBalancer(udpConn net.PacketConn, wg *syn
 	defer wg.Done()
 	metric := collector.TelegrafMetric{}
 	//logicStartTime := time.Now()
-	monConfig, err := manager.GetConfigInfo()
-	if err != nil {
-		logrus.Error("Fail to get monConfig Info")
-	}
+	//monConfig, err := manager.GetConfigInfo()
+	//if err != nil {
+	//	logrus.Error("Fail to get monConfig Info")
+	//}
 
 	for {
 
@@ -166,15 +171,23 @@ func (manager *CollectManager) StartLoadBalancer(udpConn net.PacketConn, wg *syn
 		if err != nil {
 			logrus.Error("UDPLoadBalancer : failed to read bytes: ", err)
 		}
+		manager.PreventSync.RLock()
 		if err := json.Unmarshal(buf[0:n], &metric); err != nil {
 			logrus.Error("Failed to decode json to buf: ", string(buf[0:n]))
 			continue
 		}
+		manager.PreventSync.RUnlock()
+
 		//fmt.Println("\n metric : ", metric)
 		hostId := metric.Tags["hostID"].(string)
 
 		manager.AgentQueueTTL[hostId] = time.Now()
-		manager.AgentQueueColN[hostId] = 0
+
+		_, alreadyRegistered := manager.AgentQueueColN[hostId]
+
+		if !alreadyRegistered {
+			manager.AgentQueueColN[hostId] = -1
+		}
 		/*
 				if len(manager.CollectorIdx)*monConfig.MaxHostCount < len((manager.AgentQueueTTL)) {
 					continue
@@ -215,12 +228,18 @@ func (manager *CollectManager) StartLoadBalancer(udpConn net.PacketConn, wg *syn
 					}
 				}*/
 		// drop metric section (before scaleScheduling, it will drop the input data)
-		if len(manager.CollectorIdx)*monConfig.MaxHostCount < len(manager.AgentQueueTTL) {
-			continue
+		//temp1 := len(manager.CollectorIdx)*monConfig.MaxHostCount
+		//temp2 := len(manager.AgentQueueTTL)
+		//fmt.Println(temp1, temp2)
+		//if len(manager.CollectorIdx)*monConfig.MaxHostCount < len(manager.AgentQueueTTL) {
+		//	continue
 			//manager.CollectorQueue[manager.ManageCollectorQueue(metric)][hostID] = metric
-		} else {
-			manager.ManageAgentQueue(hostId, manager.AgentQueueColN, metric)
+		//} else {
+		err = manager.ManageAgentQueue(hostId, manager.AgentQueueColN, metric)
+		if err != nil {
+			logrus.Error("ManageAgentQueue Error", err)
 		}
+		//}
 	}
 }
 
@@ -232,14 +251,14 @@ func (manager *CollectManager) ManageAgentTtl(wg *sync.WaitGroup) {
 	if err != nil {
 		logrus.Error("Fail to get monConfig Info")
 	}
-
 	for {
+		// fmt.Println(manager.AgentQueueTTL)
 		currentTime := time.Now()
 		if len(manager.AgentQueueTTL) != 0 {
 			for hostId, arrivedTime := range manager.AgentQueueTTL {
 
 				if currentTime.Sub(arrivedTime) > time.Duration(monConfig.AgentTtl)*time.Second {
-
+					fmt.Println("delete")
 					if _, ok := manager.AgentQueueTTL[hostId]; ok {
 						delete(manager.AgentQueueTTL, hostId)
 					}
@@ -252,8 +271,15 @@ func (manager *CollectManager) ManageAgentTtl(wg *sync.WaitGroup) {
 					if _, ok := (*c).MarkingAgent[hostId]; ok {
 						delete((*c).MarkingAgent, hostId)
 					}
+					err := manager.Etcd.DeleteMetric(fmt.Sprintf("/collector/%s/host/%s", cUUID, hostId))
+					if err != nil {
+						logrus.Error("Fail to delete hostInfo ETCD data")
+					}
+					err = manager.Etcd.DeleteMetric(fmt.Sprintf("/host/%s", hostId))
+					if err != nil {
+						logrus.Error("Fail to delete expired ETCD data")
+					}
 				}
-
 			}
 		}
 		time.Sleep(1 * time.Second)
@@ -261,37 +287,50 @@ func (manager *CollectManager) ManageAgentTtl(wg *sync.WaitGroup) {
 }
 
 func (manager *CollectManager) ManageAgentQueue(hostId string, AgentQueueColN map[string]int, metric collector.TelegrafMetric) error {
-
+	//fmt.Println(manager.Config.Monitoring.MaxHostCount)
+	//fmt.Println(AgentQueueColN)
 	colN := AgentQueueColN[hostId]
 	colUUID := ""
+	checkSend := false
 	// Case : new Data which is not allocated at collector
-	if colN == 0 {
+	for idx, cUUID := range manager.CollectorIdx {
 
-		for idx, cUUID := range manager.CollectorIdx {
+		cAddr := manager.CollectorUUIDAddr[cUUID]
 
-			cAddr := manager.CollectorUUIDAddr[cUUID]
-
-			if _, alreadyRegistered := (*cAddr).MarkingAgent[hostId]; alreadyRegistered {
-				break
-			}
-
-			if len((*cAddr).MarkingAgent[hostId]) < manager.Config.Monitoring.MaxHostCount {
-
-				if _, alreadyRegistered := (*cAddr).MarkingAgent[hostId]; !alreadyRegistered {
-
-					(*cAddr).MarkingAgent[hostId] = hostId
-					AgentQueueColN[hostId] = idx
-					colN = AgentQueueColN[hostId]
-
-					break
-				}
-			}
+		if _, alreadyRegistered := (*cAddr).MarkingAgent[hostId]; alreadyRegistered {
+			//fmt.Print(hostId)
+			//fmt.Println(": Im registered")
+			checkSend = true
+			break
 		}
-		// sending Metric to collector
-		colUUID = manager.CollectorIdx[colN]
-		*(manager.TransmitDataChan[colUUID]) <- metric
+		//temp := (*cAddr).MarkingAgent
+		//fmt.Println(len(temp))
+		//fmt.Println((*cAddr).MarkingAgent)
+		//fmt.Println(manager.Config.Monitoring.MaxHostCount)
+		if len((*cAddr).MarkingAgent) < manager.Config.Monitoring.MaxHostCount {
+			//fmt.Print(hostId)
+			//fmt.Println(" : Im New")
+			//if _, alreadyRegistered := (*cAddr).MarkingAgent[hostId]; !alreadyRegistered {
+			(*cAddr).MarkingAgent[hostId] = hostId
+			AgentQueueColN[hostId] = idx
+			colN = AgentQueueColN[hostId]
+			//fmt.Println(len((*cAddr).MarkingAgent))
+			checkSend = true
+			break
+			//	break
+			//}
+		}
+	}
 
-	} else {
+	if checkSend {
+		colUUID = manager.CollectorIdx[colN]
+		//fmt.Println(fmt.Sprintf("[%s] send chan metric", colUUID))
+		//fmt.Println(fmt.Sprintf("[%s] send chan &metric : %p", colUUID, &metric))
+		*(manager.TransmitDataChan[colUUID]) <- metric
+	}
+
+	/*else {
+		fmt.Println("Im Old")
 		for idx, cUUID := range manager.CollectorIdx {
 			cAddr := manager.CollectorUUIDAddr[cUUID]
 
@@ -303,21 +342,19 @@ func (manager *CollectManager) ManageAgentQueue(hostId string, AgentQueueColN ma
 
 				(*cAddr).MarkingAgent[hostId] = hostId
 
-				origin_cUUID := manager.CollectorIdx[colN]
-				origtin_cUUIDAddr := manager.CollectorUUIDAddr[origin_cUUID]
-				delete((*origtin_cUUIDAddr).MarkingAgent, hostId)
+				origincUUID := manager.CollectorIdx[colN]
+				origtincUUIDAddr := manager.CollectorUUIDAddr[origincUUID]
+				delete((*origtincUUIDAddr).MarkingAgent, hostId)
 
 				AgentQueueColN[hostId] = idx
 				colN = AgentQueueColN[hostId]
-
 				break
 			}
 		}
-
 		// sending Metric to collector
 		colUUID = manager.CollectorIdx[colN]
 		*(manager.TransmitDataChan[colUUID]) <- metric
-	}
+	}*/
 	return nil
 }
 
@@ -367,8 +404,7 @@ func (manager *CollectManager) StopCollector(uuid string) error {
 		// 실행 중인 콜렉터 고루틴 종료 (콜렉터 활성화 플래그 변경)
 		manager.CollectorUUIDAddr[uuid].Active = false
 		delete(manager.CollectorUUIDAddr, uuid)
-
-		*(manager.TransmitDataChan[uuid]) <- collector.TelegrafMetric{}
+		//*(manager.TransmitDataChan[uuid]) <- collector.TelegrafMetric{}
 		//manager.CollectorCnt -= 1
 		return nil
 	} else {
@@ -407,22 +443,22 @@ func (manager *CollectManager) StartAggregateScheduler(wg *sync.WaitGroup, c *ma
 		if err != nil {
 			logrus.Error("failed to get monitoring config info", err)
 		}
-		/*
-			fmt.Print("\nmanager.AgentQueueColN : ")
-			fmt.Print("[0] : ")
-			for key, val := range manager.AgentQueueColN{
-				if val == 0 {
-					fmt.Print(key,", ")
-				}
-			}
-			fmt.Println("")
-			fmt.Print("manager.AgentQueueTTL : ")
-			for key, _ := range manager.AgentQueueTTL{
-				fmt.Print(key, ", ")
-			}
-			fmt.Print("\n")
-			fmt.Println("manager.CollectorIdx : ", manager.CollectorIdx)
-			fmt.Println("manager.CollectorUUIDAddr : ", manager.CollectorUUIDAddr)*/
+
+		//fmt.Print("\nmanager.AgentQueueColN : ")
+		//fmt.Print("[0] : ")
+		//for key, val := range manager.AgentQueueColN{
+		//	if val == 0 {
+		//		fmt.Print(key,", ")
+		//	}
+		//}
+		fmt.Println("")
+		fmt.Print("TTL queue List : ")
+		for key, _ := range manager.AgentQueueTTL{
+			//fmt.Print(key, " : ", val,", ")
+			fmt.Print(key, ", ")
+		}
+		fmt.Print("\n")
+		fmt.Println("The number of collector : ", len(manager.CollectorIdx))
 		time.Sleep(time.Duration(monConfig.CollectorInterval) * time.Second)
 		//manager.HostCnt = len(*manager.HostInfo.HostMap)
 
@@ -439,6 +475,7 @@ func (manager *CollectManager) StartScaleScheduler(wg *sync.WaitGroup) {
 	defer wg.Done()
 	cs := NewCollectorScheduler(manager)
 	for {
+		//fmt.Println("Im scheduler!! Im alive")
 		// 스케줄링 주기 정보 조회
 		monConfig, err := manager.GetConfigInfo()
 		if err != nil {

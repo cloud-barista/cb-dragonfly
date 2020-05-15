@@ -48,21 +48,21 @@ func (s *Storage) Init() error {
 //func (s *Storage) WriteMetric(metrics types.Metrics) error {
 func (s *Storage) WriteMetric(metrics map[string]interface{}) error {
 
-	fmt.Println("Aggregating host count : ", len(metrics))
+	//fmt.Println("Aggregating host count : ", len(metrics))
 	bp, err := s.parseMetric(metrics)
 	if err != nil {
 		logrus.Error("Failed to parse collector metrics to influxdb v1")
 		return err
 	}
-	startTime := time.Now()
+	//startTime := time.Now()
 	for _, influx := range s.Clients {
 		if err := influx.Write(bp); err != nil {
 			logrus.Error("Failed to write influxdb")
 			return err
 		}
 	}
-	fmt.Println("InfluxDB write time : ", time.Since(startTime))
-	fmt.Println("")
+	//fmt.Println("InfluxDB write time : ", time.Since(startTime))
+	//fmt.Println("")
 	return nil
 }
 

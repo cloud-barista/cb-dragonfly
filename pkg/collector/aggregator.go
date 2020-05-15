@@ -191,16 +191,18 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 
 	fmt.Println("Aggregating processing time :", time.Since(startTime))
 
+	fmt.Println("Aggregating host count : ", len(aggregatedMap))
 	err = a.InfluxDB.WriteMetric(aggregatedMap)
 	if err != nil {
 		return err
 	}
 
+	//debug Point
 	/* 5. 모니터링 데이터 초기화 (etcd) */
-	err = a.FlushMetric(vmList)
+	/* err = a.FlushMetric(vmList)
 	if err != nil {
 		return err
-	}
+	}*/
 
 	return nil
 }
@@ -327,7 +329,7 @@ diskProgress:
 	//spew.Dump(deviceMap)
 	return resultMap, nil
 }
-
+/*
 // etcd 저장소에 저장된 모든 모니터링 데이터 삭제 (초기화)
 func (a *Aggregator) FlushMetric(vmList []string) error {
 	for _, vmId := range vmList {
@@ -338,7 +340,7 @@ func (a *Aggregator) FlushMetric(vmList []string) error {
 	}
 	return nil
 }
-
+*/
 // 실시간 모니터링 데이터 조회
 func (a *Aggregator) GetAggregateMetric(vmId string, metricName string, aggregateType string) (map[string]interface{}, error) {
 
