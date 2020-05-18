@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/influxdata/influxdb1-client/models"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/client"
 
@@ -61,6 +62,8 @@ func (apiServer *APIServer) StartAPIServer(wg *sync.WaitGroup) error {
 }
 
 func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
+
+	e.Use(middleware.CORS())
 
 	// 멀티 클라우드 인프라 서비스 모니터링/실시간 모니터링 정보 조회
 	e.GET("/dragonfly/mcis/:mcis_id/info", apiServer.GetMCISMonInfo)
