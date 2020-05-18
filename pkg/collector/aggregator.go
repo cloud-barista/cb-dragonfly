@@ -197,13 +197,6 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 		return err
 	}
 
-	//debug Point
-	/* 5. 모니터링 데이터 초기화 (etcd) */
-	/* err = a.FlushMetric(vmList)
-	if err != nil {
-		return err
-	}*/
-
 	return nil
 }
 
@@ -228,7 +221,6 @@ func (a *Aggregator) CalculateMetric(metricName string, metric map[string]interf
 			}
 		}
 	}
-	//spew.Dump(metricArr)
 
 	/* 2. 실시간 모니터링 데이터 통계 로직 적용 */
 	switch aggregateType {
@@ -329,18 +321,7 @@ diskProgress:
 	//spew.Dump(deviceMap)
 	return resultMap, nil
 }
-/*
-// etcd 저장소에 저장된 모든 모니터링 데이터 삭제 (초기화)
-func (a *Aggregator) FlushMetric(vmList []string) error {
-	for _, vmId := range vmList {
-		err := a.Etcd.DeleteMetric(fmt.Sprintf("/host/%s", vmId))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-*/
+
 // 실시간 모니터링 데이터 조회
 func (a *Aggregator) GetAggregateMetric(vmId string, metricName string, aggregateType string) (map[string]interface{}, error) {
 
@@ -440,7 +421,6 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 		if resultMap["total"].(float64) == 0 {
 			resultMap["used_percent"] = 0
 		} else {
-			//resultMap["used_percent"] = resultMap["used"].(float64) / resultMap["total"].(float64)
 			deviceCnt := len(deviceMap)
 			if deviceCnt == 0 {
 				resultMap["used_percent"] = 0
@@ -450,6 +430,5 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 		}
 	}
 
-	//spew.Dump(resultMap)
 	return resultMap, nil
 }

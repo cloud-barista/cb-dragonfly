@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"net"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -123,10 +125,11 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		if !ok {
 			continue
 		}
-
+		mc.metricL.RLock()
 		if _, ok := mc.MarkingAgent[hostId]; !ok {
 			continue
 		}
+		mc.metricL.RUnlock()
 		collectorInfo := fmt.Sprintf("/collector/%s/host/%s", mc.UUID, hostId)
 		//fmt.Print("mc.MarkingAgent : ", mc.MarkingAgent)
 		//fmt.Println("")
@@ -145,6 +148,7 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		var metricKey string
 		var osTypeKey string
 
+		mc.metricL.RLock()
 		switch strings.ToLower(metric.Name) {
 		case "disk":
 			diskName = metric.Tags["device"].(string)
@@ -157,7 +161,7 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		default:
 			metricKey = fmt.Sprintf("/host/%s/metric/%s/%d", hostId, metric.Name, curTimestamp)
 		}
-
+		mc.metricL.RUnlock()
 		//FieldsBytes, err :=  mc.MyMarshal(metric.Fields)
 		////s.L.Unlock()
 		//if err != nil {
@@ -215,26 +219,29 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 			logrus.Debug("======================================================================")
 			logrus.Debug("[" + mc.UUID + "]Start Aggregate!!")
 			fmt.Println("["+mc.UUID+"] Start Aggregate!!", time.Now())
-			fmt.Println("mc.UUID : ", mc.UUID)
+			//fmt.Println("mc.UUID : ", mc.UUID)
 			err := mc.Aggregator.AggregateMetric(mc.UUID)
 			if err != nil {
 				logrus.Error("["+mc.UUID+"]Failed to aggregate meric", err)
 			}
-			//err = mc.UntagHost()
-			//if err != nil {
-			//	logrus.Error("["+mc.UUID+"]Failed to untag host", err)
-			//}
 			logrus.Debug("======================================================================")
 
-			//fmt.Print("mc.transmitDatachan : ")
-			//fmt.Println(mc.TransmitDataChan)
+			//// Print Session Start /////
 			fmt.Print("mc.MarkingAgent : ")
+			sortedMarkingAgent := make([] int, 0)
 			for key, _ := range mc.MarkingAgent {
-				id := strings.Split(key,"-")[2]
-				print(id, ", ")
+				value, _ := strconv.Atoi(strings.Split(key,"-")[2])
+				sortedMarkingAgent = append(sortedMarkingAgent, value)
 			}
-			fmt.Println("")
-			//fmt.Println("mc.MetricCollectorIdx : ", mc.MetricCollectorIdx)
+			sort.Slice(sortedMarkingAgent, func(i, j int) bool {
+				return sortedMarkingAgent[i] < sortedMarkingAgent[j]
+			})
+			for _, value := range sortedMarkingAgent {
+				fmt.Print(value, ", ")
+			}
+			fmt.Print(fmt.Sprintf(" / Total : %d", len(sortedMarkingAgent)))
+			fmt.Print("\n")
+			//// Print Session End /////
 
 			// 콜렉터 비활성화 시 aggregate 채널 삭제
 			if !mc.Active {
