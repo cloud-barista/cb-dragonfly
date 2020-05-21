@@ -664,8 +664,8 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 
 	// form 파라미터 값 체크
 	if mcisId == "" || vmId == "" || publicIp == "" || userName == "" || sshKey == "" {
-		err := errors.New("failed to get package. query parameter is missing")
-		return c.JSON(http.StatusInternalServerError, err)
+		errMsg := setMessage("failed to get package. query parameter is missing")
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
 	sshInfo := sshrun.SSHInfo{
@@ -677,13 +677,16 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 	// {사용자계정}/cb-dragonfly 폴더 생성
 	createFolderCmd := fmt.Sprintf("mkdir $HOME/cb-dragonfly")
 	if _, err := sshrun.SSHRun(sshInfo, createFolderCmd); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		errMsg := setMessage(fmt.Sprintf("failed to make directory cb-dragonfly, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
 	// 리눅스 OS 환경 체크
 	osType, err := sshrun.SSHRun(sshInfo, "hostnamectl | grep 'Operating System' | awk '{print $3}' | tr 'a-z' 'A-Z'")
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to check linux OS environments, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
 	rootPath := os.Getenv("CBMON_PATH")
@@ -701,51 +704,71 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 
 	// 에이전트 설치 패키지 다운로드
 	if err := sshrun.SSHCopy(sshInfo, sourceFile, targetFile); err != nil {
-		return err
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to download agent package, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 	// 패키지 설치 실행
 	if _, err := sshrun.SSHRun(sshInfo, installCmd); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to install agent package, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
 	// 설치시 자동 생성되는 telegraf_conf 파일 제거
 	if _, err := sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf"); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to delete default telegraf.conf, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
 	// telegraf_conf 파일 복사
 	telegrafConfSourceFile, err := apiServer.createTelegrafConfigFile(mcisId, vmId)
 	telegrafConfTargetFile := "$HOME/cb-dragonfly/telegraf.conf"
 	if err != nil {
-		return err
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to create telegraf.conf, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 	if err := sshrun.SSHCopy(sshInfo, telegrafConfSourceFile, telegrafConfTargetFile); err != nil {
-		return err
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to copy telegraf.conf, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
 	// telegraf_conf 파일 이동
-	if _, err := sshrun.SSHRun(sshInfo, "sudo chown root:root $HOME/cb-dragonfly/telegraf.conf"); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
+	/*if _, err := sshrun.SSHRun(sshInfo, "sudo chown root:root $HOME/cb-dragonfly/telegraf.conf"); err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to chown telegraf.conf, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
+	}*/
 	if _, err := sshrun.SSHRun(sshInfo, "sudo mv $HOME/cb-dragonfly/telegraf.conf /etc/telegraf/"); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to move telegraf.conf, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
 	// 공통 서비스 활성화 및 실행
 	if _, err := sshrun.SSHRun(sshInfo, "sudo systemctl enable telegraf && sudo systemctl restart telegraf"); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to enable and start telegraf service, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
 	// telegraf UUId conf 파일 삭제
 	err = os.Remove(telegrafConfSourceFile)
 	if err != nil {
-		logrus.Error("failed to remove telegraf_UUID_conf File")
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to remove temporary telegraf.conf file, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
 	// 에이전트 설치에 사용한 파일 폴더 채로 제거
 	removeRpmCmd := fmt.Sprintf("sudo rm -rf $HOME/cb-dragonfly")
 	if _, err := sshrun.SSHRun(sshInfo, removeRpmCmd); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to remove cb-dragonfly directory, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
 	// 설치 스크립트 다운로드
@@ -770,15 +793,41 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 	// 정상 설치 확인
 	checkCmd := "telegraf --version"
 	if result, err := util.RunCommand(publicIp, userName, sshKey, checkCmd); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to run telegraf command, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
 	} else {
 		if strings.Contains(*result, "command not found") {
-			err = errors.New("failed to install agent")
-			return c.JSON(http.StatusInternalServerError, err)
+			cleanTelegrafInstall(sshInfo, osType)
+			errMsg := setMessage(fmt.Sprintf("failed to run telegraf command, error=%s", err))
+			return c.JSON(http.StatusInternalServerError, errMsg)
 		}
 
-		response := echo.Map{}
-		response["message"] = "agent installation is finished"
-		return c.JSON(http.StatusOK, response)
+		successMsg := setMessage("agent installation is finished")
+		return c.JSON(http.StatusOK, successMsg)
 	}
+}
+
+func setMessage(msg string) echo.Map {
+	errResp := echo.Map{}
+	errResp["message"] = msg
+	return errResp
+}
+
+func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
+
+	// Uninstall Telegraf
+	var uninstallCmd string
+	if strings.Contains(osType, "CENTOS") {
+		uninstallCmd = fmt.Sprintf("rpm -e telegraf")
+	} else if strings.Contains(osType, "UBUNTU") {
+		uninstallCmd = fmt.Sprintf("dpkg -r telegraf")
+	}
+	sshrun.SSHRun(sshInfo, uninstallCmd)
+
+	// Delete Install Files
+	removeRpmCmd := fmt.Sprintf("sudo rm -rf $HOME/cb-dragonfly")
+	sshrun.SSHRun(sshInfo, removeRpmCmd)
+	removeDirCmd := fmt.Sprintf("sudo rm -rf /etc/telegraf/cb-dragonfly")
+	sshrun.SSHRun(sshInfo, removeDirCmd)
 }
