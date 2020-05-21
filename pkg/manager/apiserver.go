@@ -716,11 +716,12 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 	}
 
 	// 설치시 자동 생성되는 telegraf_conf 파일 제거
-	if _, err := sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf"); err != nil {
+	/*if _, err := sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf"); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		errMsg := setMessage(fmt.Sprintf("failed to delete default telegraf.conf, error=%s", err))
 		return c.JSON(http.StatusInternalServerError, errMsg)
-	}
+	}*/
+	sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf")
 
 	// telegraf_conf 파일 복사
 	telegrafConfSourceFile, err := apiServer.createTelegrafConfigFile(mcisId, vmId)
@@ -738,10 +739,9 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 
 	// telegraf_conf 파일 이동
 	/*if _, err := sshrun.SSHRun(sshInfo, "sudo chown root:root $HOME/cb-dragonfly/telegraf.conf"); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
-		errMsg := setMessage(fmt.Sprintf("failed to chown telegraf.conf, error=%s", err))
-		return c.JSON(http.StatusInternalServerError, errMsg)
-	}*/
+	cleanTelegrafInstall(sshInfo, osType)
+	errMsg := setMessage(fmt.Sprintf("failed to chown telegraf.conf, error=%s", err))
+	return c.JSON(http.StatusInternalServerError, errMsg) }*/
 	if _, err := sshrun.SSHRun(sshInfo, "sudo mv $HOME/cb-dragonfly/telegraf.conf /etc/telegraf/"); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		errMsg := setMessage(fmt.Sprintf("failed to move telegraf.conf, error=%s", err))
@@ -819,9 +819,9 @@ func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
 	// Uninstall Telegraf
 	var uninstallCmd string
 	if strings.Contains(osType, "CENTOS") {
-		uninstallCmd = fmt.Sprintf("rpm -e telegraf")
+		uninstallCmd = fmt.Sprintf("sudo rpm -e telegraf")
 	} else if strings.Contains(osType, "UBUNTU") {
-		uninstallCmd = fmt.Sprintf("dpkg -r telegraf")
+		uninstallCmd = fmt.Sprintf("sudo dpkg -r telegraf")
 	}
 	sshrun.SSHRun(sshInfo, uninstallCmd)
 
