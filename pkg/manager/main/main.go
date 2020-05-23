@@ -1,18 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/manager"
-	"github.com/sirupsen/logrus"
-	"os"
 	"runtime"
 	"sync"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/manager"
 )
 
 func main() {
 
 	// 로그 파일 설정
-	logrus.SetLevel(logrus.DebugLevel)
+	/*logrus.SetLevel(logrus.PanicLevel)
 	logFileName := "cb-dragonfly.log"
 	f, err := os.OpenFile(logFileName, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	formatter := new(logrus.TextFormatter)
@@ -21,7 +21,7 @@ func main() {
 		fmt.Println(err)
 	} else {
 		logrus.SetOutput(f)
-	}
+	}*/
 
 	// 멀티 CPU 기반 고루틴 병렬 처리 활성화
 	runtime.GOMAXPROCS(runtime.NumCPU())
