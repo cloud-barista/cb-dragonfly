@@ -76,7 +76,9 @@ func (s *Storage) ReadMetric(key string) (*client.Node, error) {
 	// 실시간 모니터링 데이터 조회
 	resp, err := kapi.Get(context.Background(), key, nil)
 	if err != nil {
-		logrus.Error("Failed to read realtime monitoring data to ETCD : ", err)
+		if err.Error()[0:3] != "100" {
+			logrus.Error("Failed to read realtime monitoring data to ETCD : ", err)
+		}
 		return nil, err
 	}
 
@@ -104,12 +106,15 @@ func (s *Storage) DeleteMetric(key string) error {
 
 	// 실시간 모니터링 데이터 삭제
 	opts := client.DeleteOptions{Recursive: true}
-	resp, err := kapi.Delete(context.Background(), key, &opts)
+	//resp, err := kapi.Delete(context.Background(), key, &opts)
+	_, err := kapi.Delete(context.Background(), key, &opts)
 	if err != nil {
-		logrus.Error("Failed to delete realtime monitoring data to ETCD : ", err)
+		if err.Error()[0:3] != "100" {
+			logrus.Error("Failed to delete realtime monitoring data to ETCD : ", err)
+		}
 		return err
 	}
 
-	logrus.Debug("Delete is done. Response is %q\n", resp)
+	//logrus.Debug("Delete is done. Response is %q\n", resp)
 	return nil
 }

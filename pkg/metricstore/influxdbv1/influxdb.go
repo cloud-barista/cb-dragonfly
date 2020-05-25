@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	influxBuilder "github.com/Scalingo/go-utils/influx"
-	"github.com/davecgh/go-spew/spew"
 	influxdbClient "github.com/influxdata/influxdb1-client/v2"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -122,7 +121,7 @@ func (s *Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.Ba
 		}
 	}
 
-	spew.Dump(bp)
+	//spew.Dump(bp)
 
 	return bp, nil
 }
