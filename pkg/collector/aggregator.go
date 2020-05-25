@@ -181,11 +181,6 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 		aggregatedMap[vmId] = parentMetric
 	}
 
-	fmt.Println("Aggregate VM Len : ", len(aggregatedMap))
-	for key, _ := range aggregatedMap {
-		fmt.Print(strings.Split(key, "-")[2], ", ")
-	}
-	fmt.Println()
 	/* 4. 모니터링 데이터 저장 (InfluxDB) */
 	err = a.InfluxDB.WriteMetric(aggregatedMap)
 	if err != nil {
