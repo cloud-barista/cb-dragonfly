@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/sirupsen/logrus"
 	"regexp"
 	"sort"
@@ -46,22 +45,21 @@ type Aggregator struct {
 // 실시간 모니터링 데이터 Aggregate
 func (a *Aggregator) AggregateMetric(collectorId string) error {
 
-
 	/* Monitoring metric data tree : aggregatedMap
-	Depth : vmId / parentMetricName / childMetricName / value
- 	= map[string] interface | map[string] interface | map[string] interface {}
-	= map[string] interface { map[string] interface { map[string] interface {} } }
+		Depth : vmId / parentMetricName / childMetricName / value
+	 	= map[string] interface | map[string] interface | map[string] interface {}
+		= map[string] interface { map[string] interface { map[string] interface {} } }
 	*/
 
 	/*1. Get VM List from ETCD */
-	aggregatedMap := map[string]interface{} {}
+	aggregatedMap := map[string]interface{}{}
 	getVmList, err := a.Etcd.ReadMetric(fmt.Sprintf("/collector/%s/host", collectorId))
 	var vmList []string
 
 	if err != nil {
 		logrus.Error("Failed to get tagging vm list", err)
 		return err
-	}else if getVmList == nil{
+	} else if getVmList == nil {
 		return nil
 	}
 
@@ -73,7 +71,8 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 
 		if err != nil {
 			logrus.Error("Failed to get vm metric list", err)
-			return err
+			// return err
+			continue
 		}
 		/* 2. Get metric List from ETCD */
 		parentMetric := map[string]interface{}{}
@@ -88,11 +87,11 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 				return err
 			}
 			/*3. Aggregating metric data*/
-			if hasGrandch,_ := regexp.MatchString("[a-zA-Z]",strings.Split(metricDataNode.Nodes[0].Key, "/")[5]); hasGrandch {
+			if hasGrandch, _ := regexp.MatchString("[a-zA-Z]", strings.Split(metricDataNode.Nodes[0].Key, "/")[5]); hasGrandch {
 				// if metric name is disk or diskio which has grandchildren, if TRUE logic execution.
 				childMetric := make(map[string]interface{})
 
-				for _, chidMetricNode := range metricDataNode.Nodes{
+				for _, chidMetricNode := range metricDataNode.Nodes {
 
 					chidMetricData, err := a.Etcd.ReadMetric(chidMetricNode.Key)
 
@@ -119,7 +118,7 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 						return err
 					}
 
-					grandChildDetailedMetric := map[string]interface{} {timestamp :grandChildMetricString}
+					grandChildDetailedMetric := map[string]interface{}{timestamp: grandChildMetricString}
 					grandchildMetric, err := a.CalculateMetric(childMetricName, grandChildDetailedMetric, a.AggregateType.toString(), !hasGrandch)
 
 					if err != nil {
@@ -137,7 +136,7 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 					return err
 				}
 
-			}else{ // cpu, mem, swap... etc (disk, diskio metric excludes)
+			} else { // cpu, mem, swap... etc (disk, diskio metric excludes)
 
 				childDetailMetric := make(map[string]interface{})
 				timestamp := strings.Split(metricDataNode.Nodes[0].Key, "/")[5]
@@ -148,7 +147,7 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 					return err
 				}
 
-				childMetricString := map[string]interface{} {timestamp :childDetailMetric}
+				childMetricString := map[string]interface{}{timestamp: childDetailMetric}
 				// metric aggregate start
 				childMetric, err := a.CalculateMetric(parentMetricName, childMetricString, a.AggregateType.toString(), hasGrandch)
 
@@ -189,7 +188,8 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 	}
 
 	/* 5. 모니터링 데이터 초기화 (etcd) */
-	err = a.FlushMetric(vmList)
+	//err = a.FlushMetric(vmList)
+	err = a.FlushMetric()
 	if err != nil {
 		return err
 	}
@@ -270,63 +270,72 @@ func (a *Aggregator) CalculateMetric(metricName string, metric map[string]interf
 
 	return resultMap, nil
 
-	diskProgress :
+diskProgress:
 
-		deviceMap := metric
+	deviceMap := metric
 
-		for _, metricMap := range deviceMap {
-			for key, val := range metricMap.(map[string]interface{}) {
-				if key == "io_time" || key == "iops_in_progress" {
-					continue
-				}
-				if resultMap[key] == nil {
-					resultMap[key] = 0.0
-				}
-				resultMap[key] = resultMap[key].(float64) + val.(float64)
+	for _, metricMap := range deviceMap {
+		for key, val := range metricMap.(map[string]interface{}) {
+			if key == "io_time" || key == "iops_in_progress" {
+				continue
 			}
+			if resultMap[key] == nil {
+				resultMap[key] = 0.0
+			}
+			resultMap[key] = resultMap[key].(float64) + val.(float64)
 		}
+	}
 
-		// disk 메트릭의 경우 usage_utilization 메트릭 항목 재계산
-		if metricName == "disk" {
-			if resultMap["total"].(float64) == 0 {
+	// disk 메트릭의 경우 usage_utilization 메트릭 항목 재계산
+	if metricName == "disk" {
+		if resultMap["total"].(float64) == 0 {
+			resultMap["used_percent"] = 0
+		} else {
+			//resultMap["used_percent"] = resultMap["used"].(float64) / resultMap["total"].(float64)
+			deviceCnt := len(deviceMap)
+			if deviceCnt == 0 {
 				resultMap["used_percent"] = 0
 			} else {
-				//resultMap["used_percent"] = resultMap["used"].(float64) / resultMap["total"].(float64)
-				deviceCnt := len(deviceMap)
-				if deviceCnt == 0 {
-					resultMap["used_percent"] = 0
-				} else {
-					resultMap["used_percent"] = resultMap["used_percent"].(float64) / float64(deviceCnt)
-				}
+				resultMap["used_percent"] = resultMap["used_percent"].(float64) / float64(deviceCnt)
 			}
 		}
-		/*
-			else if metricName == "diskio" {
-				deviceCnt := len(deviceMap)
-				if deviceCnt == 0 {
-					resultMap["read_bytes"] = 0
-					resultMap["write_bytes"] = 0
-				} else {
-					//resultMap["read_bytes"] = resultMap["read_bytes "].(float64) / float64(deviceCnt)
-					//resultMap["write_bytes"] = resultMap["write_bytes"].(float64) / float64(deviceCnt)
-					//resultMap["iops_read"] = resultMap["iops_read"].(float64) / float64(deviceCnt)
-					//resultMap["iops_write"] = resultMap["iops_write"].(float64) / float64(deviceCnt)
-				}
+	}
+	/*
+		else if metricName == "diskio" {
+			deviceCnt := len(deviceMap)
+			if deviceCnt == 0 {
+				resultMap["read_bytes"] = 0
+				resultMap["write_bytes"] = 0
+			} else {
+				//resultMap["read_bytes"] = resultMap["read_bytes "].(float64) / float64(deviceCnt)
+				//resultMap["write_bytes"] = resultMap["write_bytes"].(float64) / float64(deviceCnt)
+				//resultMap["iops_read"] = resultMap["iops_read"].(float64) / float64(deviceCnt)
+				//resultMap["iops_write"] = resultMap["iops_write"].(float64) / float64(deviceCnt)
 			}
-		*/
+		}
+	*/
 
-		spew.Dump(resultMap)
-		//spew.Dump(deviceMap)
-		return resultMap, nil
+	//spew.Dump(resultMap)
+	//spew.Dump(deviceMap)
+	return resultMap, nil
 }
 
 // etcd 저장소에 저장된 모든 모니터링 데이터 삭제 (초기화)
-func (a *Aggregator) FlushMetric(vmList []string) error {
-	for _, vmId := range vmList {
-		err := a.Etcd.DeleteMetric(fmt.Sprintf("/host/%s", vmId))
-		if err != nil {
-			return err
-		}
+//func (a *Aggregator) FlushMetric(vmList []string) error {
+//	for _, vmId := range vmList {
+//		err := a.Etcd.DeleteMetric(fmt.Sprintf("/host/%s", vmId))
+//		if err != nil {
+//			return err
+//		}
+//	}
+//	return nil
+//}
+
+// etcd 저장소에 저장된 모든 모니터링 데이터 삭제 (초기화)
+func (a *Aggregator) FlushMetric() error {
+	err := a.Etcd.DeleteMetric("/host")
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -357,7 +366,7 @@ func (a *Aggregator) GetAggregateMetric(vmId string, metricName string, aggregat
 	}
 
 	// 모니터링 데이터 Aggregate
-	aggregateMetric, err := a.CalculateMetric(metricName, metricDetailMap, aggregateType,false)
+	aggregateMetric, err := a.CalculateMetric(metricName, metricDetailMap, aggregateType, false)
 	if err != nil {
 		logrus.Error("Failed to aggregate data", err)
 		return nil, err
@@ -405,7 +414,7 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 			metricDetailMap[timestamp] = metricData
 		}
 
-		deviceMap[deviceName], err = a.CalculateMetric(metricName, metricDetailMap, aggregateType,false)
+		deviceMap[deviceName], err = a.CalculateMetric(metricName, metricDetailMap, aggregateType, false)
 		if err != nil {
 			logrus.Error("Failed to calculate disk, diskio metric")
 		}
@@ -440,6 +449,6 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 		}
 	}
 
-	spew.Dump(resultMap)
+	//spew.Dump(resultMap)
 	return resultMap, nil
 }

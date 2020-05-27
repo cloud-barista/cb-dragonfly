@@ -213,9 +213,9 @@ func (mc *MetricCollector) TagHost(hostId string) error {
 
 	// TODO: 추후 로컬 변수가 아니라 etcd 기준으로 Mutex 처리
 	// 호스트 목록에 등록되지 않았지만 내부 로컬 변수에 남아있는 데이터 삭제 처리
-	if !isTagged && mc.HostInfo.GetHostById(hostId) != "" {
-		mc.HostInfo.DeleteHost([]string{hostId})
-	}
+	//if !isTagged && mc.HostInfo.GetHostById(hostId) != "" {
+	//	mc.HostInfo.DeleteHost([]string{hostId})
+	//}
 
 	// 등록되어 있지 않은 호스트라면 호스트 목록에 등록 후 현재 콜렉터 기준으로 태깅
 	if !isTagged && mc.HostInfo.GetHostById(hostId) == "" {
