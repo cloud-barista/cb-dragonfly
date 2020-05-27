@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bramvdbogaerde/go-scp"
 	"github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
 	"github.com/google/uuid"
 	"github.com/influxdata/influxdb1-client/models"
@@ -21,6 +22,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/client"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
@@ -703,11 +705,33 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 	}
 
 	// 에이전트 설치 패키지 다운로드
-	if err := sshrun.SSHCopy(sshInfo, sourceFile, targetFile); err != nil {
+	/*if err := sshrun.SSHCopy(sshInfo, sourceFile, targetFile); err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		errMsg := setMessage(fmt.Sprintf("failed to download agent package, error=%s", err))
+		return c.JSON(http.StatusInternalServerError, errMsg)
+	}*/
+	// TODO: 신규 로직 적용
+	signer, err := ssh.ParsePrivateKey([]byte(sshKey))
+	clientConfig := ssh.ClientConfig{
+		User: userName,
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+	client := scp.NewClientWithTimeout(publicIp, &clientConfig, time.Duration(600))
+	client.Connect()
+
+	file, _ := os.Open(sourceFile)
+	defer file.Close()
+
+	err = client.CopyFile(file, targetFile, "0755")
+	if err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		errMsg := setMessage(fmt.Sprintf("failed to download agent package, error=%s", err))
 		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
+
 	// 패키지 설치 실행
 	if _, err := sshrun.SSHRun(sshInfo, installCmd); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
