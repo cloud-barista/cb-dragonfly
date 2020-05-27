@@ -704,29 +704,14 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 		installCmd = fmt.Sprintf("sudo dpkg -i $HOME/cb-dragonfly/cb-agent.deb")
 	}
 
-	// 에이전트 설치 패키지 다운로드
 	/*if err := sshrun.SSHCopy(sshInfo, sourceFile, targetFile); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		errMsg := setMessage(fmt.Sprintf("failed to download agent package, error=%s", err))
 		return c.JSON(http.StatusInternalServerError, errMsg)
 	}*/
-	// TODO: 신규 로직 적용
-	signer, err := ssh.ParsePrivateKey([]byte(sshKey))
-	clientConfig := ssh.ClientConfig{
-		User: userName,
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
-	client := scp.NewClientWithTimeout(publicIp, &clientConfig, time.Duration(600))
-	client.Connect()
 
-	file, _ := os.Open(sourceFile)
-	defer file.Close()
-
-	err = client.CopyFile(file, targetFile, "0755")
-	if err != nil {
+	// 에이전트 설치 패키지 다운로드
+	if err := sshCopyWithTimeout(sshInfo, sourceFile, targetFile); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		errMsg := setMessage(fmt.Sprintf("failed to download agent package, error=%s", err))
 		return c.JSON(http.StatusInternalServerError, errMsg)
@@ -854,4 +839,27 @@ func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
 	sshrun.SSHRun(sshInfo, removeRpmCmd)
 	removeDirCmd := fmt.Sprintf("sudo rm -rf /etc/telegraf/cb-dragonfly")
 	sshrun.SSHRun(sshInfo, removeDirCmd)
+}
+
+func sshCopyWithTimeout(sshInfo sshrun.SSHInfo, sourceFile string, targetFile string) error {
+	signer, err := ssh.ParsePrivateKey(sshInfo.PrivateKey)
+	if err != nil {
+		return err
+	}
+	clientConfig := ssh.ClientConfig{
+		User: sshInfo.UserName,
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+	client := scp.NewClientWithTimeout(sshInfo.ServerPort, &clientConfig, 600*time.Second)
+	client.Connect()
+
+	file, _ := os.Open(sourceFile)
+
+	defer client.Close()
+	defer file.Close()
+
+	return client.CopyFile(file, targetFile, "0755")
 }
