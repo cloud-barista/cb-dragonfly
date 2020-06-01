@@ -25,6 +25,7 @@ api_server:
 # monitoring interval configuration info
 monitoring:
   agent_interval: 2       # agent interval (s)
+  agent_TTL : 5           # agent TTL (s)
   collector_interval: 10  # aggregate interval (s)
   schedule_interval: 10   # scale interval (s)
-  max_host_count: 10      # maximum host count per collector
+  max_host_count:  10     # maximum host count per collector

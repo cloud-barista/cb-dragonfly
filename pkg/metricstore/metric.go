@@ -23,8 +23,18 @@ type Cpu struct {
 	CpuIowait      float64 `json:"cpu_iowait"`
 	CpuHardIrq     float64 `json:"cpu_hintr"`
 	CpuSoftirq     float64 `json:"cpu_sintr"`
+	CpuUser        float64 `json:"cpu_user"`
+	CpuNice        float64 `json:"cpu_nice"`
+	CpuNum         float64 `json:"cpu_num"`
+}
+type Cpufreq struct {
+	CpuSpeed float64 `json:"cpu_speed"`
 }
 
+func (c Cpufreq) GetField() []string {
+	val := reflect.ValueOf(c)
+	return util.GetFields(val)
+}
 func (c Cpu) GetField() []string {
 	val := reflect.ValueOf(c)
 	return util.GetFields(val)

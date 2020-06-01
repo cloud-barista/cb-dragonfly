@@ -24,16 +24,19 @@ import (
 // TODO: 3. Configuring Policy...
 
 type CollectManager struct {
-	Config        Config
-	InfluxdDB     metricstore.Storage
-	Etcd          realtimestore.Storage
-	Aggregator    collector.Aggregator
-	WaitGroup     *sync.WaitGroup
-	UdpCOnn       *net.UDPConn
-	CollectorList map[string]*collector.MetricCollector
-	CollectorChan map[string]*chan string
-	HostInfo      collector.HostInfo
-	HostCnt       int
+	Config            Config
+	InfluxdDB         metricstore.Storage
+	Etcd              realtimestore.Storage
+	Aggregator        collector.Aggregator
+	WaitGroup         *sync.WaitGroup
+	UdpCOnn           *net.UDPConn
+	metricL           *sync.RWMutex
+	CollectorIdx      []string
+	CollectorUUIDAddr map[string]*collector.MetricCollector
+	AggregatingChan   map[string]*chan string
+	TransmitDataChan  map[string]*chan collector.TelegrafMetric
+	AgentQueueTTL     map[string]time.Time
+	AgentQueueColN    map[string]int
 }
 
 // 콜렉터 매니저 초기화
@@ -75,16 +78,27 @@ func NewCollectorManager() (*CollectManager, error) {
 		logrus.Error("Failed to initialize etcd")
 		return nil, err
 	}
+
+	manager.metricL = &sync.RWMutex{}
+
 	manager.Etcd = etcd
 
-	// 호스트 리스트 초기화
-	hostList := collector.HostInfo{
-		HostMap: &map[string]string{},
-		L:       &sync.RWMutex{},
-	}
-	manager.HostInfo = hostList
+	manager.AgentQueueTTL = map[string]time.Time{}
+	manager.AgentQueueColN = map[string]int{}
 
 	return &manager, nil
+}
+
+// 기존의 실시간 모니터링 데이터 삭제
+func (manager *CollectManager) FlushMonitoringData() error {
+	// 모니터링 콜렉터 태그 정보 삭제
+	//manager.Etcd.DeleteMetric("/host-list")
+	manager.Etcd.DeleteMetric("/collector")
+
+	// 실시간 모니터링 정보 삭제
+	manager.Etcd.DeleteMetric("/host")
+
+	return nil
 }
 
 // config 파일 로드
@@ -106,33 +120,13 @@ func (manager *CollectManager) LoadConfiguration() error {
 	return nil
 }
 
-// 기존의 실시간 모니터링 데이터 삭제
-func (manager *CollectManager) FlushMonitoringData() error {
-	// 모니터링 콜렉터 태그 정보 삭제
-	manager.Etcd.DeleteMetric("/host-list")
-	manager.Etcd.DeleteMetric("/collector")
-	/*if err := manager.Etcd.DeleteMetric("/host-list"); err != nil {
-		return err
-	}
-	if err := manager.Etcd.DeleteMetric("/collector"); err != nil {
-		return err
-	}*/
-	// 실시간 모니터링 정보 삭제
-	manager.Etcd.DeleteMetric("/host")
-	/*if err := manager.Etcd.DeleteMetric("/host"); err != nil {
-		return err
-	}*/
-	return nil
-}
-
 // TODO: 모니터링 정책 설정
 func (manager *CollectManager) SetConfiguration() error {
 	return nil
 }
 
-//func (manager *CollectManager) StartCollector(wg *sync.WaitGroup, aggregateChan chan string) error {
-func (manager *CollectManager) StartCollector(wg *sync.WaitGroup) error {
-	// UDP 서버 설정
+func (manager *CollectManager) CreateLoadBalancer(wg *sync.WaitGroup) error {
+
 	udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("0.0.0.0:%d", manager.Config.CollectManager.CollectorPort))
 	if err != nil {
 		logrus.Error("Failed to resolve UDP server address: ", err)
@@ -143,27 +137,160 @@ func (manager *CollectManager) StartCollector(wg *sync.WaitGroup) error {
 		logrus.Error("Failed to listen UDP server address: ", err)
 		return err
 	}
-	//defer udpConn.Close()
-
-	// TODO: UDP 멀티 소켓 처리
-	/*listenConfig := net.ListenConfig{Control: func(network, address string, c syscall.RawConn) (err error) {
-		return c.Control(func(fd uintptr) {
-			err = windows.SetsockoptInt(windows.Handle(fd), windows.SOL_SOCKET, windows.SO_REUSEADDR, 1)
-			if err != nil {
-				panic(err)
-			}
-		})
-	}}*/
-	/*udpConn, err := listenConfig.ListenPacket(context.Background(), "udp", fmt.Sprintf(":%d", manager.Config.CollectManager.CollectorPort))
-	if err != nil {
-		panic(err)
-	}*/
-
-	manager.WaitGroup = wg
+	//manager.WaitGroup = wg
 	manager.UdpCOnn = udpConn
 
-	manager.CollectorList = map[string]*collector.MetricCollector{}
-	manager.CollectorChan = map[string]*chan string{}
+	manager.WaitGroup.Add(1)
+	go manager.ManageAgentTtl(manager.WaitGroup)
+
+	manager.WaitGroup.Add(1)
+	go manager.StartLoadBalancer(manager.UdpCOnn, manager.WaitGroup)
+
+	return nil
+}
+
+func (manager *CollectManager) StartLoadBalancer(udpConn net.PacketConn, wg *sync.WaitGroup) {
+
+	defer wg.Done()
+
+	for {
+		metric := collector.TelegrafMetric{}
+		buf := make([]byte, 1024*10)
+
+		n, _, err := udpConn.ReadFrom(buf)
+
+		if err != nil {
+			logrus.Error("UDPLoadBalancer : failed to read bytes: ", err)
+		}
+		manager.metricL.Lock()
+		if err := json.Unmarshal(buf[0:n], &metric); err != nil {
+			logrus.Error("Failed to decode json to buf: ", string(buf[0:n]))
+			continue
+		}
+		manager.metricL.Unlock()
+		hostId := metric.Tags["hostID"].(string)
+
+		manager.AgentQueueTTL[hostId] = time.Now()
+
+		_, alreadyRegistered := manager.AgentQueueColN[hostId]
+
+		if !alreadyRegistered {
+			manager.metricL.Lock()
+			manager.AgentQueueColN[hostId] = -1
+			manager.metricL.Unlock()
+		}
+
+		err = manager.ManageAgentQueue(hostId, manager.AgentQueueColN, metric)
+		if err != nil {
+			logrus.Error("ManageAgentQueue Error", err)
+		}
+	}
+}
+
+func (manager *CollectManager) ManageAgentQueue(hostId string, AgentQueueColN map[string]int, metric collector.TelegrafMetric) error {
+
+	colN := AgentQueueColN[hostId]
+	colUUID := ""
+	var cashingCAddr *collector.MetricCollector
+	// Case : new Data which is not allocated at collector
+	for idx, cUUID := range manager.CollectorIdx {
+
+		cAddr := manager.CollectorUUIDAddr[cUUID]
+
+		if cAddr != nil {
+			if _, alreadyRegistered := (*cAddr).MarkingAgent[hostId]; alreadyRegistered {
+				if idx != 0 {
+					cashingCAddr = cAddr
+					break
+				}
+				colUUID = manager.CollectorIdx[colN]
+				*(manager.TransmitDataChan[colUUID]) <- metric
+				return nil
+			}
+		}
+	}
+
+	for idx, cUUID := range manager.CollectorIdx {
+
+		cAddr := manager.CollectorUUIDAddr[cUUID]
+
+		if len((*cAddr).MarkingAgent) < manager.Config.Monitoring.MaxHostCount {
+
+			if cashingCAddr != nil {
+				delete((*cashingCAddr).MarkingAgent, hostId)
+			}
+			manager.metricL.Lock()
+			(*cAddr).MarkingAgent[hostId] = hostId
+			manager.metricL.Unlock()
+			AgentQueueColN[hostId] = idx
+			colN = AgentQueueColN[hostId]
+			colUUID = manager.CollectorIdx[colN]
+			*(manager.TransmitDataChan[colUUID]) <- metric
+			return nil
+		}
+	}
+
+	return nil
+}
+
+func (manager *CollectManager) ManageAgentTtl(wg *sync.WaitGroup) {
+
+	defer wg.Done()
+
+	monConfig, err := manager.GetConfigInfo()
+	if err != nil {
+		logrus.Error("Fail to get monConfig Info")
+	}
+	for {
+		currentTime := time.Now()
+		if len(manager.AgentQueueTTL) != 0 {
+			manager.metricL.RLock()
+			for hostId, arrivedTime := range manager.AgentQueueTTL {
+
+				if currentTime.Sub(arrivedTime) > time.Duration(monConfig.AgentTtl)*time.Second {
+					if _, ok := manager.AgentQueueTTL[hostId]; ok {
+						//manager.metricL.RLock()
+						delete(manager.AgentQueueTTL, hostId)
+						//manager.metricL.RUnlock()
+					}
+					colN := manager.AgentQueueColN[hostId]
+					cUUID := ""
+					if colN >= 0 && colN < len(manager.CollectorIdx) {
+						cUUID = manager.CollectorIdx[colN]
+					} else {
+						continue
+					}
+					c := manager.CollectorUUIDAddr[cUUID]
+					if _, ok := manager.AgentQueueColN[hostId]; ok {
+						delete(manager.AgentQueueColN, hostId)
+					}
+					if _, ok := (*c).MarkingAgent[hostId]; ok {
+						delete((*c).MarkingAgent, hostId)
+					}
+					err := manager.Etcd.DeleteMetric(fmt.Sprintf("/collector/%s/host/%s", cUUID, hostId))
+					if err != nil {
+						logrus.Error("Fail to delete hostInfo ETCD data")
+					}
+					err = manager.Etcd.DeleteMetric(fmt.Sprintf("/host/%s", hostId))
+					if err != nil {
+						logrus.Error("Fail to delete expired ETCD data")
+					}
+				}
+			}
+			manager.metricL.RUnlock()
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+//func (manager *CollectManager) StartCollector(wg *sync.WaitGroup, aggregateChan chan string) error {
+func (manager *CollectManager) StartCollector(wg *sync.WaitGroup) error {
+	manager.WaitGroup = wg
+
+	manager.CollectorIdx = []string{}
+	manager.CollectorUUIDAddr = map[string]*collector.MetricCollector{}
+	manager.AggregatingChan = map[string]*chan string{}
+	manager.TransmitDataChan = map[string]*chan collector.TelegrafMetric{}
 
 	for i := 0; i < manager.Config.CollectManager.CollectorCnt; i++ {
 		err := manager.CreateCollector()
@@ -178,25 +305,32 @@ func (manager *CollectManager) StartCollector(wg *sync.WaitGroup) error {
 
 func (manager *CollectManager) CreateCollector() error {
 	// 실시간 데이터 저장을 위한 collector 고루틴 실행
-	mc := collector.NewMetricCollector(manager.Config.CollectManager.CollectorPort, manager.Config.Monitoring.CollectorInterval, &manager.Etcd, &manager.InfluxdDB, collector.AVG, &manager.HostInfo, manager.CollectorChan)
+	mc := collector.NewMetricCollector(map[string]string{}, manager.metricL, manager.Config.Monitoring.CollectorInterval, &manager.Etcd, &manager.InfluxdDB, collector.AVG, manager.AggregatingChan, manager.TransmitDataChan)
+	manager.metricL.Lock()
+	manager.CollectorIdx = append(manager.CollectorIdx, mc.UUID)
+	manager.metricL.Unlock()
+	transmitDataChan := make(chan collector.TelegrafMetric)
 	manager.WaitGroup.Add(1)
-	go mc.StartCollector(manager.UdpCOnn, manager.WaitGroup)
+	go mc.StartCollector(manager.UdpCOnn, manager.WaitGroup, &transmitDataChan)
 
-	// 실시간 데이터 처리를 위한 Aggregator 고루틴 실행
+	manager.WaitGroup.Add(1)
 	aggregateChan := make(chan string)
 	go mc.StartAggregator(manager.WaitGroup, &aggregateChan)
 
-	manager.CollectorList[mc.UUID] = &mc
-	manager.CollectorChan[mc.UUID] = &aggregateChan
+	manager.TransmitDataChan[mc.UUID] = &transmitDataChan
+	manager.CollectorUUIDAddr[mc.UUID] = &mc
+	manager.AggregatingChan[mc.UUID] = &aggregateChan
 
 	return nil
 }
 
 func (manager *CollectManager) StopCollector(uuid string) error {
-	if _, ok := manager.CollectorList[uuid]; ok {
+	if _, ok := manager.CollectorUUIDAddr[uuid]; ok {
 		// 실행 중인 콜렉터 고루틴 종료 (콜렉터 활성화 플래그 변경)
-		manager.CollectorList[uuid].Active = false
-		delete(manager.CollectorList, uuid)
+		manager.CollectorUUIDAddr[uuid].Active = false
+		delete(manager.CollectorUUIDAddr, uuid)
+		//*(manager.TransmitDataChan[uuid]) <- collector.TelegrafMetric{}
+		//manager.CollectorCnt -= 1
 		return nil
 	} else {
 		return errors.New(fmt.Sprintf("failed to get collector by id, uuid: %s", uuid))
@@ -221,21 +355,31 @@ func (manager *CollectManager) GetConfigInfo() (MonConfig, error) {
 func (manager *CollectManager) StartAggregateScheduler(wg *sync.WaitGroup, c *map[string]*chan string) {
 	defer wg.Done()
 	for {
-		/*select {
-		case <-ctx.Done():
-			logrus.Debug("Stop scheduling for aggregate metric")
-			return
-		default:
-		}*/
 		// aggregate 주기 정보 조회
 		monConfig, err := manager.GetConfigInfo()
 		if err != nil {
 			logrus.Error("failed to get monitoring config info", err)
 		}
 
-		time.Sleep(time.Duration(monConfig.CollectorInterval) * time.Second)
+		//// Print Session Start /////
+		//fmt.Print("\nTTL queue List : ")
+		//sortedAgentQueueTTL := make([] int, 0)
+		//for key, _ := range manager.AgentQueueTTL{
+		//	value, _ := strconv.Atoi(strings.Split(key,"-")[2])
+		//	sortedAgentQueueTTL = append(sortedAgentQueueTTL, value)
+		//}
+		//sort.Slice(sortedAgentQueueTTL, func(i, j int) bool {
+		//	return sortedAgentQueueTTL[i] < sortedAgentQueueTTL[j]
+		//})
+		//for _, value := range sortedAgentQueueTTL {
+		//	fmt.Print(value, ", ")
+		//}
+		//fmt.Print(fmt.Sprintf(" / Total : %d", len(sortedAgentQueueTTL)))
+		//fmt.Print("\n")
+		//fmt.Println("The number of collector : ", len(manager.CollectorIdx))
+		//// Print Session End /////
 
-		manager.HostCnt = len(*manager.HostInfo.HostMap)
+		time.Sleep(time.Duration(monConfig.CollectorInterval) * time.Second)
 
 		for _, channel := range *c {
 			*channel <- "aggregate"
@@ -256,7 +400,7 @@ func (manager *CollectManager) StartScaleScheduler(wg *sync.WaitGroup) {
 
 		time.Sleep(time.Duration(monConfig.SchedulingInterval) * time.Second)
 
-		// Check Scale-In/Out Logic (호스트 수 기준 Scaling In/Out)
+		// Check Scale-In/Out Logic ( len(AgentTTLQueue) 기준 Scaling In/Out)
 		err = cs.CheckScaleCondition()
 		if err != nil {
 			logrus.Error("failed to check scale in/out condition", err)

@@ -47,9 +47,15 @@ func main() {
 		panic(err)
 	}
 
+	// UDP load balancer start
+	err = cm.CreateLoadBalancer(&wg)
+	if err != nil {
+		panic(err)
+	}
+
 	// 모니터링 Aggregate 스케줄러 실행
 	wg.Add(1)
-	go cm.StartAggregateScheduler(&wg, &cm.CollectorChan)
+	go cm.StartAggregateScheduler(&wg, &cm.AggregatingChan)
 
 	// 모니터링 콜렉터 스케일 인/아웃 스케줄러 실행
 	wg.Add(1)

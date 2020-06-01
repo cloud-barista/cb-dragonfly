@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/sirupsen/logrus"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -44,237 +44,151 @@ type Aggregator struct {
 
 // 실시간 모니터링 데이터 Aggregate
 func (a *Aggregator) AggregateMetric(collectorId string) error {
-	var vmList []string     // 콜렉터에 태그된 VM 목록
-	var metricList []string // 모니터링 메트릭 목록
 
-	/* 1. 콜렉터에 태그된 VM 목록, 모니터링 메트릭 목록 가져오기 */
+	/* Monitoring metric data tree : aggregatedMap
+		Depth : vmId / parentMetricName / childMetricName / value
+	 	= map[string] interface | map[string] interface | map[string] interface {}
+		= map[string] interface { map[string] interface { map[string] interface {} } }
+	*/
 
-	// VM 목록 가져오기
-	node, err := a.Etcd.ReadMetric(fmt.Sprintf("/collector/%s/host", collectorId))
+	/*1. Get VM List from ETCD */
+	aggregatedMap := map[string]interface{}{}
+	getVmList, err := a.Etcd.ReadMetric(fmt.Sprintf("/collector/%s/host", collectorId))
+
 	if err != nil {
-		logrus.Error("Failed to get tagging vm list", err)
-		return err
-	}
-
-	if node == nil {
+		if err.Error()[0:3] != "100" {
+			logrus.Error("Failed to get vm list from ETCD : ", err)
+			return err
+		} else {
+			logrus.Error("It is empty ETCD. Failed to get vm list from ETCD : ", err)
+			return nil
+		}
+	} else if getVmList == nil {
 		return nil
 	}
 
-	for idx, vm := range node.Nodes {
+	var vmList []string
+
+	for _, vm := range getVmList.Nodes {
+
 		vmId := strings.Split(vm.Key, "/")[4]
 		vmList = append(vmList, vmId)
+		vmIdNode, err := a.Etcd.ReadMetric(fmt.Sprintf("/host/%s/metric", vmId))
 
-		// 메트릭 목록 가져오기
-		if idx == 0 {
-			metricNode, err := a.Etcd.ReadMetric(fmt.Sprintf("/host/%s/metric", vmId))
+		if err != nil {
+			logrus.Error("Failed to get vm metric list", err)
+			return err
+		}
+		/* 2. Get metric List from ETCD */
+		parentMetric := map[string]interface{}{}
+
+		for _, metric := range vmIdNode.Nodes {
+
+			parentMetricName := strings.Split(metric.Key, "/")[4]
+			metricDataNode, err := a.Etcd.ReadMetric(metric.Key)
+
 			if err != nil {
 				logrus.Error("Failed to get vm metric list", err)
 				return err
 			}
-			for _, metric := range metricNode.Nodes {
-				metricName := strings.Split(metric.Key, "/")[4]
-				metricList = append(metricList, metricName)
-			}
-		}
-	}
+			/*3. Aggregating metric data*/
+			if hasGrandch, _ := regexp.MatchString("[a-zA-Z]", strings.Split(metricDataNode.Nodes[0].Key, "/")[5]); hasGrandch {
+				// if metric name is disk or diskio which has grandchildren, if TRUE logic execution.
+				childMetric := make(map[string]interface{})
 
-	/* 2. 상세 모니터링 데이터 목록 가져오기 */
-	monMap := map[string]map[string]map[string]interface{}{}
-	metricTagMap := make(map[string]interface{})
+				for _, chidMetricNode := range metricDataNode.Nodes {
 
-	for _, vmId := range vmList {
+					chidMetricData, err := a.Etcd.ReadMetric(chidMetricNode.Key)
 
-		// Tag data processing
-		metricTag := fmt.Sprintf("/host/%s/tag", vmId)
-		metricTagData, err := a.Etcd.ReadMetric(metricTag)
+					if err != nil {
+						logrus.Error("Failed to get child metric list", err)
+						return err
+					}
 
-		metricMap := map[string]map[string]interface{}{}
-		for _, metricName := range metricList {
+					childMetricName := strings.Split(chidMetricData.Nodes[0].Key, "/")[5]
+					timestamp := strings.Split(chidMetricData.Nodes[0].Key, "/")[6]
 
-			if metricName == "disk" || metricName == "diskio" {
-				err = a.AggregateDiskMetric(vmId, metricName, metricTagData.Value)
-				if err != nil {
-					logrus.Error("Failed to aggregate disk metric", err)
+					grandChildata, err := a.Etcd.ReadMetric(chidMetricData.Nodes[0].Key)
+
+					if err != nil {
+						logrus.Error("Failed to get grand child metric list", err)
+						return err
+					}
+
+					grandChildMetricString := make(map[string]interface{})
+					err = json.Unmarshal([]byte(grandChildata.Value), &grandChildMetricString)
+
+					if err != nil {
+						logrus.Error("Failed to convert json string to map", err)
+						return err
+					}
+
+					grandChildDetailedMetric := map[string]interface{}{timestamp: grandChildMetricString}
+					grandchildMetric, err := a.CalculateMetric(childMetricName, grandChildDetailedMetric, a.AggregateType.toString(), !hasGrandch)
+
+					if err != nil {
+						logrus.Error("Failed to aggregate grandchildMetric data", err)
+						return err
+					}
+
+					childMetric[childMetricName] = grandchildMetric
 				}
-				continue
-			}
 
-			// 모니터링 데이터 조회
-			metricDataKey := fmt.Sprintf("/host/%s/metric/%s", vmId, metricName)
-			metricDataNode, err := a.Etcd.ReadMetric(metricDataKey)
-			if err != nil {
-				return err
-			}
-			var timestamp string
+				parentMetric[parentMetricName], err = a.CalculateMetric(parentMetricName, childMetric, a.AggregateType.toString(), hasGrandch)
 
-			// 모니터링 데이터 파싱 (string to json)
-			metricDetailMap := make(map[string]interface{})
-			for _, data := range metricDataNode.Nodes {
-				timestamp = strings.Split(data.Key, "/")[5]
-				metricData := make(map[string]interface{})
-				err := json.Unmarshal([]byte(data.Value), &metricData)
+				if err != nil {
+					logrus.Error("Failed to aggregate parentMetric data", err)
+					return err
+				}
+
+			} else { // cpu, mem, swap... etc (disk, diskio metric excludes)
+
+				childDetailMetric := make(map[string]interface{})
+				timestamp := strings.Split(metricDataNode.Nodes[0].Key, "/")[5]
+				err = json.Unmarshal([]byte(metricDataNode.Nodes[0].Value), &childDetailMetric)
+
 				if err != nil {
 					logrus.Error("Failed to convert json string to map", err)
 					return err
 				}
-				metricDetailMap[timestamp] = metricData
-			}
 
-			metricMap[metricName] = metricDetailMap
+				childMetricString := map[string]interface{}{timestamp: childDetailMetric}
+				// metric aggregate start
+				childMetric, err := a.CalculateMetric(parentMetricName, childMetricString, a.AggregateType.toString(), hasGrandch)
+
+				if err != nil {
+					logrus.Error("Failed to aggregate childMetric data", err)
+					return err
+				}
+				// metric aggregate end
+				parentMetric[parentMetricName] = childMetric
+			}
 		}
+		// tagging data processing start
+		metricTagMap := make(map[string]interface{})
+		metricTagData, err := a.Etcd.ReadMetric(fmt.Sprintf("/host/%s/tag", vmId))
+
+		if err != nil {
+			logrus.Error("Failed to get tag data from ETCD", err)
+			return err
+		}
+
 		// Add Vm tag(mcisId, hostId, osType) to metricMap
 		err = json.Unmarshal([]byte(metricTagData.Value), &metricTagMap)
 		if err != nil {
-			logrus.Error("Failed to convert json string to map", err)
+			logrus.Error("Failed to convert tag json string to map", err)
 			return err
 		}
 
-		monMap[vmId] = metricMap
+		parentMetric["tag"] = metricTagMap
+		// tagging data processing end
+
+		aggregatedMap[vmId] = parentMetric
 	}
-
-	/* 3. 모니터링 데이터 Aggregate */
-	aggregateMap := map[string]interface{}{}
-
-	for hostId, host := range monMap {
-		metricMap := map[string]interface{}{}
-		for metricName, metric := range host {
-			aggregateMetric, err := a.CalculateMetric(metricName, metric, a.AggregateType.toString())
-			if err != nil {
-				logrus.Error("Failed to aggregate data", err)
-				return err
-			}
-			metricMap[metricName] = aggregateMetric
-		}
-		metricMap["tag"] = metricTagMap
-		aggregateMap[hostId] = metricMap
-	}
-
 	/* 4. 모니터링 데이터 저장 (InfluxDB) */
-	err = a.InfluxDB.WriteMetric(aggregateMap)
+
+	err = a.InfluxDB.WriteMetric(aggregatedMap)
 	if err != nil {
-		return err
-	}
-
-	/* 5. 모니터링 데이터 초기화 (etcd) */
-	err = a.FlushMetric(vmList)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (a *Aggregator) AggregateDiskMetric(vmId string, metricName string, metricTagData string) error {
-
-	/* 1. device 정보 가져오기 */
-	deviceDataKey := fmt.Sprintf("/host/%s/metric/%s", vmId, metricName)
-	deviceNode, err := a.Etcd.ReadMetric(deviceDataKey)
-	if err != nil {
-		logrus.Error("Failed to get device list", err)
-		return err
-	}
-
-	/* 2. device 별 모니터링 메트릭 데이터 계산 */
-	deviceMap := map[string]interface{}{}
-	for _, device := range deviceNode.Nodes {
-
-		// device 정보 가져오기
-		deviceName := strings.Split(device.Key, "/")[5]
-		/*if strings.Contains(deviceName, "%") {
-			deviceName = strings.ReplaceAll(deviceName, "%", "/")
-		}*/
-
-		// 모니터링 메트릭 정보 조회
-		metricDataKey := fmt.Sprintf("/host/%s/metric/%s/%s", vmId, metricName, deviceName)
-		metricDataNode, err := a.Etcd.ReadMetric(metricDataKey)
-		if err != nil {
-			logrus.Error("Failed to get disk, diskio metric", err)
-			return err
-		}
-
-		// 모니터링 데이터 파싱 (string to json)
-		metricDetailMap := make(map[string]interface{})
-		for _, data := range metricDataNode.Nodes {
-			timestamp := strings.Split(data.Key, "/")[5]
-			metricData := make(map[string]interface{})
-			err := json.Unmarshal([]byte(data.Value), &metricData)
-			if err != nil {
-				logrus.Error("Failed to convert json string to map", err)
-				return err
-			}
-			metricDetailMap[timestamp] = metricData
-		}
-
-		deviceMap[deviceName], err = a.CalculateMetric(metricName, metricDetailMap, a.AggregateType.toString())
-		if err != nil {
-			logrus.Error("Failed to calculate disk, diskio metric")
-		}
-	}
-
-	/* 3. device 별 모니터링 메트릭 데이터 합산 */
-	resultMap := map[string]interface{}{}
-	for _, metricMap := range deviceMap {
-		for key, val := range metricMap.(map[string]interface{}) {
-			if key == "io_time" || key == "iops_in_progress" {
-				continue
-			}
-			if resultMap[key] == nil {
-				resultMap[key] = 0.0
-			}
-			resultMap[key] = resultMap[key].(float64) + val.(float64)
-		}
-	}
-
-	// disk 메트릭의 경우 usage_utilization 메트릭 항목 재계산
-	if metricName == "disk" {
-		if resultMap["total"].(float64) == 0 {
-			resultMap["used_percent"] = 0
-		} else {
-			//resultMap["used_percent"] = resultMap["used"].(float64) / resultMap["total"].(float64)
-			deviceCnt := len(deviceMap)
-			if deviceCnt == 0 {
-				resultMap["used_percent"] = 0
-			} else {
-				resultMap["used_percent"] = resultMap["used_percent"].(float64) / float64(deviceCnt)
-			}
-		}
-	}
-	/*
-		else if metricName == "diskio" {
-			deviceCnt := len(deviceMap)
-			if deviceCnt == 0 {
-				resultMap["read_bytes"] = 0
-				resultMap["write_bytes"] = 0
-			} else {
-				//resultMap["read_bytes"] = resultMap["read_bytes "].(float64) / float64(deviceCnt)
-				//resultMap["write_bytes"] = resultMap["write_bytes"].(float64) / float64(deviceCnt)
-				//resultMap["iops_read"] = resultMap["iops_read"].(float64) / float64(deviceCnt)
-				//resultMap["iops_write"] = resultMap["iops_write"].(float64) / float64(deviceCnt)
-			}
-		}
-	*/
-
-	//spew.Dump(deviceMap)
-	spew.Dump(resultMap)
-
-	aggregateMap := make(map[string]interface{})
-	metricMap := make(map[string]interface{})
-	metricTagMap := make(map[string]interface{})
-
-	err = json.Unmarshal([]byte(metricTagData), &metricTagMap)
-	if err != nil {
-		logrus.Error("Failed to convert json string to map", err)
-		return err
-	}
-
-	metricMap["tag"] = metricTagMap
-	metricMap[metricName] = resultMap
-	aggregateMap[vmId] = metricMap
-
-	/* 4. 모니터링 데이터 저장 (InfluxDB) */
-	err = a.InfluxDB.WriteMetric(aggregateMap)
-	if err != nil {
-		logrus.Error("Failed to save write disk, diskio metric", err)
 		return err
 	}
 
@@ -282,10 +196,15 @@ func (a *Aggregator) AggregateDiskMetric(vmId string, metricName string, metricT
 }
 
 // 실시간 모니터링 데이터 통계 값 계산 (MIN, MAX, AVG, LAST)
-func (a *Aggregator) CalculateMetric(metricName string, metric map[string]interface{}, aggregateType string) (interface{}, error) {
+func (a *Aggregator) CalculateMetric(metricName string, metric map[string]interface{}, aggregateType string, deterProgress bool) (interface{}, error) {
 
-	/* 1. 실시간 모니터링 데이터 계산을 위한 맵 생성 */
 	metricArr := map[string][]float64{}
+	resultMap := map[string]interface{}{}
+
+	if deterProgress {
+		goto diskProgress
+	}
+	/* 1. 실시간 모니터링 데이터 계산을 위한 맵 생성 */
 	//if a.AggregateType == MIN || a.AggregateType == MAX || a.AggregateType == AVG {
 	if aggregateType == "min" || aggregateType == "max" || aggregateType == "avg" {
 		for key := range metric {
@@ -297,10 +216,8 @@ func (a *Aggregator) CalculateMetric(metricName string, metric map[string]interf
 			}
 		}
 	}
-	//spew.Dump(metricArr)
 
 	/* 2. 실시간 모니터링 데이터 통계 로직 적용 */
-	resultMap := map[string]interface{}{}
 	switch aggregateType {
 	// 조회된 실시간 데이터 목록 기준 MIN, MAX, AVG, LAST 값 계산
 	//case MIN:
@@ -349,17 +266,39 @@ func (a *Aggregator) CalculateMetric(metricName string, metric map[string]interf
 	}
 
 	return resultMap, nil
-}
 
-// etcd 저장소에 저장된 모든 모니터링 데이터 삭제 (초기화)
-func (a *Aggregator) FlushMetric(vmList []string) error {
-	for _, vmId := range vmList {
-		err := a.Etcd.DeleteMetric(fmt.Sprintf("/host/%s", vmId))
-		if err != nil {
-			return err
+diskProgress:
+
+	deviceMap := metric
+
+	for _, metricMap := range deviceMap {
+		for key, val := range metricMap.(map[string]interface{}) {
+			if key == "io_time" || key == "iops_in_progress" {
+				continue
+			}
+			if resultMap[key] == nil {
+				resultMap[key] = 0.0
+			}
+			resultMap[key] = resultMap[key].(float64) + val.(float64)
 		}
 	}
-	return nil
+
+	// disk 메트릭의 경우 usage_utilization 메트릭 항목 재계산
+	if metricName == "disk" {
+		if resultMap["total"].(float64) == 0 {
+			resultMap["used_percent"] = 0
+		} else {
+			//resultMap["used_percent"] = resultMap["used"].(float64) / resultMap["total"].(float64)
+			deviceCnt := len(deviceMap)
+			if deviceCnt == 0 {
+				resultMap["used_percent"] = 0
+			} else {
+				resultMap["used_percent"] = resultMap["used_percent"].(float64) / float64(deviceCnt)
+			}
+		}
+	}
+
+	return resultMap, nil
 }
 
 // 실시간 모니터링 데이터 조회
@@ -388,7 +327,7 @@ func (a *Aggregator) GetAggregateMetric(vmId string, metricName string, aggregat
 	}
 
 	// 모니터링 데이터 Aggregate
-	aggregateMetric, err := a.CalculateMetric(metricName, metricDetailMap, aggregateType)
+	aggregateMetric, err := a.CalculateMetric(metricName, metricDetailMap, aggregateType, false)
 	if err != nil {
 		logrus.Error("Failed to aggregate data", err)
 		return nil, err
@@ -436,7 +375,7 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 			metricDetailMap[timestamp] = metricData
 		}
 
-		deviceMap[deviceName], err = a.CalculateMetric(metricName, metricDetailMap, aggregateType)
+		deviceMap[deviceName], err = a.CalculateMetric(metricName, metricDetailMap, aggregateType, false)
 		if err != nil {
 			logrus.Error("Failed to calculate disk, diskio metric")
 		}
@@ -461,7 +400,6 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 		if resultMap["total"].(float64) == 0 {
 			resultMap["used_percent"] = 0
 		} else {
-			//resultMap["used_percent"] = resultMap["used"].(float64) / resultMap["total"].(float64)
 			deviceCnt := len(deviceMap)
 			if deviceCnt == 0 {
 				resultMap["used_percent"] = 0
@@ -471,6 +409,5 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 		}
 	}
 
-	spew.Dump(resultMap)
 	return resultMap, nil
 }
