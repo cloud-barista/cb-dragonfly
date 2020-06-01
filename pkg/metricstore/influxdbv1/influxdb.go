@@ -144,7 +144,7 @@ func (s *Storage) buildQuery(vmId string, metric string, period string, aggregat
 	}
 
 	// 시간 범위 설정
-	timeDuration := fmt.Sprintf("now() - %s", duration)
+	timeDuration := fmt.Sprintf("(now()+1m) - %s", duration)
 
 	// 시간 단위 설정
 	var timeCriteria time.Duration
@@ -170,11 +170,20 @@ func (s *Storage) buildQuery(vmId string, metric string, period string, aggregat
 			Field("usage_idle", aggregateType).
 			Field("usage_iowait", aggregateType).
 			Field("usage_irq", aggregateType).
-			Field("usage_softirq", aggregateType)
+			Field("usage_softirq", aggregateType).
+			Field("usage_user", aggregateType).
+			Field("usage_nice", aggregateType).
+			Field("usage_steal", aggregateType).
+			Field("usage_guest", aggregateType).
+			Field("usage_guest_nice", aggregateType)
+
+	case "cpufreq":
+		query = influxBuilder.NewQuery().On(metric).
+			Field("cur_freq", aggregateType)
 
 	case "net":
 
-		fieldArr := []string{"bytes_recv", "bytes_sent", "packets_recv", "packets_sent"}
+		fieldArr := []string{"bytes_recv", "bytes_sent", "packets_recv", "packets_sent", "err_in", "err_out", "drop_in", "drop_out"}
 		query := s.getPerSecMetric(vmId, metric, period, fieldArr, duration)
 		return query, nil
 
@@ -199,7 +208,7 @@ func (s *Storage) buildQuery(vmId string, metric string, period string, aggregat
 
 	case "diskio":
 
-		fieldArr := []string{"read_bytes", "write_bytes", "reads", "writes"}
+		fieldArr := []string{"read_bytes", "write_bytes", "reads", "writes", "read_time", "write_time"}
 		query := s.getPerSecMetric(vmId, metric, period, fieldArr, duration)
 		return query, nil
 
@@ -245,7 +254,7 @@ func (s *Storage) getPerSecMetric(vmId string, metric string, period string, fie
 	}
 
 	// 메트릭 조회 조건 쿼리 생성
-	whereQueryForm := " FROM \"%s\" WHERE time >= now() - %s AND \"hostId\"='%s' GROUP BY time(%s) fill(0)"
+	whereQueryForm := " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"hostId\"='%s' GROUP BY time(%s) fill(0)"
 	query += fmt.Sprintf(whereQueryForm, metric, duration, vmId, timeCriteria)
 
 	return query
