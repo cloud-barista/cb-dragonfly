@@ -40,6 +40,20 @@ func (s *Storage) Init() error {
 			logrus.Error(err)
 			return err
 		}
+
+		q := influxdbClient.Query{
+			Command:  fmt.Sprintf("create database %s", "cbmon"),
+			Database: "cbmon",
+			//RetentionPolicy: "",
+			//Precision:       "",
+			//Chunked:         false,
+			//ChunkSize:       0,
+			//Parameters:      nil,
+		}
+
+		// ignore the error of existing database
+		client.Query(q)
+
 		s.Clients = append(s.Clients, client)
 	}
 	return nil
