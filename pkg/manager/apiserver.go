@@ -32,21 +32,21 @@ import (
 
 type APIServer struct {
 	echo       *echo.Echo
-	config     Config
 	aggregator *collector.Aggregator
 	Etcd       realtimestore.Storage
 	InfluxDB   metricstore.Storage
+	manager    *CollectManager
 }
 
 // API 서버 초기화
-func NewAPIServer(config Config, aggregator *collector.Aggregator, influxDB metricstore.Storage, etcd realtimestore.Storage) (*APIServer, error) {
+func NewAPIServer(aggregator *collector.Aggregator, influxDB metricstore.Storage, etcd realtimestore.Storage, manager *CollectManager) (*APIServer, error) {
 	e := echo.New()
 	apiServer := APIServer{
 		echo:       e,
-		config:     config,
 		aggregator: aggregator,
 		InfluxDB:   influxDB,
 		Etcd:       etcd,
+		manager:    manager,
 	}
 	return &apiServer, nil
 }
@@ -60,7 +60,7 @@ func (apiServer *APIServer) StartAPIServer(wg *sync.WaitGroup) error {
 	apiServer.SetRoutingRule(apiServer.echo)
 
 	// 모니터링 API 서버 실행
-	return apiServer.echo.Start(fmt.Sprintf(":%d", apiServer.config.APIServer.Port))
+	return apiServer.echo.Start(fmt.Sprintf(":%d", apiServer.manager.Config.APIServer.Port))
 }
 
 func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
@@ -425,19 +425,22 @@ func (apiServer *APIServer) SetMonConfig(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
-
-	// etcd 저장소에 모니터링 정책 정보 저장
-	monConfig := MonConfig{
-		AgentInterval:      agentInterval,
-		CollectorInterval:  collectorInterval,
-		SchedulingInterval: schedulingInterval,
-		MaxHostCount:       maxHostCnt,
+	agentTtl, err := strconv.Atoi(c.FormValue("agent_TTL"))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
 	}
+
+	manager := apiServer.manager
+	manager.Config.Monitoring.AgentInterval = agentInterval
+	manager.Config.Monitoring.CollectorInterval = collectorInterval
+	manager.Config.Monitoring.ScheduleInterval = schedulingInterval
+	manager.Config.Monitoring.MaxHostCount = maxHostCnt
+	manager.Config.Monitoring.AgentTtl = agentTtl
 
 	// TODO: 구조체 map[string]interface{} 타입으로 Unmarshal
 	// TODO: 추후에 별도의 map 변환 함수 (toMap() 개발)
 	reqBodyBytes := new(bytes.Buffer)
-	if err = json.NewEncoder(reqBodyBytes).Encode(monConfig); err != nil {
+	if err = json.NewEncoder(reqBodyBytes).Encode(manager.Config.Monitoring); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 	byteData := reqBodyBytes.Bytes()
@@ -453,7 +456,7 @@ func (apiServer *APIServer) SetMonConfig(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	return c.JSON(http.StatusOK, monConfig)
+	return c.JSON(http.StatusOK, manager.Config.Monitoring)
 }
 
 // 모니터링 정책 조회
@@ -479,10 +482,10 @@ func (apiServer *APIServer) ResetMonConfig(c echo.Context) error {
 
 	// config 파일 기준 모니터링 정책 초기화
 	monConfig := MonConfig{
-		AgentInterval:      apiServer.config.Monitoring.AgentInterval,
-		CollectorInterval:  apiServer.config.Monitoring.CollectorInterval,
-		SchedulingInterval: apiServer.config.Monitoring.ScheduleInterval,
-		MaxHostCount:       apiServer.config.Monitoring.MaxHostCount,
+		AgentInterval:      apiServer.manager.Config.Monitoring.AgentInterval,
+		CollectorInterval:  apiServer.manager.Config.Monitoring.CollectorInterval,
+		SchedulingInterval: apiServer.manager.Config.Monitoring.ScheduleInterval,
+		MaxHostCount:       apiServer.manager.Config.Monitoring.MaxHostCount,
 	}
 
 	// TODO: 구조체 map[string]interface{} 타입으로 Unmarshal
@@ -518,7 +521,7 @@ func (apiServer *APIServer) GetTelegrafInstallScript(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	collectorServer := fmt.Sprintf("%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.APIServer.Port)
+	collectorServer := fmt.Sprintf("%s:%d", apiServer.manager.Config.CollectManager.CollectorIP, apiServer.manager.Config.APIServer.Port)
 
 	rootPath := os.Getenv("CBMON_PATH")
 	filePath := rootPath + "/file/install_agent.sh"
@@ -549,7 +552,7 @@ func (apiServer *APIServer) GetTelegrafConfFile(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.CollectManager.CollectorPort)
+	collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.manager.Config.CollectManager.CollectorIP, apiServer.manager.Config.CollectManager.CollectorPort)
 
 	rootPath := os.Getenv("CBMON_PATH")
 	filePath := rootPath + "/file/conf/telegraf.conf"
@@ -564,7 +567,7 @@ func (apiServer *APIServer) GetTelegrafConfFile(c echo.Context) error {
 	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", mcisId)
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
 	strConf = strings.ReplaceAll(strConf, "{{collector_server}}", collectorServer)
-	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", apiServer.config.InfluxDB.EndpointUrl)
+	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", apiServer.manager.Config.InfluxDB.EndpointUrl)
 
 	return c.Blob(http.StatusOK, "text/plain", []byte(strConf))
 }
@@ -615,7 +618,7 @@ func (apiServer *APIServer) GetTelegrafPkgFile(c echo.Context) error {
 
 func (apiServer *APIServer) createTelegrafConfigFile(mcisId string, vmId string) (string, error) {
 
-	collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.CollectManager.CollectorPort)
+	collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.manager.Config.CollectManager.CollectorIP, apiServer.manager.Config.CollectManager.CollectorPort)
 
 	rootPath := os.Getenv("CBMON_PATH")
 	filePath := rootPath + "/file/conf/telegraf.conf"
@@ -632,7 +635,7 @@ func (apiServer *APIServer) createTelegrafConfigFile(mcisId string, vmId string)
 	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", mcisId)
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
 	strConf = strings.ReplaceAll(strConf, "{{collector_server}}", collectorServer)
-	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", apiServer.config.InfluxDB.EndpointUrl)
+	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", apiServer.manager.Config.InfluxDB.EndpointUrl)
 
 	// telegraf.conf 파일 생성
 	telegrafFilePath := rootPath + "/file/conf/"
