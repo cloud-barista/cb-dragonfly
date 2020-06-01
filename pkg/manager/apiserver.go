@@ -425,6 +425,10 @@ func (apiServer *APIServer) SetMonConfig(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
+	agentTtl, err := strconv.Atoi(c.FormValue("agent_TTL"))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
 
 	// etcd 저장소에 모니터링 정책 정보 저장
 	monConfig := MonConfig{
@@ -432,6 +436,7 @@ func (apiServer *APIServer) SetMonConfig(c echo.Context) error {
 		CollectorInterval:  collectorInterval,
 		SchedulingInterval: schedulingInterval,
 		MaxHostCount:       maxHostCnt,
+		AgentTtl:           agentTtl,
 	}
 
 	// TODO: 구조체 map[string]interface{} 타입으로 Unmarshal

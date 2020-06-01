@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -97,6 +98,9 @@ func (manager *CollectManager) FlushMonitoringData() error {
 
 	// 실시간 모니터링 정보 삭제
 	manager.Etcd.DeleteMetric("/host")
+	manager.Etcd.DeleteMetric("/mon")
+
+	manager.SetConfigurationToETCD()
 
 	return nil
 }
@@ -121,7 +125,34 @@ func (manager *CollectManager) LoadConfiguration() error {
 }
 
 // TODO: 모니터링 정책 설정
-func (manager *CollectManager) SetConfiguration() error {
+func (manager *CollectManager) SetConfigurationToETCD() error {
+	monConfig := MonConfig{
+		AgentInterval:      manager.Config.Monitoring.AgentInterval,
+		CollectorInterval:  manager.Config.Monitoring.CollectorInterval,
+		SchedulingInterval: manager.Config.Monitoring.ScheduleInterval,
+		MaxHostCount:       manager.Config.Monitoring.MaxHostCount,
+		AgentTtl:           manager.Config.Monitoring.AgentTtl,
+	}
+
+	// TODO: 구조체 map[string]interface{} 타입으로 Unmarshal
+	// TODO: 추후에 별도의 map 변환 함수 (toMap() 개발)
+	reqBodyBytes := new(bytes.Buffer)
+	if err := json.NewEncoder(reqBodyBytes).Encode(monConfig); err != nil {
+		return err
+	}
+	byteData := reqBodyBytes.Bytes()
+
+	jsonMap := map[string]interface{}{}
+	if err := json.Unmarshal(byteData, &jsonMap); err != nil {
+		return err
+	}
+
+	// etcd 저장소에 모니터링 정책 저장 후 결과 값 반환
+	err := manager.Etcd.WriteMetric("/mon/config", jsonMap)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -237,17 +268,16 @@ func (manager *CollectManager) ManageAgentTtl(wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
-	monConfig, err := manager.GetConfigInfo()
-	if err != nil {
-		logrus.Error("Fail to get monConfig Info")
-	}
+	//monConfig, err := manager.GetConfigInfo()
+	agentTtl := manager.Config.Monitoring.AgentTtl
+
 	for {
 		currentTime := time.Now()
 		if len(manager.AgentQueueTTL) != 0 {
 			manager.metricL.RLock()
 			for hostId, arrivedTime := range manager.AgentQueueTTL {
 
-				if currentTime.Sub(arrivedTime) > time.Duration(monConfig.AgentTtl)*time.Second {
+				if currentTime.Sub(arrivedTime) > time.Duration(agentTtl)*time.Second {
 					if _, ok := manager.AgentQueueTTL[hostId]; ok {
 						//manager.metricL.RLock()
 						delete(manager.AgentQueueTTL, hostId)
@@ -337,29 +367,26 @@ func (manager *CollectManager) StopCollector(uuid string) error {
 	}
 }
 
-func (manager *CollectManager) GetConfigInfo() (MonConfig, error) {
-	// etcd 저장소 조회
-	configNode, err := manager.Etcd.ReadMetric("/mon/config")
-	if err != nil {
-		return MonConfig{}, err
-	}
-	// MonConfig 매핑
-	var config MonConfig
-	err = json.Unmarshal([]byte(configNode.Value), &config)
-	if err != nil {
-		return MonConfig{}, err
-	}
-	return config, nil
-}
+//func (manager *CollectManager) GetConfigInfo() (MonConfig, error) {
+//	// etcd 저장소 조회
+//	configNode, err := manager.Etcd.ReadMetric("/mon/config")
+//	if err != nil {
+//		return MonConfig{}, err
+//	}
+//	// MonConfig 매핑
+//	var config MonConfig
+//	err = json.Unmarshal([]byte(configNode.Value), &config)
+//	if err != nil {
+//		return MonConfig{}, err
+//	}
+//	return config, nil
+//}
 
 func (manager *CollectManager) StartAggregateScheduler(wg *sync.WaitGroup, c *map[string]*chan string) {
 	defer wg.Done()
 	for {
 		// aggregate 주기 정보 조회
-		monConfig, err := manager.GetConfigInfo()
-		if err != nil {
-			logrus.Error("failed to get monitoring config info", err)
-		}
+		collectorInterval := manager.Config.Monitoring.CollectorInterval
 
 		//// Print Session Start /////
 		//fmt.Print("\nTTL queue List : ")
@@ -379,7 +406,7 @@ func (manager *CollectManager) StartAggregateScheduler(wg *sync.WaitGroup, c *ma
 		//fmt.Println("The number of collector : ", len(manager.CollectorIdx))
 		//// Print Session End /////
 
-		time.Sleep(time.Duration(monConfig.CollectorInterval) * time.Second)
+		time.Sleep(time.Duration(collectorInterval) * time.Second)
 
 		for _, channel := range *c {
 			*channel <- "aggregate"
@@ -393,15 +420,12 @@ func (manager *CollectManager) StartScaleScheduler(wg *sync.WaitGroup) {
 	cs := NewCollectorScheduler(manager)
 	for {
 		// 스케줄링 주기 정보 조회
-		monConfig, err := manager.GetConfigInfo()
-		if err != nil {
-			logrus.Error("failed to get monitoring config info", err)
-		}
+		schedulingInterval := manager.Config.Monitoring.ScheduleInterval
 
-		time.Sleep(time.Duration(monConfig.SchedulingInterval) * time.Second)
+		time.Sleep(time.Duration(schedulingInterval) * time.Second)
 
 		// Check Scale-In/Out Logic ( len(AgentTTLQueue) 기준 Scaling In/Out)
-		err = cs.CheckScaleCondition()
+		err := cs.CheckScaleCondition()
 		if err != nil {
 			logrus.Error("failed to check scale in/out condition", err)
 		}
