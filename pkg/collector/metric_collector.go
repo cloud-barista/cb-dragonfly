@@ -8,8 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"net"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,7 +18,7 @@ type MetricCollector struct {
 	UUID              string
 	AggregateInterval int
 	InfluxDB          metricstore.Storage
-	metricL 		*sync.RWMutex
+	metricL           *sync.RWMutex
 	Etcd              realtimestore.Storage
 	Aggregator        Aggregator
 	//HostInfo          *HostInfo
@@ -42,16 +40,6 @@ type TagMetric struct {
 	Tags map[string]interface{} `json:"tags"`
 }
 
-//type syncTelegrafMetric struct {
-//	syn sync.RWMutex
-//	telegrafMetric TelegrafMetric
-//}
-//
-//type syncTagMetric struct {
-//	syn sync.RWMutex
-//	tagMetric TagMetric
-//}
-
 type DeviceInfo struct {
 	HostID     string `json:"host_id"`
 	MetricName string `json:"host_id"`
@@ -59,19 +47,18 @@ type DeviceInfo struct {
 }
 
 // 메트릭 콜렉터 초기화
-func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex,interval int, etcd *realtimestore.Storage, influxDB *metricstore.Storage, aggregateType AggregateType /*hostList *HostInfo, */, aggregatingChan map[string]*chan string, transmitDataChan map[string]*chan TelegrafMetric) MetricCollector {
+func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex, interval int, etcd *realtimestore.Storage, influxDB *metricstore.Storage, aggregateType AggregateType /*hostList *HostInfo, */, aggregatingChan map[string]*chan string, transmitDataChan map[string]*chan TelegrafMetric) MetricCollector {
 
 	// UUID 생성
 	uuid := uuid.New().String()
 
 	// 모니터링 메트릭 Collector 초기화
 	mc := MetricCollector{
-		//MetricCollectorIdx:	   metricCollectorIdx,
 		MarkingAgent:      markingAgent,
 		UUID:              uuid,
 		AggregateInterval: interval,
 		Etcd:              *etcd,
-		metricL : mutexLock,
+		metricL:           mutexLock,
 		Aggregator: Aggregator{
 			Etcd:          *etcd,
 			InfluxDB:      *influxDB,
@@ -88,25 +75,14 @@ func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex,
 
 //func (mc *MetricCollector) Start(listenConfig net.ListenConfig, wg *sync.WaitGroup) {
 func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitGroup, ch *chan TelegrafMetric) error {
-	// TODO: UDP 멀티 소켓 처리
-	/*udpConn, err := listenConfig.ListenPacket(context.Background(), "udp", fmt.Sprintf(":%d", mc.UDPPort))
-	if err != nil {
-		panic(err)
-	}*/
 
 	// Telegraf 에이전트에서 보내는 모니터링 메트릭 수집
 	defer wg.Done()
 	for {
-		//var metric = struct {
-		//	sync.RWMutex
-		//	m TelegrafMetric
-		//}{}
 
 		metric := TelegrafMetric{}
 		select {
 		case metric = <-*ch:
-			//fmt.Println(fmt.Sprintf("[%s] receive &metric : %p", mc.UUID, &metric))
-			//fmt.Println(fmt.Sprintf("[%s] receive metric %s", mc.UUID, metric))
 			if !mc.Active {
 				// tagging 채널 삭제
 				close(*ch)
@@ -119,7 +95,6 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 
 	Start:
 
-
 		hostId, ok := metric.Tags["hostID"].(string)
 
 		if !ok {
@@ -131,13 +106,7 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		}
 		mc.metricL.RUnlock()
 		collectorInfo := fmt.Sprintf("/collector/%s/host/%s", mc.UUID, hostId)
-		//fmt.Print("mc.MarkingAgent : ", mc.MarkingAgent)
-		//fmt.Println("")
-		//fmt.Print(mc.UUID, " : ", hostId)
-		//fmt.Println("")
-		//mc.L.RLock()
 		err := mc.Etcd.WriteMetric(collectorInfo, "")
-		//mc.L.RUnlock()
 
 		if err != nil {
 			return err
@@ -162,13 +131,6 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 			metricKey = fmt.Sprintf("/host/%s/metric/%s/%d", hostId, metric.Name, curTimestamp)
 		}
 		mc.metricL.RUnlock()
-		//FieldsBytes, err :=  mc.MyMarshal(metric.Fields)
-		////s.L.Unlock()
-		//if err != nil {
-		//	logrus.Error("Failed to marshaling TagInfo data to JSON: ", err)
-		//	//	s.L.Unlock()
-		//	return err
-		//}
 
 		if err := mc.Etcd.WriteMetric(metricKey, metric.Fields); err != nil {
 			logrus.Error(err)
@@ -179,34 +141,11 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		metric.TagInfo["hostId"] = hostId
 		metric.TagInfo["osType"] = metric.Tags["osType"].(string)
 
-		//fmt.Println(metric.TagInfo["hostId"])
 		osTypeKey = fmt.Sprintf("/host/%s/tag", hostId)
 
-		//TagInfoBytes, err := mc.MyMarshal(metric.TagInfo)
-		////s.L.Unlock()
-		//if err != nil {
-		//	logrus.Error("Failed to marshaling TagInfo data to JSON: ", err)
-		//	//	s.L.Unlock()
-		//	return err
-		//}
-		//if err := mc.Etcd.WriteMetric(osTypeKey, fmt.Sprintf("%s", TagInfoBytes)); err != nil {
-		//	logrus.Error(err)
-		//}
 		if err := mc.Etcd.WriteMetric(osTypeKey, metric.TagInfo); err != nil {
-				logrus.Error(err)
-			}
-		/*
-			host := metric.Tags["host"].(string)
-			logrus.Debug("======================================================================")
-			logrus.Debugf("UUID: %s", mc.UUID)
-			logrus.Debugf("From %s", addr)
-			logrus.Debugf("Metric: %v", metric)
-			logrus.Debugf("Name: %s", metric.Name)
-			logrus.Debugf("Tags: %s", metric.Tags)
-			logrus.Debugf("Fields: %s", metric.Fields) // TODO: 수집 시 파싱 (실시간 데이터 처리 위해서)
-			logrus.Debugf("Host: %s", host)
-			logrus.Debug("======================================================================")
-		*/
+			logrus.Error(err)
+		}
 	}
 }
 
@@ -227,20 +166,20 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 			logrus.Debug("======================================================================")
 
 			//// Print Session Start /////
-			fmt.Print("mc.MarkingAgent : ")
-			sortedMarkingAgent := make([] int, 0)
-			for key, _ := range mc.MarkingAgent {
-				value, _ := strconv.Atoi(strings.Split(key,"-")[2])
-				sortedMarkingAgent = append(sortedMarkingAgent, value)
-			}
-			sort.Slice(sortedMarkingAgent, func(i, j int) bool {
-				return sortedMarkingAgent[i] < sortedMarkingAgent[j]
-			})
-			for _, value := range sortedMarkingAgent {
-				fmt.Print(value, ", ")
-			}
-			fmt.Print(fmt.Sprintf(" / Total : %d", len(sortedMarkingAgent)))
-			fmt.Print("\n")
+			//fmt.Print("mc.MarkingAgent : ")
+			//sortedMarkingAgent := make([] int, 0)
+			//for key, _ := range mc.MarkingAgent {
+			//	value, _ := strconv.Atoi(strings.Split(key,"-")[2])
+			//	sortedMarkingAgent = append(sortedMarkingAgent, value)
+			//}
+			//sort.Slice(sortedMarkingAgent, func(i, j int) bool {
+			//	return sortedMarkingAgent[i] < sortedMarkingAgent[j]
+			//})
+			//for _, value := range sortedMarkingAgent {
+			//	fmt.Print(value, ", ")
+			//}
+			//fmt.Print(fmt.Sprintf(" / Total : %d", len(sortedMarkingAgent)))
+			//fmt.Print("\n")
 			//// Print Session End /////
 
 			// 콜렉터 비활성화 시 aggregate 채널 삭제
@@ -263,7 +202,6 @@ func (mc *MetricCollector) MyMarshal(metric interface{}) (string, error) {
 		mc.metricL.Lock()
 		bytes, err := json.Marshal(metric)
 		mc.metricL.Unlock()
-		//mc.PreventSync.PreventSync.Unlock()
 		if err != nil {
 			logrus.Error("Failed to marshaling realtime monitoring data to JSON: ", err)
 			return "", err
@@ -275,7 +213,6 @@ func (mc *MetricCollector) MyMarshal(metric interface{}) (string, error) {
 
 	return metricVal, nil
 }
-
 
 /*
 func (mc *MetricCollector) UntagHost() error {

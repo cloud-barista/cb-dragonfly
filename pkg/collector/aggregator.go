@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type AggregateType string
@@ -46,7 +45,6 @@ type Aggregator struct {
 // 실시간 모니터링 데이터 Aggregate
 func (a *Aggregator) AggregateMetric(collectorId string) error {
 
-	startTime := time.Now()
 	/* Monitoring metric data tree : aggregatedMap
 		Depth : vmId / parentMetricName / childMetricName / value
 	 	= map[string] interface | map[string] interface | map[string] interface {}
@@ -189,9 +187,6 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 	}
 	/* 4. 모니터링 데이터 저장 (InfluxDB) */
 
-	fmt.Println("Aggregating processing time :", time.Since(startTime))
-
-	fmt.Println("Aggregating host count : ", len(aggregatedMap))
 	err = a.InfluxDB.WriteMetric(aggregatedMap)
 	if err != nil {
 		return err
@@ -302,23 +297,7 @@ diskProgress:
 			}
 		}
 	}
-	/*
-		else if metricName == "diskio" {
-			deviceCnt := len(deviceMap)
-			if deviceCnt == 0 {
-				resultMap["read_bytes"] = 0
-				resultMap["write_bytes"] = 0
-			} else {
-				//resultMap["read_bytes"] = resultMap["read_bytes "].(float64) / float64(deviceCnt)
-				//resultMap["write_bytes"] = resultMap["write_bytes"].(float64) / float64(deviceCnt)
-				//resultMap["iops_read"] = resultMap["iops_read"].(float64) / float64(deviceCnt)
-				//resultMap["iops_write"] = resultMap["iops_write"].(float64) / float64(deviceCnt)
-			}
-		}
-	*/
 
-	//spew.Dump(resultMap)
-	//spew.Dump(deviceMap)
 	return resultMap, nil
 }
 

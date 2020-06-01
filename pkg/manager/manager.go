@@ -14,9 +14,6 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"sort"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -33,7 +30,7 @@ type CollectManager struct {
 	Aggregator        collector.Aggregator
 	WaitGroup         *sync.WaitGroup
 	UdpCOnn           *net.UDPConn
-	metricL			*sync.RWMutex
+	metricL           *sync.RWMutex
 	CollectorIdx      []string
 	CollectorUUIDAddr map[string]*collector.MetricCollector
 	AggregatingChan   map[string]*chan string
@@ -194,7 +191,7 @@ func (manager *CollectManager) ManageAgentQueue(hostId string, AgentQueueColN ma
 
 	colN := AgentQueueColN[hostId]
 	colUUID := ""
-	var	cashingCAddr *collector.MetricCollector
+	var cashingCAddr *collector.MetricCollector
 	// Case : new Data which is not allocated at collector
 	for idx, cUUID := range manager.CollectorIdx {
 
@@ -251,7 +248,6 @@ func (manager *CollectManager) ManageAgentTtl(wg *sync.WaitGroup) {
 			for hostId, arrivedTime := range manager.AgentQueueTTL {
 
 				if currentTime.Sub(arrivedTime) > time.Duration(monConfig.AgentTtl)*time.Second {
-					fmt.Println(fmt.Sprintf("Delete %s from Agent TTL queue", hostId))
 					if _, ok := manager.AgentQueueTTL[hostId]; ok {
 						//manager.metricL.RLock()
 						delete(manager.AgentQueueTTL, hostId)
@@ -366,21 +362,21 @@ func (manager *CollectManager) StartAggregateScheduler(wg *sync.WaitGroup, c *ma
 		}
 
 		//// Print Session Start /////
-		fmt.Print("\nTTL queue List : ")
-		sortedAgentQueueTTL := make([] int, 0)
-		for key, _ := range manager.AgentQueueTTL{
-			value, _ := strconv.Atoi(strings.Split(key,"-")[2])
-			sortedAgentQueueTTL = append(sortedAgentQueueTTL, value)
-		}
-		sort.Slice(sortedAgentQueueTTL, func(i, j int) bool {
-			return sortedAgentQueueTTL[i] < sortedAgentQueueTTL[j]
-		})
-		for _, value := range sortedAgentQueueTTL {
-			fmt.Print(value, ", ")
-		}
-		fmt.Print(fmt.Sprintf(" / Total : %d", len(sortedAgentQueueTTL)))
-		fmt.Print("\n")
-		fmt.Println("The number of collector : ", len(manager.CollectorIdx))
+		//fmt.Print("\nTTL queue List : ")
+		//sortedAgentQueueTTL := make([] int, 0)
+		//for key, _ := range manager.AgentQueueTTL{
+		//	value, _ := strconv.Atoi(strings.Split(key,"-")[2])
+		//	sortedAgentQueueTTL = append(sortedAgentQueueTTL, value)
+		//}
+		//sort.Slice(sortedAgentQueueTTL, func(i, j int) bool {
+		//	return sortedAgentQueueTTL[i] < sortedAgentQueueTTL[j]
+		//})
+		//for _, value := range sortedAgentQueueTTL {
+		//	fmt.Print(value, ", ")
+		//}
+		//fmt.Print(fmt.Sprintf(" / Total : %d", len(sortedAgentQueueTTL)))
+		//fmt.Print("\n")
+		//fmt.Println("The number of collector : ", len(manager.CollectorIdx))
 		//// Print Session End /////
 
 		time.Sleep(time.Duration(monConfig.CollectorInterval) * time.Second)

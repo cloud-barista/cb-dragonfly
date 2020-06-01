@@ -20,7 +20,7 @@ type Config struct {
 type Storage struct {
 	Config Config
 	Client client.Client
-	L 	 *sync.RWMutex
+	L      *sync.RWMutex
 }
 
 func (s *Storage) Init() error {
@@ -41,11 +41,8 @@ func (s *Storage) Init() error {
 
 //func (s *Storage) WriteMetric(key string, metric map[string]interface{}) error {
 func (s *Storage) WriteMetric(key string, metric interface{}) error {
-	//s.L.Lock()
+
 	kapi := client.NewKeysAPI(s.Client)
-
-	//fmt.Println(fmt.Sprintf("[ETCD] receive &metric : %p", &metric))
-
 	var metricVal string
 
 	_, ok := metric.(map[string]interface{})
@@ -74,46 +71,27 @@ func (s *Storage) WriteMetric(key string, metric interface{}) error {
 	s.L.RUnlock()
 	if err != nil {
 		logrus.Error("Failed to write realtime monitoring data to ETCD : ", err)
-	//	s.L.Unlock()
 		return err
 	}
-	//s.L.Unlock()
-	//logrus.Debug("Write is done. Response is %q\n", resp)
 	return nil
 }
 
 //func (s *Storage) ReadMetric(key string) (map[string]interface{}, error) {
 func (s *Storage) ReadMetric(key string) (*client.Node, error) {
-	//s.L.RLock()
+
 	kapi := client.NewKeysAPI(s.Client)
-	// fmt.Println(" ETCD Key : ",key)
 	// 실시간 모니터링 데이터 조회
 	resp, err := kapi.Get(context.Background(), key, nil)
 	if err != nil {
 		logrus.Error("Failed to read realtime monitoring data to ETCD : ", err)
-		//s.L.RUnlock()
 		return nil, err
 	}
 
-	// 실시간 모니터링 데이터 파싱
-	// TODO: 추후 etcd Node 형태가 아닌 별도 구조체 형태로 데이터 파싱 필요
-	/*for i, node := range nodeArr {
-		fmt.Println(i)
-		var metric map[string]types.CPU
-		if err := json.Unmarshal([]byte(node.Value), &metric); err != nil {
-			logrus.Error(err)
-			continue
-		}
-		//spew.Dump(metric)
-	}*/
-
 	if resp == nil {
-	//	s.L.RUnlock()
+		//	s.L.RUnlock()
 		return nil, nil
 	}
 
-	//s.L.RUnlock()
-	//logrus.Debug("Read is done. Response is %q\n", resp)
 	return resp.Node, nil
 }
 
@@ -122,13 +100,11 @@ func (s *Storage) DeleteMetric(key string) error {
 
 	// 실시간 모니터링 데이터 삭제
 	opts := client.DeleteOptions{Recursive: true}
-	//resp, err := kapi.Delete(context.Background(), key, &opts)
 	_, err := kapi.Delete(context.Background(), key, &opts)
 	if err != nil {
 		logrus.Error("Failed to delete realtime monitoring data to ETCD : ", err)
 		return err
 	}
 
-	//logrus.Debug("Delete is done. Response is %q\n", resp)
 	return nil
 }
