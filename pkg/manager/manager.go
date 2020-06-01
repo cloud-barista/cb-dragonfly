@@ -150,7 +150,6 @@ func (manager *CollectManager) CreateLoadBalancer(wg *sync.WaitGroup) error {
 func (manager *CollectManager) StartLoadBalancer(udpConn net.PacketConn, wg *sync.WaitGroup) {
 
 	defer wg.Done()
-	metric := collector.TelegrafMetric{}
 	//logicStartTime := time.Now()
 	monConfig, err := manager.GetConfigInfo()
 	if err != nil {
@@ -159,6 +158,7 @@ func (manager *CollectManager) StartLoadBalancer(udpConn net.PacketConn, wg *syn
 
 	for {
 
+		metric := collector.TelegrafMetric{}
 		buf := make([]byte, 1024*10)
 
 		n, _, err := udpConn.ReadFrom(buf)

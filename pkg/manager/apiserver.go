@@ -133,6 +133,21 @@ func (apiServer *APIServer) GetVMMonInfo(c echo.Context) error {
 		}
 		return c.JSON(http.StatusOK, resultMetric)
 
+	case "cpufreq":
+		metricKey := "cpufreq"
+		cfMetric, err := apiServer.InfluxDB.ReadMetric(vmId, metricKey, period, aggregateType, duration)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		if cfMetric == nil {
+			return c.JSON(http.StatusNotFound, err)
+		}
+		resultMetric, err := metricstore.MappingMonMetric(metricKey, &cfMetric)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusOK, resultMetric)
+
 	case "memory":
 
 		// memory 메트릭 조회
@@ -286,7 +301,6 @@ func (apiServer *APIServer) GetVMMonInfo(c echo.Context) error {
 
 // 멀티 클라우드 인프라 VM 실시간 모니터링 정보 조회
 func (apiServer *APIServer) GetVMRealtimeMonInfo(c echo.Context) error {
-
 	// Path 파라미터 가져오기
 	//mcisId := c.Param("mcis_id")
 	vmId := c.Param("vm_id")
@@ -303,47 +317,16 @@ func (apiServer *APIServer) GetVMRealtimeMonInfo(c echo.Context) error {
 	resultMap["time"] = time.Now().UTC()
 	resultMap["value"] = map[string]interface{}{}
 
+	var metricKey string
 	var metricMap map[string]interface{}
+	var diskMetric, diskIoMetric, result map[string]interface{}
+	var diskMetricMap, diskIoMetricMap map[string]interface{}
+	var err error
+	var val interface{}
 
-	switch metricName {
-	case "cpu":
-		// cpu 메트릭 조회
-		metricKey := "cpu"
-		result, err := apiServer.aggregator.GetAggregateMetric(vmId, metricKey, aggregateType)
-		if err != nil {
-			// 만약 실시간 데이터가 없을 경우 empty Map 값 전달
-			if err.(client.Error).Code == 100 {
-				return c.JSON(http.StatusOK, resultMap)
-			}
-		}
-		// cpu 메트릭 매핑
-		metricMap, err = realtimestore.MappingMonMetric(metricKey, result)
-		if _, ok := err.(client.Error); ok {
-			return c.JSON(http.StatusInternalServerError, err)
-		}
-		resultMap["value"] = metricMap
-
-	case "memory":
-		// memory 메트릭 조회
-		metricKey := "mem"
-		result, err := apiServer.aggregator.GetAggregateMetric(vmId, metricKey, aggregateType)
-		if err != nil {
-			// 만약 실시간 데이터가 없을 경우 empty Map 값 전달
-			if err.(client.Error).Code == 100 {
-				return c.JSON(http.StatusOK, resultMap)
-			}
-		}
-		// memory 메트릭 매핑
-		metricMap, err = realtimestore.MappingMonMetric(metricKey, result)
-		if _, ok := err.(client.Error); ok {
-			return c.JSON(http.StatusInternalServerError, err)
-		}
-		resultMap["value"] = metricMap
-
-	case "disk":
-		// disk 메트릭 조회
-		metricKey := "disk"
-		diskMetric, err := apiServer.aggregator.GetAggregateDiskMetric(vmId, metricKey, aggregateType)
+	if metricName == "disk" || metricName == "diskio" {
+		metricKey = "disk"
+		diskMetric, err = apiServer.aggregator.GetAggregateDiskMetric(vmId, metricKey, aggregateType)
 		if err != nil {
 			// 만약 실시간 데이터가 없을 경우 empty Map 값 전달
 			if err.(client.Error).Code == 100 {
@@ -352,14 +335,14 @@ func (apiServer *APIServer) GetVMRealtimeMonInfo(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 		// disk 메트릭 매핑
-		diskMetricMap, err := realtimestore.MappingMonMetric(metricKey, diskMetric)
+		diskMetricMap, err = realtimestore.MappingMonMetric(metricKey, diskMetric)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 
 		// diskio 메트릭 조회
 		metricKey = "diskio"
-		diskIoMetric, err := apiServer.aggregator.GetAggregateDiskMetric(vmId, metricKey, aggregateType)
+		diskIoMetric, err = apiServer.aggregator.GetAggregateDiskMetric(vmId, metricKey, aggregateType)
 		if err != nil {
 			// 만약 실시간 데이터가 없을 경우 empty Map 값 전달
 			if err.(client.Error).Code == 100 {
@@ -367,40 +350,49 @@ func (apiServer *APIServer) GetVMRealtimeMonInfo(c echo.Context) error {
 			}
 		}
 		// diskio 메트릭 매핑
-		diskIoMetricMap, err := realtimestore.MappingMonMetric(metricKey, diskIoMetric)
+		diskIoMetricMap, err = realtimestore.MappingMonMetric(metricKey, diskIoMetric)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
-
-		// disk, diskio 메트릭 통합
-		metricMap := map[string]interface{}{}
-		for metricKey, val := range diskMetricMap {
-			metricMap[metricKey] = val
+	} else {
+		//메트릭 키 설정
+		switch metricName {
+		case "cpu":
+			metricKey = "cpu"
+		case "memory":
+			metricKey = "mem"
+		case "network":
+			metricKey = "net"
+		case "cpufreq":
+			metricKey = "cpufreq"
+		default:
+			return c.JSON(http.StatusNotFound, fmt.Sprintf("not found metric : %s", metricName))
 		}
-		for metricKey, val := range diskIoMetricMap {
-			metricMap[metricKey] = val
-		}
-		resultMap["value"] = metricMap
-	case "network":
-		// network 메트릭 조회
-		metricKey := "net"
-		result, err := apiServer.aggregator.GetAggregateMetric(vmId, metricKey, aggregateType)
+		// disk, diskio 제외한 메트릭 조회
+		result, err = apiServer.aggregator.GetAggregateMetric(vmId, metricKey, aggregateType)
 		if err != nil {
 			// 만약 실시간 데이터가 없을 경우 empty Map 값 전달
 			if err.(client.Error).Code == 100 {
 				return c.JSON(http.StatusOK, resultMap)
 			}
 		}
-		// network 메트릭 매핑
+		// disk, diskio 제외한 메트릭 매핑
 		metricMap, err = realtimestore.MappingMonMetric(metricKey, result)
 		if _, ok := err.(client.Error); ok {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
-		resultMap["value"] = metricMap
-	default:
-		return c.JSON(http.StatusNotFound, fmt.Sprintf("not found metric : %s", metricName))
 	}
 
+	for metricKey, val = range metricMap {
+		metricMap[metricKey] = val
+	}
+	for metricKey, val = range diskMetricMap {
+		metricMap[metricKey] = val
+	}
+	for metricKey, val = range diskIoMetricMap {
+		metricMap[metricKey] = val
+	}
+	resultMap["value"] = metricMap
 	return c.JSON(http.StatusOK, resultMap)
 }
 
@@ -607,7 +599,7 @@ func (apiServer *APIServer) GetTelegrafPkgFile(c echo.Context) error {
 	var filePath string
 	switch osType {
 	case "ubuntu":
-		filePath = rootPath + fmt.Sprintf("/file/pkg/%s/%s/telegraf_1.12.0~f09f2b5-0_amd64.deb", osType, arch)
+		filePath = rootPath + fmt.Sprintf("/file/pkg/%s/%s/telegraf_1.15.0~c78045c1-0_amd64.deb", osType, arch)
 	case "centos":
 		filePath = rootPath + fmt.Sprintf("/file/pkg/%s/%s/telegraf-1.12.0~f09f2b5-0.x86_64.rpm", osType, arch)
 	default:

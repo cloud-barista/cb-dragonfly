@@ -20,6 +20,8 @@ func MappingMonMetric(metricName string, metricVal *interface{}) (*interface{}, 
 	switch metricName {
 	case "cpu":
 		metricKeyArr = Cpu{}.GetField()
+	case "cpufreq":
+		metricKeyArr = Cpufreq{}.GetField()
 	case "mem":
 		metricKeyArr = Memory{}.GetField()
 	case "disk":
