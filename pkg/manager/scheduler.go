@@ -6,7 +6,6 @@ import (
 
 type CollectorScheduler struct {
 	cm *CollectManager
-	//	LoadQueue [] map[string] TelegrafMetric
 }
 
 func NewCollectorScheduler(cm *CollectManager) CollectorScheduler {
@@ -61,24 +60,13 @@ func (c CollectorScheduler) CheckScaleCondition() error {
 }
 
 func (c CollectorScheduler) ScaleIn() error {
-	/*
-		for collectorId := range c.cm.CollectorUUIDAddr {
-			if scaleCnt == 0 {
-				break
-			}
-			if err := c.cm.StopCollector(collectorId); err != nil {
-				logrus.Error("failed to stop collector")
-				continue
-			}
-			scaleCnt--
-		}*/
+
 	collectorIdx := c.cm.CollectorIdx
 	collectorUUIDAddr := c.cm.CollectorUUIDAddr
 
 	for idx, uuid := range collectorIdx {
 
 		if len((*collectorUUIDAddr[uuid]).MarkingAgent) == 0 {
-			//delete(c.cm.CollectorUUIDAddr, uuid)
 			c.cm.CollectorIdx = c.cm.CollectorIdx[:idx]
 			c.cm.StopCollector(uuid)
 		}
