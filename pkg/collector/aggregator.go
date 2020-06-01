@@ -54,14 +54,20 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 	/*1. Get VM List from ETCD */
 	aggregatedMap := map[string]interface{}{}
 	getVmList, err := a.Etcd.ReadMetric(fmt.Sprintf("/collector/%s/host", collectorId))
-	var vmList []string
 
 	if err != nil {
-		logrus.Error("Failed to get tagging vm list", err)
-		return err
+		if err.Error()[0:3] != "100" {
+			logrus.Error("Failed to get vm list from ETCD : ", err)
+			return err
+		} else {
+			logrus.Error("It is empty ETCD. Failed to get vm list from ETCD : ", err)
+			return nil
+		}
 	} else if getVmList == nil {
 		return nil
 	}
+
+	var vmList []string
 
 	for _, vm := range getVmList.Nodes {
 
@@ -71,8 +77,7 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 
 		if err != nil {
 			logrus.Error("Failed to get vm metric list", err)
-			// return err
-			continue
+			return err
 		}
 		/* 2. Get metric List from ETCD */
 		parentMetric := map[string]interface{}{}
@@ -180,16 +185,9 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 
 		aggregatedMap[vmId] = parentMetric
 	}
-
 	/* 4. 모니터링 데이터 저장 (InfluxDB) */
-	err = a.InfluxDB.WriteMetric(aggregatedMap)
-	if err != nil {
-		return err
-	}
 
-	/* 5. 모니터링 데이터 초기화 (etcd) */
-	//err = a.FlushMetric(vmList)
-	err = a.FlushMetric()
+	err = a.InfluxDB.WriteMetric(aggregatedMap)
 	if err != nil {
 		return err
 	}
@@ -218,7 +216,6 @@ func (a *Aggregator) CalculateMetric(metricName string, metric map[string]interf
 			}
 		}
 	}
-	//spew.Dump(metricArr)
 
 	/* 2. 실시간 모니터링 데이터 통계 로직 적용 */
 	switch aggregateType {
@@ -300,44 +297,8 @@ diskProgress:
 			}
 		}
 	}
-	/*
-		else if metricName == "diskio" {
-			deviceCnt := len(deviceMap)
-			if deviceCnt == 0 {
-				resultMap["read_bytes"] = 0
-				resultMap["write_bytes"] = 0
-			} else {
-				//resultMap["read_bytes"] = resultMap["read_bytes "].(float64) / float64(deviceCnt)
-				//resultMap["write_bytes"] = resultMap["write_bytes"].(float64) / float64(deviceCnt)
-				//resultMap["iops_read"] = resultMap["iops_read"].(float64) / float64(deviceCnt)
-				//resultMap["iops_write"] = resultMap["iops_write"].(float64) / float64(deviceCnt)
-			}
-		}
-	*/
 
-	//spew.Dump(resultMap)
-	//spew.Dump(deviceMap)
 	return resultMap, nil
-}
-
-// etcd 저장소에 저장된 모든 모니터링 데이터 삭제 (초기화)
-//func (a *Aggregator) FlushMetric(vmList []string) error {
-//	for _, vmId := range vmList {
-//		err := a.Etcd.DeleteMetric(fmt.Sprintf("/host/%s", vmId))
-//		if err != nil {
-//			return err
-//		}
-//	}
-//	return nil
-//}
-
-// etcd 저장소에 저장된 모든 모니터링 데이터 삭제 (초기화)
-func (a *Aggregator) FlushMetric() error {
-	err := a.Etcd.DeleteMetric("/host")
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // 실시간 모니터링 데이터 조회
@@ -439,7 +400,6 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 		if resultMap["total"].(float64) == 0 {
 			resultMap["used_percent"] = 0
 		} else {
-			//resultMap["used_percent"] = resultMap["used"].(float64) / resultMap["total"].(float64)
 			deviceCnt := len(deviceMap)
 			if deviceCnt == 0 {
 				resultMap["used_percent"] = 0
@@ -449,6 +409,5 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 		}
 	}
 
-	//spew.Dump(resultMap)
 	return resultMap, nil
 }
