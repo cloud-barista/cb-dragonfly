@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/manager"
-	"github.com/sirupsen/logrus"
 	"os"
 	"runtime"
 	"sync"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/manager"
 )
 
 func main() {

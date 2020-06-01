@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bramvdbogaerde/go-scp"
 	"github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
 	"github.com/google/uuid"
 	"github.com/influxdata/influxdb1-client/models"
@@ -21,6 +22,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/client"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
@@ -342,7 +344,7 @@ func (apiServer *APIServer) GetVMRealtimeMonInfo(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 		// disk 메트릭 매핑
-		diskMetricMap, err = realtimestore.MappingMonMetric(metricKey, diskMetric)
+		diskMetricMap, err := realtimestore.MappingMonMetric(metricKey, diskMetric)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
@@ -695,24 +697,18 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 	}
 
 	// 에이전트 설치 패키지 다운로드
-	if err := sshrun.SSHCopy(sshInfo, sourceFile, targetFile); err != nil {
+	if err := sshCopyWithTimeout(sshInfo, sourceFile, targetFile); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		errMsg := setMessage(fmt.Sprintf("failed to download agent package, error=%s", err))
 		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
+
 	// 패키지 설치 실행
 	if _, err := sshrun.SSHRun(sshInfo, installCmd); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		errMsg := setMessage(fmt.Sprintf("failed to install agent package, error=%s", err))
 		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
-
-	// 설치시 자동 생성되는 telegraf_conf 파일 제거
-	//if _, err := sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf"); err != nil {
-	//	cleanTelegrafInstall(sshInfo, osType)
-	//	errMsg := setMessage(fmt.Sprintf("failed to delete default telegraf.conf, error=%s", err))
-	//	return c.JSON(http.StatusInternalServerError, errMsg)
-	//}
 
 	sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf")
 
@@ -730,12 +726,6 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
-	// telegraf_conf 파일 이동
-	/*if _, err := sshrun.SSHRun(sshInfo, "sudo chown root:root $HOME/cb-dragonfly/telegraf.conf"); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
-		errMsg := setMessage(fmt.Sprintf("failed to chown telegraf.conf, error=%s", err))
-		return c.JSON(http.StatusInternalServerError, errMsg)
-	}*/
 	if _, err := sshrun.SSHRun(sshInfo, "sudo mv $HOME/cb-dragonfly/telegraf.conf /etc/telegraf/"); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		errMsg := setMessage(fmt.Sprintf("failed to move telegraf.conf, error=%s", err))
@@ -764,25 +754,6 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 		errMsg := setMessage(fmt.Sprintf("failed to remove cb-dragonfly directory, error=%s", err))
 		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
-
-	// 설치 스크립트 다운로드
-	/*apiEndpoint := fmt.Sprintf("%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.APIServer.Port)
-	downloadCmd := fmt.Sprintf("wget -O agent_install.sh \"http://%s/mon/file/agent/install?mcis_id=%s&vm_id=%s\"", apiEndpoint, mcisId, vmId)
-	if _, err := util.RunCommand(publicIp, userName, sshKey, downloadCmd); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}*/
-
-	// 설치 스크립트 실행 권한 추가
-	/*chmodCmd := fmt.Sprintf("chmod +x agent_install.sh")
-	if _, err := util.RunCommand(publicIp, userName, sshKey, chmodCmd); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}*/
-
-	// 설치 스크립트 실행
-	/*execCmd := fmt.Sprintf("bash agent_install.sh")
-	if _, err := util.RunCommand(publicIp, userName, sshKey, execCmd); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}*/
 
 	// 정상 설치 확인
 	checkCmd := "telegraf --version"
@@ -824,4 +795,27 @@ func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
 	sshrun.SSHRun(sshInfo, removeRpmCmd)
 	removeDirCmd := fmt.Sprintf("sudo rm -rf /etc/telegraf/cb-dragonfly")
 	sshrun.SSHRun(sshInfo, removeDirCmd)
+}
+
+func sshCopyWithTimeout(sshInfo sshrun.SSHInfo, sourceFile string, targetFile string) error {
+	signer, err := ssh.ParsePrivateKey(sshInfo.PrivateKey)
+	if err != nil {
+		return err
+	}
+	clientConfig := ssh.ClientConfig{
+		User: sshInfo.UserName,
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+	client := scp.NewClientWithTimeout(sshInfo.ServerPort, &clientConfig, 600*time.Second)
+	client.Connect()
+
+	file, _ := os.Open(sourceFile)
+
+	defer client.Close()
+	defer file.Close()
+
+	return client.CopyFile(file, targetFile, "0755")
 }
