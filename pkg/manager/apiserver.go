@@ -344,7 +344,7 @@ func (apiServer *APIServer) GetVMRealtimeMonInfo(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
 		// disk 메트릭 매핑
-		diskMetricMap, err := realtimestore.MappingMonMetric(metricKey, diskMetric)
+		diskMetricMap, err = realtimestore.MappingMonMetric(metricKey, diskMetric)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
