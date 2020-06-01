@@ -696,12 +696,6 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 		installCmd = fmt.Sprintf("sudo dpkg -i $HOME/cb-dragonfly/cb-agent.deb")
 	}
 
-	/*if err := sshrun.SSHCopy(sshInfo, sourceFile, targetFile); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
-		errMsg := setMessage(fmt.Sprintf("failed to download agent package, error=%s", err))
-		return c.JSON(http.StatusInternalServerError, errMsg)
-	}*/
-
 	// 에이전트 설치 패키지 다운로드
 	if err := sshCopyWithTimeout(sshInfo, sourceFile, targetFile); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
@@ -716,12 +710,6 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
-	// 설치시 자동 생성되는 telegraf_conf 파일 제거
-	/*if _, err := sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf"); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
-		errMsg := setMessage(fmt.Sprintf("failed to delete default telegraf.conf, error=%s", err))
-		return c.JSON(http.StatusInternalServerError, errMsg)
-	}*/
 	sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf")
 
 	// telegraf_conf 파일 복사
@@ -738,11 +726,6 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
-	// telegraf_conf 파일 이동
-	/*if _, err := sshrun.SSHRun(sshInfo, "sudo chown root:root $HOME/cb-dragonfly/telegraf.conf"); err != nil {
-	cleanTelegrafInstall(sshInfo, osType)
-	errMsg := setMessage(fmt.Sprintf("failed to chown telegraf.conf, error=%s", err))
-	return c.JSON(http.StatusInternalServerError, errMsg) }*/
 	if _, err := sshrun.SSHRun(sshInfo, "sudo mv $HOME/cb-dragonfly/telegraf.conf /etc/telegraf/"); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		errMsg := setMessage(fmt.Sprintf("failed to move telegraf.conf, error=%s", err))
@@ -771,25 +754,6 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 		errMsg := setMessage(fmt.Sprintf("failed to remove cb-dragonfly directory, error=%s", err))
 		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
-
-	// 설치 스크립트 다운로드
-	/*apiEndpoint := fmt.Sprintf("%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.APIServer.Port)
-	downloadCmd := fmt.Sprintf("wget -O agent_install.sh \"http://%s/mon/file/agent/install?mcis_id=%s&vm_id=%s\"", apiEndpoint, mcisId, vmId)
-	if _, err := util.RunCommand(publicIp, userName, sshKey, downloadCmd); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}*/
-
-	// 설치 스크립트 실행 권한 추가
-	/*chmodCmd := fmt.Sprintf("chmod +x agent_install.sh")
-	if _, err := util.RunCommand(publicIp, userName, sshKey, chmodCmd); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}*/
-
-	// 설치 스크립트 실행
-	/*execCmd := fmt.Sprintf("bash agent_install.sh")
-	if _, err := util.RunCommand(publicIp, userName, sshKey, execCmd); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}*/
 
 	// 정상 설치 확인
 	checkCmd := "telegraf --version"
