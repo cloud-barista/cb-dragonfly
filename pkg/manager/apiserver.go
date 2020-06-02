@@ -563,7 +563,8 @@ func (apiServer *APIServer) GetTelegrafConfFile(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.CollectManager.CollectorPort)
+	collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.manager.Config.CollectManager.CollectorIP, apiServer.manager.Config.CollectManager.CollectorPort)
+	influxDBServer := fmt.Sprintf("http://%s:8086", apiServer.manager.Config.CollectManager.CollectorIP)
 
 	rootPath := os.Getenv("CBMON_PATH")
 	filePath := rootPath + "/file/conf/telegraf.conf"
@@ -578,7 +579,7 @@ func (apiServer *APIServer) GetTelegrafConfFile(c echo.Context) error {
 	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", mcisId)
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
 	strConf = strings.ReplaceAll(strConf, "{{collector_server}}", collectorServer)
-	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", apiServer.config.InfluxDB.EndpointUrl)
+	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", influxDBServer)
 
 	return c.Blob(http.StatusOK, "text/plain", []byte(strConf))
 }
@@ -630,6 +631,7 @@ func (apiServer *APIServer) GetTelegrafPkgFile(c echo.Context) error {
 func (apiServer *APIServer) createTelegrafConfigFile(mcisId string, vmId string) (string, error) {
 
 	collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.CollectManager.CollectorPort)
+	influxDBServer := fmt.Sprintf("http://%s:8086", apiServer.manager.Config.CollectManager.CollectorIP)
 
 	rootPath := os.Getenv("CBMON_PATH")
 	filePath := rootPath + "/file/conf/telegraf.conf"
@@ -646,7 +648,7 @@ func (apiServer *APIServer) createTelegrafConfigFile(mcisId string, vmId string)
 	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", mcisId)
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
 	strConf = strings.ReplaceAll(strConf, "{{collector_server}}", collectorServer)
-	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", apiServer.config.InfluxDB.EndpointUrl)
+	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", influxDBServer)
 
 	// telegraf.conf 파일 생성
 	telegrafFilePath := rootPath + "/file/conf/"
