@@ -65,7 +65,7 @@ func main() {
 
 	// 모니터링 API 서버 실행
 	wg.Add(1)
-	apiServer, err := manager.NewAPIServer(&cm.Aggregator, cm.InfluxdDB, cm.Etcd, cm)
+	apiServer, err := manager.NewAPIServer(cm.Config, &cm.Aggregator, cm.InfluxdDB, cm.Etcd, cm)
 	if err != nil {
 		logrus.Error("Failed to initialize api server")
 		panic(err)

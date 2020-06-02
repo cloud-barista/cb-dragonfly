@@ -128,7 +128,7 @@ Cloud-Barista Integrated Monitoring Framework
           - `$ source conf/setup.env` (수정한 setup.env 반영)         
           - `$ go run pkg/manager/main/main.go` (실행)
     
-    - config 파일 설정 (config 파일에 influxdb IP 및 사용자 정보, etcd IP 정보, cb-dragonfly 호스트 IP 정보를 순차적으로 입력)
+    - config 파일 설정 (config 파일에 influxdb IP 및 사용자 정보, etcd IP 정보, cb-dragonfly 호스트 IP 정보, 모니터링 정책을 순차적으로 입력)
           
           -  # influxdb connection info
              influxdb:
@@ -147,7 +147,15 @@ Cloud-Barista Integrated Monitoring Framework
               collector_ip: {{collector_ip}}
               collector_port: 8094    # udp port
               collector_count: 1      # default collector count
-    
+            
+            # below is default setting
+            # monitoring interval configuration info
+            monitoring:
+            agent_interval: 2       # agent interval (s)
+            agent_TTL: 5            # agent TTL (s)
+            collector_interval: 10  # aggregate interval (s)
+            schedule_interval: 10   # scale interval (s)
+            max_host_count:  10     # maximum host count per collector
 
 - 멀티 클라우드 모니터링 프레임워크(cb-dragonfly) 실행
 
