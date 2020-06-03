@@ -9,7 +9,6 @@
 - 리눅스 환경 모니터링 추가 메트릭 지원
 - 윈도우즈 환경 모니터링 지원
 - Load-Balancer 모듈 기반 대규모 모니터링 콜렉터 안정성 개선
-- 
 - CB-Dragonfly 최초 구동 시 자동 Configuration 설정 기능 추가
 
 ### Bug Fix
