@@ -29,7 +29,7 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh &&  go mod download && go mod verify
 # Run /bin/bash -c "source /app/conf/setup.env"
 ENV CBSTORE_ROOT $GOPATH/cb-dragonfly
 ENV CBLOG_ROOT $GOPATH/cb-dragonfly
-ENV CBMON_PATH $GOPATH/cb-dragonfly
+ENV CBMON_ROOT $GOPATH/cb-dragonfly
 
 RUN cd $GOPATH/cb-dragonfly/pkg/manager/main;go build -o runMyapp;cp runMyapp $GOPATH/cb-dragonfly
 

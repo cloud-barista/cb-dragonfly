@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/Scalingo/go-utils v5.5.14+incompatible
-	github.com/bramvdbogaerde/go-scp v0.0.0-20191005185035-c96fe084709e // indirect
+	github.com/bramvdbogaerde/go-scp v0.0.0-20191005185035-c96fe084709e
 	github.com/cloud-barista/cb-log v0.0.0-20190829061936-c402c97c951a // indirect
 	github.com/cloud-barista/cb-spider v0.0.0-20191105070034-f3f7c5a74ffe
 	github.com/cloud-barista/cb-store v0.0.0-20191002015823-94b2852cf37d // indirect
@@ -39,7 +39,7 @@ require (
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.3 // indirect
 	go.etcd.io/etcd v3.3.15+incompatible
-	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7 // indirect
+	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
 	golang.org/x/net v0.0.0-20190916140828-c8589233b77d // indirect
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
