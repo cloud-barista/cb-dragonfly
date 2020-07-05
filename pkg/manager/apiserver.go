@@ -534,7 +534,7 @@ func (apiServer *APIServer) GetTelegrafInstallScript(c echo.Context) error {
 
 	collectorServer := fmt.Sprintf("%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.APIServer.Port)
 
-	rootPath := os.Getenv("CBMON_PATH")
+	rootPath := os.Getenv("CBMON_ROOT")
 	filePath := rootPath + "/file/install_agent.sh"
 
 	read, err := ioutil.ReadFile(filePath)
@@ -566,7 +566,7 @@ func (apiServer *APIServer) GetTelegrafConfFile(c echo.Context) error {
 	collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.manager.Config.CollectManager.CollectorIP, apiServer.manager.Config.CollectManager.CollectorPort)
 	influxDBServer := fmt.Sprintf("http://%s:8086", apiServer.manager.Config.CollectManager.CollectorIP)
 
-	rootPath := os.Getenv("CBMON_PATH")
+	rootPath := os.Getenv("CBMON_ROOT")
 	filePath := rootPath + "/file/conf/telegraf.conf"
 
 	read, err := ioutil.ReadFile(filePath)
@@ -613,7 +613,7 @@ func (apiServer *APIServer) GetTelegrafPkgFile(c echo.Context) error {
 		arch = "x32"
 	}
 
-	rootPath := os.Getenv("CBMON_PATH")
+	rootPath := os.Getenv("CBMON_ROOT")
 	var filePath string
 	switch osType {
 	case "ubuntu":
@@ -633,7 +633,7 @@ func (apiServer *APIServer) createTelegrafConfigFile(mcisId string, vmId string)
 	collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.CollectManager.CollectorPort)
 	influxDBServer := fmt.Sprintf("http://%s:8086", apiServer.manager.Config.CollectManager.CollectorIP)
 
-	rootPath := os.Getenv("CBMON_PATH")
+	rootPath := os.Getenv("CBMON_ROOT")
 	filePath := rootPath + "/file/conf/telegraf.conf"
 
 	read, err := ioutil.ReadFile(filePath)
@@ -699,7 +699,7 @@ func (apiServer *APIServer) InstallTelegraf(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errMsg)
 	}
 
-	rootPath := os.Getenv("CBMON_PATH")
+	rootPath := os.Getenv("CBMON_ROOT")
 
 	var sourceFile, targetFile, installCmd string
 	if strings.Contains(osType, "CENTOS") {

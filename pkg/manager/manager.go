@@ -107,7 +107,7 @@ func (manager *CollectManager) FlushMonitoringData() error {
 
 // config 파일 로드
 func (manager *CollectManager) LoadConfiguration() error {
-	configPath := os.Getenv("CBMON_PATH") + "/conf/config.yaml"
+	configPath := os.Getenv("CBMON_ROOT") + "/conf/config.yaml"
 
 	bytes, err := ioutil.ReadFile(configPath)
 	if err != nil {
