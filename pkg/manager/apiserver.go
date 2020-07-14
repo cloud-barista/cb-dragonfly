@@ -327,6 +327,7 @@ func (apiServer *APIServer) GetVMRealtimeMonInfo(c echo.Context) error {
 	resultMap["metricName"] = metricName
 	resultMap["time"] = time.Now().UTC()
 	resultMap["value"] = map[string]interface{}{}
+	convertedResultMap := map[string]interface{}{}
 
 	var metricKey string
 	var metricMap map[string]interface{}
@@ -395,15 +396,15 @@ func (apiServer *APIServer) GetVMRealtimeMonInfo(c echo.Context) error {
 	}
 
 	for metricKey, val = range metricMap {
-		metricMap[metricKey] = val
+		convertedResultMap[metricKey] = val
 	}
 	for metricKey, val = range diskMetricMap {
-		metricMap[metricKey] = val
+		convertedResultMap[metricKey] = val
 	}
 	for metricKey, val = range diskIoMetricMap {
-		metricMap[metricKey] = val
+		convertedResultMap[metricKey] = val
 	}
-	resultMap["value"] = metricMap
+	resultMap["value"] = convertedResultMap
 	return c.JSON(http.StatusOK, resultMap)
 }
 
