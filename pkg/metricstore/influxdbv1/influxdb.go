@@ -25,7 +25,7 @@ type Storage struct {
 	Clients []influxdbClient.Client
 }
 
-func (s *Storage) Init() error {
+func (s Storage) Init() error {
 	for _, c := range s.Config.ClientOptions {
 		client, err := influxdbClient.NewHTTPClient(influxdbClient.HTTPConfig{
 			Addr:     c.URL,
@@ -59,8 +59,7 @@ func (s *Storage) Init() error {
 	return nil
 }
 
-//func (s *Storage) WriteMetric(metrics types.Metrics) error {
-func (s *Storage) WriteMetric(metrics map[string]interface{}) error {
+func (s Storage) WriteMetric(metrics map[string]interface{}) error {
 
 	bp, err := s.parseMetric(metrics)
 	if err != nil {
@@ -76,8 +75,7 @@ func (s *Storage) WriteMetric(metrics map[string]interface{}) error {
 	return nil
 }
 
-//func (s *Storage) ReadMetric(vmId string, metric string, duration string) (interface{}, error) {
-func (s *Storage) ReadMetric(vmId string, metric string, period string, aggregateType string, duration string) (interface{}, error) {
+func (s Storage) ReadMetric(vmId string, metric string, period string, aggregateType string, duration string) (interface{}, error) {
 
 	influx := s.Clients[0]
 
@@ -100,7 +98,7 @@ func (s *Storage) ReadMetric(vmId string, metric string, period string, aggregat
 	return nil, nil
 }
 
-func (s *Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.BatchPoints, error) {
+func (s Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.BatchPoints, error) {
 
 	bp, err := s.newBatchPoints()
 	if err != nil {
@@ -139,14 +137,14 @@ func (s *Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.Ba
 	return bp, nil
 }
 
-func (s *Storage) newBatchPoints() (influxdbClient.BatchPoints, error) {
+func (s Storage) newBatchPoints() (influxdbClient.BatchPoints, error) {
 	// TODO: implements
 	return influxdbClient.NewBatchPoints(influxdbClient.BatchPointsConfig{
 		Database: s.Config.Database,
 	})
 }
 
-func (s *Storage) buildQuery(vmId string, metric string, period string, aggregateType string, duration string) (string, error) {
+func (s Storage) buildQuery(vmId string, metric string, period string, aggregateType string, duration string) (string, error) {
 
 	// 통계 기준 설정
 	if aggregateType == "avg" {
@@ -238,7 +236,7 @@ func (s *Storage) buildQuery(vmId string, metric string, period string, aggregat
 	return queryString, nil
 }
 
-func (s *Storage) getPerSecMetric(vmId string, metric string, period string, fieldArr []string, duration string) string {
+func (s Storage) getPerSecMetric(vmId string, metric string, period string, fieldArr []string, duration string) string {
 	var query string
 
 	var timeCriteria string

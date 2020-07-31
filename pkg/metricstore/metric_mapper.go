@@ -22,13 +22,13 @@ func MappingMonMetric(metricName string, metricVal *interface{}) (*interface{}, 
 		metricKeyArr = Cpu{}.GetField()
 	case "cpufreq":
 		metricKeyArr = Cpufreq{}.GetField()
-	case "mem":
+	case "memory":
 		metricKeyArr = Memory{}.GetField()
 	case "disk":
 		metricKeyArr = Disk{}.GetField()
 	case "diskio":
 		metricKeyArr = DiskIO{}.GetField()
-	case "net":
+	case "network":
 		metricKeyArr = Network{}.GetField()
 	default:
 		err = errors.New("not found metric")
