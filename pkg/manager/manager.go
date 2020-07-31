@@ -5,18 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdbv1"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore/etcd"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"net"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdbv1"
+	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore/etcd"
 )
 
 // TODO: implements
@@ -25,8 +28,8 @@ import (
 // TODO: 3. Configuring Policy...
 
 type CollectManager struct {
-	Config            Config
-	InfluxdDB         metricstore.Storage
+	Config            config.Config
+	InfluxDB          metricstore.Storage
 	Etcd              realtimestore.Storage
 	Aggregator        collector.Aggregator
 	WaitGroup         *sync.WaitGroup
@@ -65,7 +68,7 @@ func NewCollectorManager() (*CollectManager, error) {
 		logrus.Error("Failed to initialize influxDB")
 		return nil, err
 	}
-	manager.InfluxdDB = influx
+	manager.InfluxDB = influx.(*influxdbv1.Storage)
 
 	etcdConfig := etcd.Config{
 		ClientOptions: etcd.ClientOptions{
@@ -126,18 +129,10 @@ func (manager *CollectManager) LoadConfiguration() error {
 
 // TODO: 모니터링 정책 설정
 func (manager *CollectManager) SetConfigurationToETCD() error {
-	monConfig := MonConfig{
-		AgentInterval:      manager.Config.Monitoring.AgentInterval,
-		CollectorInterval:  manager.Config.Monitoring.CollectorInterval,
-		SchedulingInterval: manager.Config.Monitoring.ScheduleInterval,
-		MaxHostCount:       manager.Config.Monitoring.MaxHostCount,
-		AgentTtl:           manager.Config.Monitoring.AgentTtl,
-	}
-
 	// TODO: 구조체 map[string]interface{} 타입으로 Unmarshal
 	// TODO: 추후에 별도의 map 변환 함수 (toMap() 개발)
 	reqBodyBytes := new(bytes.Buffer)
-	if err := json.NewEncoder(reqBodyBytes).Encode(monConfig); err != nil {
+	if err := json.NewEncoder(reqBodyBytes).Encode(config.GetDefaultMonConfig()); err != nil {
 		return err
 	}
 	byteData := reqBodyBytes.Bytes()
@@ -335,7 +330,7 @@ func (manager *CollectManager) StartCollector(wg *sync.WaitGroup) error {
 
 func (manager *CollectManager) CreateCollector() error {
 	// 실시간 데이터 저장을 위한 collector 고루틴 실행
-	mc := collector.NewMetricCollector(map[string]string{}, manager.metricL, manager.Config.Monitoring.CollectorInterval, &manager.Etcd, &manager.InfluxdDB, collector.AVG, manager.AggregatingChan, manager.TransmitDataChan)
+	mc := collector.NewMetricCollector(map[string]string{}, manager.metricL, manager.Config.Monitoring.CollectorInterval, &manager.Etcd, &manager.InfluxDB, collector.AVG, manager.AggregatingChan, manager.TransmitDataChan)
 	manager.metricL.Lock()
 	manager.CollectorIdx = append(manager.CollectorIdx, mc.UUID)
 	manager.metricL.Unlock()
