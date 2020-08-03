@@ -5,7 +5,7 @@ import (
 	"github.com/influxdata/influxdb1-client/models"
 )
 
-func MappingMonMetric(metricName string, metricVal *interface{}) (*interface{}, error) {
+func MappingMonMetric(metricName string, metricVal *interface{}) (interface{}, error) {
 
 	var mappingMetric models.Row
 	var ok bool
@@ -48,7 +48,26 @@ func MappingMonMetric(metricName string, metricVal *interface{}) (*interface{}, 
 
 	mappingMetric.Columns = metricCols
 
-	var resultMap interface{}
-	resultMap = mappingMetric
-	return &resultMap, nil
+	resultMap := map[string]interface{}{}
+	resultMap["name"] = metricName
+	resultMap["tags"] = mappingMetric.Tags
+	resultMap["values"] = convertMetricValFormat(metricCols, mappingMetric.Values)
+
+	return resultMap, nil
+}
+
+func convertMetricValFormat(metricKeyArr []string, metricVal [][]interface{}) []interface{} {
+	convertedMetricVal := make([]interface{}, len(metricVal))
+	for i, metricVal := range metricVal {
+		newMetricVal := map[string]interface{}{}
+		for j, key := range metricKeyArr {
+			/*if j == 0 {
+				newMetricVal["time"] = metricVal[j]
+				continue
+			}*/
+			newMetricVal[key] = metricVal[j]
+		}
+		convertedMetricVal[i] = newMetricVal
+	}
+	return convertedMetricVal
 }

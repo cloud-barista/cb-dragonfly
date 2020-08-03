@@ -1,59 +1,60 @@
 package config
 
 import (
+	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	"github.com/labstack/echo/v4"
+	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"strconv"
 
-	"github.com/labstack/echo/v4"
-
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/config"
+	coreconfig "github.com/cloud-barista/cb-dragonfly/pkg/core/config"
 )
 
 // 모니터링 정책 설정
 func SetMonConfig(c echo.Context) error {
-	// form 파라미터 정보 가져오기
-	agentInterval, err := strconv.Atoi(c.FormValue("agent_interval"))
+	params, err := c.FormParams()
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return c.JSON(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 	}
-	collectorInterval, err := strconv.Atoi(c.FormValue("collector_interval"))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+
+	paramsMap := map[string]interface{}{}
+	for k, _ := range params {
+		v := params.Get(k)
+		paramsMap[k], err = strconv.Atoi(v)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("Invalid parameter values, %s=%s", k, v)))
+		}
 	}
-	schedulingInterval, err := strconv.Atoi(c.FormValue("schedule_interval"))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	maxHostCnt, err := strconv.Atoi(c.FormValue("max_host_count"))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	agentTtl, err := strconv.Atoi(c.FormValue("agent_TTL"))
+
+	var newMonConfig config.Monitoring
+	err = mapstructure.Decode(paramsMap, &newMonConfig)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	monConfig, errCode, err := config.SetMonConfig(agentInterval, collectorInterval, schedulingInterval, maxHostCnt, agentTtl)
+	monConfig, errCode, err := coreconfig.SetMonConfig(newMonConfig)
 	if errCode != http.StatusOK {
-		return echo.NewHTTPError(errCode, err.Error())
+		return echo.NewHTTPError(errCode, rest.SetMessage(err.Error()))
 	}
 	return c.JSON(http.StatusOK, monConfig)
 }
 
 // 모니터링 정책 조회
 func GetMonConfig(c echo.Context) error {
-	monConfig, errCode, err := config.GetMonConfig()
+	monConfig, errCode, err := coreconfig.GetMonConfig()
 	if errCode != http.StatusOK {
-		return echo.NewHTTPError(errCode, err.Error())
+		return echo.NewHTTPError(errCode, rest.SetMessage(err.Error()))
 	}
 	return c.JSON(http.StatusOK, monConfig)
 }
 
 // 모니터링 정책 초기화
 func ResetMonConfig(c echo.Context) error {
-	monConfig, errCode, err := config.ResetMonConfig()
+	monConfig, errCode, err := coreconfig.ResetMonConfig()
 	if errCode != http.StatusOK {
-		return echo.NewHTTPError(errCode, err.Error())
+		return echo.NewHTTPError(errCode, rest.SetMessage(err.Error()))
 	}
 	return c.JSON(http.StatusOK, monConfig)
 }

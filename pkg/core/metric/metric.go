@@ -3,14 +3,17 @@ package metric
 import (
 	"errors"
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
+	"github.com/cloud-barista/cb-dragonfly/pkg/core"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdbv1"
+	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
+	"github.com/influxdata/influxdb/models"
+	"go.etcd.io/etcd/client"
 	"net/http"
 	"sort"
 	"strings"
-
-	"github.com/influxdata/influxdb/models"
-
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
+	"time"
 )
 
 type Metric string
@@ -24,10 +27,11 @@ const (
 	Network     = "network"
 )
 
+// 가상머신 모니터링 메트릭 조회
 func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, period string, aggregateType string, duration string) (interface{}, int, error) {
-	//var metricKey string
 
 	switch metricName {
+
 	case Cpu:
 
 		// cpu 메트릭 조회
@@ -63,14 +67,14 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 	case Memory:
 
 		// memory 메트릭 조회
-		memMetric, err := core.CoreConfig.InfluxDB.ReadMetric(vmId, Memory, period, aggregateType, duration)
+		memMetric, err := core.CoreConfig.InfluxDB.ReadMetric(vmId, "mem", period, aggregateType, duration)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
 		if memMetric == nil {
 			return nil, http.StatusNotFound, nil
 		}
-		resultMetric, err := metricstore.MappingMonMetric(CpuFreqency, &memMetric)
+		resultMetric, err := metricstore.MappingMonMetric(Memory, &memMetric)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
@@ -79,11 +83,11 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 	case Disk:
 
 		// disk, diskio 메트릭 조회
-		diskMetric, err := core.CoreConfig.InfluxDB.ReadMetric(vmId, Disk, period, aggregateType, duration)
+		diskMetric, err := influxdbv1.GetInstance().ReadMetric(vmId, Disk, period, aggregateType, duration)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
-		diskIoMetric, err := core.CoreConfig.InfluxDB.ReadMetric(vmId, DiskIO, period, aggregateType, duration)
+		diskIoMetric, err := influxdbv1.GetInstance().ReadMetric(vmId, DiskIO, period, aggregateType, duration)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
@@ -175,7 +179,7 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 	case Network:
 
 		// network 메트릭 조회
-		netMetric, err := core.CoreConfig.InfluxDB.ReadMetric(vmId, Network, period, aggregateType, duration)
+		netMetric, err := core.CoreConfig.InfluxDB.ReadMetric(vmId, "net", period, aggregateType, duration)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
@@ -191,91 +195,99 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 	default:
 		return nil, http.StatusInternalServerError, errors.New(fmt.Sprintf("NOT FOUND METRIC : %s", metricName))
 	}
+
+	return nil, http.StatusInternalServerError, errors.New(fmt.Sprintf("NOT FOUND METRIC : %s", metricName))
 }
 
-func GetVMRealtimeMonInfo(nsId string, mcisId string, vmId string, metricName string, statisticsCriteria string) (interface{}, error) {
-	return nil, nil
-	/*	resultMap := map[string]interface{}{}
-		resultMap["vmId"] = vmId
-		resultMap["metricName"] = metricName
-		resultMap["time"] = time.Now().UTC()
-		resultMap["value"] = map[string]interface{}{}
+func GetVMLatestMonInfo(nsId string, mcisId string, vmId string, metricName string, statisticsCriteria string) (interface{}, int, error) {
+	resultMap := map[string]interface{}{}
+	resultMap["vmId"] = vmId
+	resultMap["metricName"] = metricName
+	resultMap["time"] = time.Now().UTC()
+	resultMap["value"] = map[string]interface{}{}
 
-		var metricKey string
-		var metricMap map[string]interface{}
-		var diskMetric, diskIoMetric, result map[string]interface{}
-		var diskMetricMap, diskIoMetricMap map[string]interface{}
-		var err error
-		var val interface{}
+	var metricKey string
+	var metricMap map[string]interface{}
+	var diskMetric, diskIoMetric, result map[string]interface{}
+	var diskMetricMap, diskIoMetricMap map[string]interface{}
+	var err error
+	var val interface{}
 
-		if metricName == "disk" || metricName == "diskio" {
-			metricKey = "disk"
-			diskMetric, err = apiServer.aggregator.GetAggregateDiskMetric(vmId, metricKey, aggregateType)
-			if err != nil {
-				// 만약 실시간 데이터가 없을 경우 empty Map 값 전달
-				if err.(client.Error).Code == 100 {
-					return c.JSON(http.StatusOK, resultMap)
-				}
-				return c.JSON(http.StatusInternalServerError, err)
-			}
-			// disk 메트릭 매핑
-			diskMetricMap, err = realtimestore.MappingMonMetric(metricKey, diskMetric)
-			if err != nil {
-				return c.JSON(http.StatusInternalServerError, err)
-			}
+	aggregator := collector.Aggregator{}
 
-			// diskio 메트릭 조회
-			metricKey = "diskio"
-			diskIoMetric, err = apiServer.aggregator.GetAggregateDiskMetric(vmId, metricKey, aggregateType)
-			if err != nil {
-				// 만약 실시간 데이터가 없을 경우 empty Map 값 전달
-				if err.(client.Error).Code == 100 {
-					return c.JSON(http.StatusOK, resultMap)
-				}
+	if metricName == "disk" || metricName == "diskio" {
+		metricKey = "disk"
+		diskMetric, err = aggregator.GetAggregateDiskMetric(vmId, metricKey, statisticsCriteria)
+		if err != nil {
+			// 만약 실시간 데이터가 없을 경우 empty Map 값 전달
+			if err.(client.Error).Code == 100 {
+				return resultMap, http.StatusOK, nil
 			}
-			// diskio 메트릭 매핑
-			diskIoMetricMap, err = realtimestore.MappingMonMetric(metricKey, diskIoMetric)
-			if err != nil {
-				return c.JSON(http.StatusInternalServerError, err)
-			}
-		} else {
-			//메트릭 키 설정
-			switch metricName {
-			case "cpu":
-				metricKey = "cpu"
-			case "memory":
-				metricKey = "mem"
-			case "network":
-				metricKey = "net"
-			case "cpufreq":
-				metricKey = "cpufreq"
-			default:
-				return c.JSON(http.StatusNotFound, fmt.Sprintf("not found metric : %s", metricName))
-			}
-			// disk, diskio 제외한 메트릭 조회
-			result, err = apiServer.aggregator.GetAggregateMetric(vmId, metricKey, aggregateType)
-			if err != nil {
-				// 만약 실시간 데이터가 없을 경우 empty Map 값 전달
-				if err.(client.Error).Code == 100 {
-					return c.JSON(http.StatusOK, resultMap)
-				}
-			}
-			// disk, diskio 제외한 메트릭 매핑
-			metricMap, err = realtimestore.MappingMonMetric(metricKey, result)
-			if _, ok := err.(client.Error); ok {
-				return c.JSON(http.StatusInternalServerError, err)
-			}
+			return nil, http.StatusInternalServerError, err
+		}
+		// disk 메트릭 매핑
+		diskMetricMap, err = realtimestore.MappingMonMetric(metricKey, diskMetric)
+		if err != nil {
+			return nil, http.StatusInternalServerError, err
 		}
 
-		for metricKey, val = range metricMap {
-			metricMap[metricKey] = val
+		// diskio 메트릭 조회
+		metricKey = "diskio"
+		diskIoMetric, err = aggregator.GetAggregateDiskMetric(vmId, metricKey, statisticsCriteria)
+		if err != nil {
+			// 만약 실시간 데이터가 없을 경우 empty Map 값 전달
+			if err.(client.Error).Code == 100 {
+				return resultMap, http.StatusOK, nil
+			}
 		}
-		for metricKey, val = range diskMetricMap {
-			metricMap[metricKey] = val
+		// diskio 메트릭 매핑
+		diskIoMetricMap, err = realtimestore.MappingMonMetric(metricKey, diskIoMetric)
+		if err != nil {
+			return nil, http.StatusInternalServerError, err
 		}
-		for metricKey, val = range diskIoMetricMap {
-			metricMap[metricKey] = val
+	} else {
+
+		//메트릭 키 설정
+		switch metricName {
+		case Cpu:
+			metricKey = "cpu"
+		case CpuFreqency:
+			metricKey = "cpufreq"
+		case Memory:
+			metricKey = "mem"
+		case Network:
+			metricKey = "net"
+		default:
+			return nil, http.StatusNotFound, errors.New(fmt.Sprintf("not found metric : %s", metricName))
 		}
-		resultMap["value"] = metricMap
-		return c.JSON(http.StatusOK, resultMap)*/
+		// disk, diskio 제외한 메트릭 조회
+		result, err = aggregator.GetAggregateMetric(vmId, metricKey, statisticsCriteria)
+		if err != nil {
+			// 만약 실시간 데이터가 없을 경우 empty Map 값 전달
+			if _, ok := err.(client.Error); !ok {
+				return nil, http.StatusInternalServerError, errors.New("")
+			}
+			if err.(client.Error).Code == 100 {
+				return resultMap, http.StatusOK, nil
+			}
+		}
+		// disk, diskio 제외한 메트릭 매핑
+		metricMap, err = realtimestore.MappingMonMetric(metricKey, result)
+		if _, ok := err.(client.Error); ok {
+			return nil, http.StatusInternalServerError, err
+		}
+	}
+
+	for metricKey, val = range metricMap {
+		metricMap[metricKey] = val
+	}
+	for metricKey, val = range diskMetricMap {
+		metricMap[metricKey] = val
+	}
+	for metricKey, val = range diskIoMetricMap {
+		metricMap[metricKey] = val
+	}
+	resultMap["value"] = metricMap
+
+	return resultMap, http.StatusOK, nil
 }

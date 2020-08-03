@@ -9,28 +9,22 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/agent"
 	restconfig "github.com/cloud-barista/cb-dragonfly/pkg/api/rest/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	metricstore "github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdbv1"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
 )
 
 type APIServer struct {
-	echo   *echo.Echo
-	config config.Config
+	echo *echo.Echo
 }
 
 // API 서버 초기화
-func NewAPIServer(config config.Config, influxDB metricstore.Storage, etcd realtimestore.Storage) (*APIServer, error) {
+func NewAPIServer() (*APIServer, error) {
 	e := echo.New()
 	apiServer := APIServer{
-		echo:   e,
-		config: config,
+		echo: e,
 	}
-	core.InitCoreConfig(config, influxDB, etcd)
 	return &apiServer, nil
 }
 
@@ -43,7 +37,7 @@ func (apiServer *APIServer) StartAPIServer(wg *sync.WaitGroup) error {
 	apiServer.SetRoutingRule(apiServer.echo)
 
 	// 모니터링 API 서버 실행
-	return apiServer.echo.Start(fmt.Sprintf(":%d", apiServer.config.APIServer.Port))
+	return apiServer.echo.Start(fmt.Sprintf(":%d", config.GetInstance().APIServer.Port))
 }
 
 func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
@@ -59,7 +53,7 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 
 	// 멀티 클라우드 인프라 VM 모니터링/실시간 모니터링 정보 조회
 	e.GET("/dragonfly/ns/:ns/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/info", metric.GetVMMonInfo)
-	e.GET("/dragonfly/ns/:ns/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/rt-info", metric.GetVMRealtimeMonInfo)
+	e.GET("/dragonfly/ns/:ns/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/rt-info", metric.GetVMLatestMonInfo)
 
 	// 멀티 클라우드 모니터링 정책 설정
 	e.PUT("/dragonfly/config", restconfig.SetMonConfig)
