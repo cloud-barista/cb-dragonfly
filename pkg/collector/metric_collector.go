@@ -3,8 +3,7 @@ package collector
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore/etcd"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -17,9 +16,7 @@ type MetricCollector struct {
 	MarkingAgent      map[string]string
 	UUID              string
 	AggregateInterval int
-	InfluxDB          metricstore.Storage
 	metricL           *sync.RWMutex
-	Etcd              realtimestore.Storage
 	Aggregator        Aggregator
 	//HostInfo          *HostInfo
 	AggregatingChan  map[string]*chan string
@@ -47,7 +44,7 @@ type DeviceInfo struct {
 }
 
 // 메트릭 콜렉터 초기화
-func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex, interval int, etcd *realtimestore.Storage, influxDB *metricstore.Storage, aggregateType AggregateType /*hostList *HostInfo, */, aggregatingChan map[string]*chan string, transmitDataChan map[string]*chan TelegrafMetric) MetricCollector {
+func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex, interval int, aggregateType AggregateType /*hostList *HostInfo, */, aggregatingChan map[string]*chan string, transmitDataChan map[string]*chan TelegrafMetric) MetricCollector {
 
 	// UUID 생성
 	uuid := uuid.New().String()
@@ -57,11 +54,8 @@ func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex,
 		MarkingAgent:      markingAgent,
 		UUID:              uuid,
 		AggregateInterval: interval,
-		Etcd:              *etcd,
 		metricL:           mutexLock,
 		Aggregator: Aggregator{
-			Etcd:          *etcd,
-			InfluxDB:      *influxDB,
 			AggregateType: aggregateType,
 		},
 		//HostInfo:      hostList,
@@ -106,7 +100,7 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		}
 		mc.metricL.RUnlock()
 		collectorInfo := fmt.Sprintf("/collector/%s/host/%s", mc.UUID, hostId)
-		err := mc.Etcd.WriteMetric(collectorInfo, "")
+		err := etcd.GetInstance().WriteMetric(collectorInfo, "")
 
 		if err != nil {
 			return err
@@ -132,7 +126,7 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		}
 		mc.metricL.RUnlock()
 
-		if err := mc.Etcd.WriteMetric(metricKey, metric.Fields); err != nil {
+		if err := etcd.GetInstance().WriteMetric(metricKey, metric.Fields); err != nil {
 			logrus.Error(err)
 		}
 
@@ -143,7 +137,7 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 
 		osTypeKey = fmt.Sprintf("/host/%s/tag", hostId)
 
-		if err := mc.Etcd.WriteMetric(osTypeKey, metric.TagInfo); err != nil {
+		if err := etcd.GetInstance().WriteMetric(osTypeKey, metric.TagInfo); err != nil {
 			logrus.Error(err)
 		}
 	}

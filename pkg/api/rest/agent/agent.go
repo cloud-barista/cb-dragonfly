@@ -1,11 +1,12 @@
 package agent
 
 import (
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
+	"github.com/cloud-barista/cb-dragonfly/pkg/core/agent"
 )
 
 func InstallTelegraf(c echo.Context) error {
@@ -19,20 +20,12 @@ func InstallTelegraf(c echo.Context) error {
 
 	// form 파라미터 값 체크
 	if nsId == "" || mcisId == "" || vmId == "" || publicIp == "" || userName == "" || sshKey == "" {
-		errMsg := setMessage("failed to get package. query parameter is missing")
-		return c.JSON(http.StatusInternalServerError, errMsg)
+		return c.JSON(http.StatusInternalServerError, rest.SetMessage("failed to get package. query parameter is missing"))
 	}
 
-	err := agent.InstallTelegraf(nsId, mcisId, vmId, publicIp, userName, sshKey)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+	errCode, err := agent.InstallTelegraf(nsId, mcisId, vmId, publicIp, userName, sshKey)
+	if errCode != http.StatusOK {
+		return c.JSON(errCode, rest.SetMessage(err.Error()))
 	}
-	successMsg := setMessage("agent installation is finished")
-	return c.JSON(http.StatusOK, successMsg)
-}
-
-func setMessage(msg string) echo.Map {
-	errResp := echo.Map{}
-	errResp["message"] = msg
-	return errResp
+	return c.JSON(http.StatusOK, rest.SetMessage("agent installation is finished"))
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/client"
 	"sync"
@@ -23,19 +24,33 @@ type Storage struct {
 	L      *sync.RWMutex
 }
 
-func (s *Storage) Init() error {
+var once sync.Once
+var storage Storage
+
+func Initialize() error {
 	cfg := client.Config{
 		Endpoints: []string{
-			s.Config.ClientOptions.Endpoints,
+			config.GetInstance().GetETCDConfig().EndpointUrl,
 		},
 	}
 	if client, err := client.New(cfg); err != nil {
 		logrus.Error(err)
 		return err
 	} else {
-		s.Client = client
+		storage.Client = client
 	}
-	s.L = &sync.RWMutex{}
+	storage.L = &sync.RWMutex{}
+	return nil
+}
+
+func GetInstance() *Storage {
+	once.Do(func() {
+		Initialize()
+	})
+	return &storage
+}
+
+func (s *Storage) Init() error {
 	return nil
 }
 

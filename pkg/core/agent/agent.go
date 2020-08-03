@@ -3,7 +3,9 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -22,7 +24,7 @@ const (
 	CENTOS = "CENTOS"
 )
 
-func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, userName string, sshKey string) error {
+func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, userName string, sshKey string) (int, error) {
 	sshInfo := sshrun.SSHInfo{
 		ServerPort: publicIp + ":22",
 		UserName:   userName,
@@ -32,24 +34,24 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 	// {사용자계정}/cb-dragonfly 폴더 생성
 	createFolderCmd := fmt.Sprintf("mkdir $HOME/cb-dragonfly")
 	if _, err := sshrun.SSHRun(sshInfo, createFolderCmd); err != nil {
-		return errors.New(fmt.Sprintf("failed to make directory cb-dragonfly, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to make directory cb-dragonfly, error=%s", err))
 	}
 
 	// 리눅스 OS 환경 체크
 	osType, err := sshrun.SSHRun(sshInfo, "hostnamectl | grep 'Operating System' | awk '{print $3}' | tr 'a-z' 'A-Z'")
 	if err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return errors.New(fmt.Sprintf("failed to check linux OS environments, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to check linux OS environments, error=%s", err))
 	}
 
 	rootPath := os.Getenv("CBMON_ROOT")
 
 	var sourceFile, targetFile, installCmd string
-	if strings.Contains(osType, "CENTOS") {
+	if strings.Contains(osType, CENTOS) {
 		sourceFile = rootPath + "/file/pkg/centos/x64/telegraf-1.12.0~f09f2b5-0.x86_64.rpm"
 		targetFile = fmt.Sprintf("$HOME/cb-dragonfly/cb-agent.rpm")
 		installCmd = fmt.Sprintf("sudo rpm -ivh $HOME/cb-dragonfly/cb-agent.rpm")
-	} else if strings.Contains(osType, "UBUNTU") {
+	} else if strings.Contains(osType, UBUNTU) {
 		sourceFile = rootPath + "/file/pkg/ubuntu/x64/telegraf_1.12.0~f09f2b5-0_amd64.deb"
 		targetFile = fmt.Sprintf("$HOME/cb-dragonfly/cb-agent.deb")
 		installCmd = fmt.Sprintf("sudo dpkg -i $HOME/cb-dragonfly/cb-agent.deb")
@@ -58,13 +60,13 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 	// 에이전트 설치 패키지 다운로드
 	if err := sshCopyWithTimeout(sshInfo, sourceFile, targetFile); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return errors.New(fmt.Sprintf("failed to download agent package, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to download agent package, error=%s", err))
 	}
 
 	// 패키지 설치 실행
 	if _, err := sshrun.SSHRun(sshInfo, installCmd); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return errors.New(fmt.Sprintf("failed to install agent package, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to install agent package, error=%s", err))
 	}
 
 	sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf")
@@ -74,59 +76,59 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 	telegrafConfTargetFile := "$HOME/cb-dragonfly/telegraf.conf"
 	if err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return errors.New(fmt.Sprintf("failed to create telegraf.conf, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to create telegraf.conf, error=%s", err))
 	}
 	if err := sshrun.SSHCopy(sshInfo, telegrafConfSourceFile, telegrafConfTargetFile); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return errors.New(fmt.Sprintf("failed to copy telegraf.conf, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to copy telegraf.conf, error=%s", err))
 	}
 
 	if _, err := sshrun.SSHRun(sshInfo, "sudo mv $HOME/cb-dragonfly/telegraf.conf /etc/telegraf/"); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return errors.New(fmt.Sprintf("failed to move telegraf.conf, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to move telegraf.conf, error=%s", err))
 	}
 
 	// 공통 서비스 활성화 및 실행
 	if _, err := sshrun.SSHRun(sshInfo, "sudo systemctl enable telegraf && sudo systemctl restart telegraf"); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return errors.New(fmt.Sprintf("failed to enable and start telegraf service, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to enable and start telegraf service, error=%s", err))
 	}
 
 	// telegraf UUId conf 파일 삭제
 	err = os.Remove(telegrafConfSourceFile)
 	if err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return errors.New(fmt.Sprintf("failed to remove temporary telegraf.conf file, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to remove temporary telegraf.conf file, error=%s", err))
 	}
 
 	// 에이전트 설치에 사용한 파일 폴더 채로 제거
 	removeRpmCmd := fmt.Sprintf("sudo rm -rf $HOME/cb-dragonfly")
 	if _, err := sshrun.SSHRun(sshInfo, removeRpmCmd); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return errors.New(fmt.Sprintf("failed to remove cb-dragonfly directory, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to remove cb-dragonfly directory, error=%s", err))
 	}
 
 	// 정상 설치 확인
 	checkCmd := "telegraf --version"
 	if result, err := util.RunCommand(publicIp, userName, sshKey, checkCmd); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return errors.New(fmt.Sprintf("failed to run telegraf command, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to run telegraf command, error=%s", err))
 	} else {
 		if strings.Contains(*result, "command not found") {
 			cleanTelegrafInstall(sshInfo, osType)
-			return errors.New(fmt.Sprintf("failed to run telegraf command, error=%s", err))
+			return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to run telegraf command, error=%s", err))
 		}
-		return nil
 	}
+
+	return http.StatusOK, nil
 }
 
 func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
-
 	// Uninstall Telegraf
 	var uninstallCmd string
-	if strings.Contains(osType, "CENTOS") {
+	if strings.Contains(osType, CENTOS) {
 		uninstallCmd = fmt.Sprintf("sudo rpm -e telegraf")
-	} else if strings.Contains(osType, "UBUNTU") {
+	} else if strings.Contains(osType, UBUNTU) {
 		uninstallCmd = fmt.Sprintf("sudo dpkg -r telegraf")
 	}
 	sshrun.SSHRun(sshInfo, uninstallCmd)
@@ -139,10 +141,8 @@ func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
 }
 
 func createTelegrafConfigFile(nsId string, mcisId string, vmId string) (string, error) {
-	//collectorServer := fmt.Sprintf("udp://%s:%d", core.CoreConfig.Manager.Config.CollectManager.CollectorIP, core.CoreConfig.Manager.Config.CollectManager.CollectorPort)
-	//influxDBServer := fmt.Sprintf("http://%s:8086", core.CoreConfig.Manager.Config.CollectManager.CollectorIP)
-	collectorServer := "udp://127.0.0.1:8086"
-	influxDBServer := "http://127.0.0.1:8086"
+	collectorServer := fmt.Sprintf("udp://%s:%d", config.GetInstance().CollectManager.CollectorIP, config.GetInstance().CollectManager.CollectorPort)
+	influxDBServer := fmt.Sprintf("http://%s:8086", config.GetInstance().CollectManager.CollectorIP)
 
 	rootPath := os.Getenv("CBMON_ROOT")
 	filePath := rootPath + "/file/conf/telegraf.conf"

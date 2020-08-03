@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/manager"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdbv1"
 )
 
 func main() {
@@ -66,7 +65,7 @@ func main() {
 
 	// 모니터링 API 서버 실행
 	wg.Add(1)
-	apiServer, err := manager.NewAPIServer(cm.Config, *cm.InfluxDB.(*influxdbv1.Storage), cm.Etcd)
+	apiServer, err := manager.NewAPIServer()
 	if err != nil {
 		logrus.Error("Failed to initialize api server")
 		panic(err)
