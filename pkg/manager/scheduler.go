@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,12 +21,11 @@ func (c CollectorScheduler) CheckScaleCondition() error {
 	scaleCnt := 0
 	scalingEvent := ""
 
-	maxHostCount := c.cm.Config.Monitoring.MaxHostCount
+	maxHostCount := config.GetInstance().Monitoring.MaxHostCount
 	currentCollectorN := len(c.cm.CollectorIdx)
 	collectorAddr := c.cm.CollectorUUIDAddr
 
 	if maxHostCount*currentCollectorN < totalHostCnt {
-
 		scaleCnt = totalHostCnt/maxHostCount - currentCollectorN
 
 		if totalHostCnt%maxHostCount != 0 {

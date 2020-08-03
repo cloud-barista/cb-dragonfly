@@ -6,6 +6,7 @@ import (
 	influxBuilder "github.com/Scalingo/go-utils/influx"
 	influxdbClient "github.com/influxdata/influxdb1-client/v2"
 	"github.com/sirupsen/logrus"
+	"sync"
 	"time"
 )
 
@@ -25,8 +26,19 @@ type Storage struct {
 	Clients []influxdbClient.Client
 }
 
-func (s *Storage) Init() error {
-	for _, c := range s.Config.ClientOptions {
+var once sync.Once
+var storage Storage
+
+func GetInstance() *Storage {
+	once.Do(func() {
+		//Initialize(config.GetInstance().)
+	})
+	return &storage
+}
+
+func Initialize(config Config) error {
+	storage.Config = config
+	for _, c := range config.ClientOptions {
 		client, err := influxdbClient.NewHTTPClient(influxdbClient.HTTPConfig{
 			Addr:     c.URL,
 			Username: c.Username,
@@ -44,24 +56,17 @@ func (s *Storage) Init() error {
 		q := influxdbClient.Query{
 			Command:  fmt.Sprintf("create database %s", "cbmon"),
 			Database: "cbmon",
-			//RetentionPolicy: "",
-			//Precision:       "",
-			//Chunked:         false,
-			//ChunkSize:       0,
-			//Parameters:      nil,
 		}
 
 		// ignore the error of existing database
 		client.Query(q)
 
-		s.Clients = append(s.Clients, client)
+		storage.Clients = append(storage.Clients, client)
 	}
 	return nil
 }
 
-//func (s *Storage) WriteMetric(metrics types.Metrics) error {
 func (s *Storage) WriteMetric(metrics map[string]interface{}) error {
-
 	bp, err := s.parseMetric(metrics)
 	if err != nil {
 		logrus.Error("Failed to parse collector metrics to influxdb v1")
@@ -76,16 +81,14 @@ func (s *Storage) WriteMetric(metrics map[string]interface{}) error {
 	return nil
 }
 
-//func (s *Storage) ReadMetric(vmId string, metric string, duration string) (interface{}, error) {
 func (s *Storage) ReadMetric(vmId string, metric string, period string, aggregateType string, duration string) (interface{}, error) {
-
-	influx := s.Clients[0]
+	influx := storage.Clients[0]
 
 	queryString, err := s.buildQuery(vmId, metric, period, aggregateType, duration)
 	if err != nil {
 		return nil, err
 	}
-	query := influxdbClient.NewQuery(queryString, s.Config.Database, "")
+	query := influxdbClient.NewQuery(queryString, storage.Config.Database, "")
 	res, _ := influx.Query(query)
 
 	if res.Err != "" {
@@ -100,8 +103,7 @@ func (s *Storage) ReadMetric(vmId string, metric string, period string, aggregat
 	return nil, nil
 }
 
-func (s *Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.BatchPoints, error) {
-
+func (s Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.BatchPoints, error) {
 	bp, err := s.newBatchPoints()
 	if err != nil {
 		return nil, err
@@ -139,14 +141,14 @@ func (s *Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.Ba
 	return bp, nil
 }
 
-func (s *Storage) newBatchPoints() (influxdbClient.BatchPoints, error) {
+func (s Storage) newBatchPoints() (influxdbClient.BatchPoints, error) {
 	// TODO: implements
 	return influxdbClient.NewBatchPoints(influxdbClient.BatchPointsConfig{
 		Database: s.Config.Database,
 	})
 }
 
-func (s *Storage) buildQuery(vmId string, metric string, period string, aggregateType string, duration string) (string, error) {
+func (s Storage) buildQuery(vmId string, metric string, period string, aggregateType string, duration string) (string, error) {
 
 	// 통계 기준 설정
 	if aggregateType == "avg" {
@@ -238,7 +240,7 @@ func (s *Storage) buildQuery(vmId string, metric string, period string, aggregat
 	return queryString, nil
 }
 
-func (s *Storage) getPerSecMetric(vmId string, metric string, period string, fieldArr []string, duration string) string {
+func (s Storage) getPerSecMetric(vmId string, metric string, period string, fieldArr []string, duration string) string {
 	var query string
 
 	var timeCriteria string

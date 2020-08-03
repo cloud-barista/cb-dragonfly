@@ -25,8 +25,12 @@ type Cpu struct {
 	CpuSoftirq     float64 `json:"cpu_sintr"`
 	CpuUser        float64 `json:"cpu_user"`
 	CpuNice        float64 `json:"cpu_nice"`
-	CpuNum         float64 `json:"cpu_num"`
+	CpuSteal       float64 `json:"cpu_steal"`
+	CpuGuest       float64 `json:"cpu_guest"`
+	CpuGuestNice   float64 `json:"cpu_guest_nice"`
+	//CpuNum         float64 `json:"cpu_num"`
 }
+
 type Cpufreq struct {
 	CpuSpeed float64 `json:"cpu_speed"`
 }
