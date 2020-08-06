@@ -3,17 +3,18 @@ package metric
 import (
 	"errors"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
-	"github.com/cloud-barista/cb-dragonfly/pkg/core"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdbv1"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
-	"github.com/influxdata/influxdb/models"
-	"go.etcd.io/etcd/client"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/influxdata/influxdb1-client/models"
+	"go.etcd.io/etcd/client"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdbv1"
+	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
 )
 
 type Metric string
@@ -35,12 +36,12 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 	case Cpu:
 
 		// cpu 메트릭 조회
-		cpuMetric, err := core.CoreConfig.InfluxDB.ReadMetric(vmId, Cpu, period, aggregateType, duration)
+		cpuMetric, err := influxdbv1.GetInstance().ReadMetric(vmId, Cpu, period, aggregateType, duration)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
 		if cpuMetric == nil {
-			return nil, http.StatusNotFound, nil
+			return nil, http.StatusNotFound, errors.New(fmt.Sprintf("not found metric data, metric=%s", metricName))
 		}
 		resultMetric, err := metricstore.MappingMonMetric(Cpu, &cpuMetric)
 		if err != nil {
@@ -51,12 +52,12 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 	case CpuFreqency:
 
 		// cpufreq 메트릭 조회
-		cpuFreqMetric, err := core.CoreConfig.InfluxDB.ReadMetric(vmId, CpuFreqency, period, aggregateType, duration)
+		cpuFreqMetric, err := influxdbv1.GetInstance().ReadMetric(vmId, CpuFreqency, period, aggregateType, duration)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
 		if cpuFreqMetric == nil {
-			return nil, http.StatusNotFound, nil
+			return nil, http.StatusNotFound, errors.New(fmt.Sprintf("not found metric data, metric=%s", metricName))
 		}
 		resultMetric, err := metricstore.MappingMonMetric(CpuFreqency, &cpuFreqMetric)
 		if err != nil {
@@ -67,12 +68,12 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 	case Memory:
 
 		// memory 메트릭 조회
-		memMetric, err := core.CoreConfig.InfluxDB.ReadMetric(vmId, "mem", period, aggregateType, duration)
+		memMetric, err := influxdbv1.GetInstance().ReadMetric(vmId, "mem", period, aggregateType, duration)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
 		if memMetric == nil {
-			return nil, http.StatusNotFound, nil
+			return nil, http.StatusNotFound, errors.New(fmt.Sprintf("not found metric data, metric=%s", metricName))
 		}
 		resultMetric, err := metricstore.MappingMonMetric(Memory, &memMetric)
 		if err != nil {
@@ -91,8 +92,8 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
-		if diskMetric == nil || diskIoMetric == nil {
-			return nil, http.StatusNotFound, nil
+		if diskMetric == nil && diskIoMetric == nil {
+			return nil, http.StatusNotFound, errors.New(fmt.Sprintf("not found metric data, metric=%s", metricName))
 		}
 
 		diskRow := diskMetric.(models.Row)
@@ -174,18 +175,30 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 			resultRow.Values = append(resultRow.Values, metricVal)
 		}
 
-		return resultRow, http.StatusOK, nil
+		resultMap := map[string]interface{}{}
+		resultMap["name"] = metricName
+		resultMap["tags"] = resultRow.Tags
+		resultMap["values"] = metricstore.ConvertMetricValFormat(resultRow.Columns, resultRow.Values)
+		return resultMap, http.StatusOK, nil
 
 	case Network:
 
 		// network 메트릭 조회
-		netMetric, err := core.CoreConfig.InfluxDB.ReadMetric(vmId, "net", period, aggregateType, duration)
+		netMetric, err := influxdbv1.GetInstance().ReadMetric(vmId, "net", period, aggregateType, duration)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
 		if netMetric == nil {
-			return nil, http.StatusNotFound, nil
+			return nil, http.StatusNotFound, errors.New(fmt.Sprintf("not found metric data, metric=%s", metricName))
 		}
+		/*netMetricRow, ok := (netMetric).(models.Row)
+		if ok {
+			if netMetricRow.Tags == nil {
+				tagMap := map[string]string{}
+				tagMap["hostId"] = vmId
+				netMetricRow.Tags = tagMap
+			}
+		}*/
 		resultMetric, err := metricstore.MappingMonMetric(Network, &netMetric)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
@@ -195,8 +208,6 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 	default:
 		return nil, http.StatusInternalServerError, errors.New(fmt.Sprintf("NOT FOUND METRIC : %s", metricName))
 	}
-
-	return nil, http.StatusInternalServerError, errors.New(fmt.Sprintf("NOT FOUND METRIC : %s", metricName))
 }
 
 func GetVMLatestMonInfo(nsId string, mcisId string, vmId string, metricName string, statisticsCriteria string) (interface{}, int, error) {
@@ -207,11 +218,10 @@ func GetVMLatestMonInfo(nsId string, mcisId string, vmId string, metricName stri
 	resultMap["value"] = map[string]interface{}{}
 
 	var metricKey string
-	var metricMap map[string]interface{}
+	metricMap := map[string]interface{}{}
 	var diskMetric, diskIoMetric, result map[string]interface{}
 	var diskMetricMap, diskIoMetricMap map[string]interface{}
 	var err error
-	var val interface{}
 
 	aggregator := collector.Aggregator{}
 
@@ -278,13 +288,13 @@ func GetVMLatestMonInfo(nsId string, mcisId string, vmId string, metricName stri
 		}
 	}
 
-	for metricKey, val = range metricMap {
+	for metricKey, val := range metricMap {
 		metricMap[metricKey] = val
 	}
-	for metricKey, val = range diskMetricMap {
+	for metricKey, val := range diskMetricMap {
 		metricMap[metricKey] = val
 	}
-	for metricKey, val = range diskIoMetricMap {
+	for metricKey, val := range diskIoMetricMap {
 		metricMap[metricKey] = val
 	}
 	resultMap["value"] = metricMap
