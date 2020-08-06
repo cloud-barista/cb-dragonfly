@@ -5,7 +5,8 @@ import (
 	"net/http"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/core"
+	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore/etcd"
+
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -24,7 +25,7 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 	}
 
 	// 모니터링 정책 etcd 저장
-	err = core.CoreConfig.Etcd.WriteMetric(MonConfigKey, monConfigMap)
+	err = etcd.GetInstance().WriteMetric(MonConfigKey, monConfigMap)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -35,7 +36,7 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 // 모니터링 정책 조회
 func GetMonConfig() (*config.Monitoring, int, error) {
 	// etcd에 저장된 모니터링 정책 조회
-	etcdConfigVal, err := core.CoreConfig.Etcd.ReadMetric(MonConfigKey)
+	etcdConfigVal, err := etcd.GetInstance().ReadMetric(MonConfigKey)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -59,7 +60,7 @@ func ResetMonConfig() (*config.Monitoring, int, error) {
 	}
 
 	// 모니터링 정책 etcd 저장
-	err = core.CoreConfig.Etcd.WriteMetric(MonConfigKey, monConfigMap)
+	err = etcd.GetInstance().WriteMetric(MonConfigKey, monConfigMap)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}

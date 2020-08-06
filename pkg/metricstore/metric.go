@@ -66,6 +66,10 @@ type Disk struct {
 	DiskTotal       string `json:"disk_total"`
 	DiskUsed        string `json:"disk_used"`
 	DiskFree        string `json:"disk_free"`
+	DiskReadBytes   string `json:"kb_read"`
+	DiskWriteBytes  string `json:"kb_written"`
+	DIskReadIOPS    int64  `json:"ops_read"`
+	DIskWriteIOPS   int64  `json:"ops_write"`
 }
 
 func (d Disk) GetField() []string {
