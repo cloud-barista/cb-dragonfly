@@ -19,6 +19,8 @@ func MappingMonMetric(metricName string, metricVal map[string]interface{}) (map[
 		metricCols["cpu_iowait"] = metricVal["usage_iowait"]
 		metricCols["cpu_hintr"] = metricVal["usage_irq"]
 		metricCols["cpu_sintr"] = metricVal["usage_softirq"]
+	case "cpufreq":
+		metricCols["cpu_speed"] = metricVal["cur_freq"]
 	case "mem":
 		//metricKeyArr = metricstore.Memory{}.GetField()
 		metricCols["mem_utilization"] = metricVal["used_percent"]
