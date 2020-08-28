@@ -6,47 +6,59 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: cloudbaristaorg/cb-dragonfly:latest
+    image: cloudbaristaorg/cb-dragonfly:espresso-v0.1
     container_name: cb-dragonfly
     volumes:
       - ./conf:/go/src/github.com/cloud-barista/cb-dragonfly/conf
       - ./log:/go/src/github.com/cloud-barista/cb-dragonfly/log
     ports:
-      - "8094:8094/udp"
-      - "9090:9090"
+      - 8094:8094/udp
+      - 9090:9090
     depends_on:
-      - cb-dragonfly-influxdb
       - cb-dragonfly-etcd
+      - cb-dragonfly-influxdb
     environment:
       - CBSTORE_ROOT=/go/src/github.com/cloud-barista/cb-dragonfly
       - CBLOG_ROOT=/go/src/github.com/cloud-barista/cb-dragonfly
       - CBMON_ROOT=/go/src/github.com/cloud-barista/cb-dragonfly
-      - DRAGONFLY_INFLUXDB_URL=cb-dragonfly-influxdb:8086
-    command:
-      - --security-opt="apparmor=unconfined"
-      - --cap-add=SYS_PTRACE
+    restart: always
+    security_opt:
+      - no-new-privileges
+
+  # etcd for CB-Dragonfly
+  cb-dragonfly-etcd:
+    image: bitnami/etcd:3.3.11
+    container_name: cb-dragonfly-etcd
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://cb-dragonfly-etcd:2379
+    ports:
+      - 2379:2379
+      - 2380:2380
+    restart: always
 
   # InfluxDB for CB-Dragonfly
   cb-dragonfly-influxdb:
     image: influxdb:1.8-alpine
     container_name: cb-dragonfly-influxdb
     ports:
-      - "8083:8083"
-      - "8086:8086"
+      - 8083:8083
+      - 8086:8086
     environment:
-      - PRE_CREATE_DB="cbmon"
-      - INFLUXDB_DB="cbmon"
+      - PRE_CREATE_DB=cbmon
+      - INFLUXDB_DB=cbmon
       - INFLUXDB_ADMIN_USER=cbmon
       - INFLUXDB_ADMIN_PASSWORD=password
       - INFLUXDB_HTTP_AUTH_ENABLED=true
+    restart: always
 
-  # etcd for CB-Dragonfly
-  cb-dragonfly-etcd:
-    image: 'bitnami/etcd:3.3.11'
-    container_name: cb-dragonfly-etcd
-    environment:
-      - ALLOW_NONE_AUTHENTICATION=yes
-      - ETCD_ADVERTISE_CLIENT_URLS=http://cb-dragonfly-etcd:2379
+  # Chronograf for CB-Dragonfly
+  cb-dragonfly-chronograf:
+    image: chronograf:1.8.4-alpine
+    container_name: cb-dragonfly-chronograf
     ports:
-     - "2379:2379"
-     - "2380:2380"
+      - 8888:8888
+    depends_on:
+      - cb-dragonfly-etcd
+      - cb-dragonfly-influxdb
+      - cb-dragonfly

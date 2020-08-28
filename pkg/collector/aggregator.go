@@ -3,8 +3,8 @@ package collector
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdbv1"
+	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore/etcd"
 	"github.com/sirupsen/logrus"
 	"regexp"
 	"sort"
@@ -37,8 +37,6 @@ func (a AggregateType) toString() string {
 }
 
 type Aggregator struct {
-	Etcd          realtimestore.Storage
-	InfluxDB      metricstore.Storage
 	AggregateType AggregateType
 }
 
@@ -53,7 +51,7 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 
 	/*1. Get VM List from ETCD */
 	aggregatedMap := map[string]interface{}{}
-	getVmList, err := a.Etcd.ReadMetric(fmt.Sprintf("/collector/%s/host", collectorId))
+	etcdVmList, err := etcd.GetInstance().ReadMetric(fmt.Sprintf("/collector/%s/host", collectorId))
 
 	if err != nil {
 		if err.Error()[0:3] != "100" {
@@ -63,17 +61,22 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 			logrus.Error("It is empty ETCD. Failed to get vm list from ETCD : ", err)
 			return nil
 		}
-	} else if getVmList == nil {
+	}
+
+	if etcdVmList == nil {
+		return nil
+	}
+	if etcdVmList.Nodes == nil {
 		return nil
 	}
 
 	var vmList []string
 
-	for _, vm := range getVmList.Nodes {
+	for _, vm := range etcdVmList.Nodes {
 
 		vmId := strings.Split(vm.Key, "/")[4]
 		vmList = append(vmList, vmId)
-		vmIdNode, err := a.Etcd.ReadMetric(fmt.Sprintf("/host/%s/metric", vmId))
+		vmIdNode, err := etcd.GetInstance().ReadMetric(fmt.Sprintf("/host/%s/metric", vmId))
 
 		if err != nil {
 			logrus.Error("Failed to get vm metric list", err)
@@ -85,7 +88,7 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 		for _, metric := range vmIdNode.Nodes {
 
 			parentMetricName := strings.Split(metric.Key, "/")[4]
-			metricDataNode, err := a.Etcd.ReadMetric(metric.Key)
+			metricDataNode, err := etcd.GetInstance().ReadMetric(metric.Key)
 
 			if err != nil {
 				logrus.Error("Failed to get vm metric list", err)
@@ -98,7 +101,7 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 
 				for _, chidMetricNode := range metricDataNode.Nodes {
 
-					chidMetricData, err := a.Etcd.ReadMetric(chidMetricNode.Key)
+					chidMetricData, err := etcd.GetInstance().ReadMetric(chidMetricNode.Key)
 
 					if err != nil {
 						logrus.Error("Failed to get child metric list", err)
@@ -108,7 +111,7 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 					childMetricName := strings.Split(chidMetricData.Nodes[0].Key, "/")[5]
 					timestamp := strings.Split(chidMetricData.Nodes[0].Key, "/")[6]
 
-					grandChildata, err := a.Etcd.ReadMetric(chidMetricData.Nodes[0].Key)
+					grandChildata, err := etcd.GetInstance().ReadMetric(chidMetricData.Nodes[0].Key)
 
 					if err != nil {
 						logrus.Error("Failed to get grand child metric list", err)
@@ -164,9 +167,10 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 				parentMetric[parentMetricName] = childMetric
 			}
 		}
+
 		// tagging data processing start
 		metricTagMap := make(map[string]interface{})
-		metricTagData, err := a.Etcd.ReadMetric(fmt.Sprintf("/host/%s/tag", vmId))
+		metricTagData, err := etcd.GetInstance().ReadMetric(fmt.Sprintf("/host/%s/tag", vmId))
 
 		if err != nil {
 			logrus.Error("Failed to get tag data from ETCD", err)
@@ -185,9 +189,9 @@ func (a *Aggregator) AggregateMetric(collectorId string) error {
 
 		aggregatedMap[vmId] = parentMetric
 	}
-	/* 4. 모니터링 데이터 저장 (InfluxDB) */
 
-	err = a.InfluxDB.WriteMetric(aggregatedMap)
+	/* 4. 모니터링 데이터 저장 (InfluxDB) */
+	err = influxdbv1.GetInstance().WriteMetric(aggregatedMap)
 	if err != nil {
 		return err
 	}
@@ -308,7 +312,7 @@ func (a *Aggregator) GetAggregateMetric(vmId string, metricName string, aggregat
 
 	// 모니터링 데이터 조회
 	metricDataKey := fmt.Sprintf("/host/%s/metric/%s", vmId, metricName)
-	metricDataNode, err := a.Etcd.ReadMetric(metricDataKey)
+	metricDataNode, err := etcd.GetInstance().ReadMetric(metricDataKey)
 	if err != nil {
 		logrus.Error("Failed to get metric", err)
 		return nil, err
@@ -341,7 +345,7 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 
 	/* 1. device 정보 가져오기 */
 	deviceDataKey := fmt.Sprintf("/host/%s/metric/%s", vmId, metricName)
-	deviceNode, err := a.Etcd.ReadMetric(deviceDataKey)
+	deviceNode, err := etcd.GetInstance().ReadMetric(deviceDataKey)
 	if err != nil {
 		logrus.Error("Failed to get device list", err)
 		return nil, err
@@ -356,7 +360,7 @@ func (a *Aggregator) GetAggregateDiskMetric(vmId string, metricName string, aggr
 
 		// 모니터링 메트릭 정보 조회
 		metricDataKey := fmt.Sprintf("/host/%s/metric/%s/%s", vmId, metricName, deviceName)
-		metricDataNode, err := a.Etcd.ReadMetric(metricDataKey)
+		metricDataNode, err := etcd.GetInstance().ReadMetric(metricDataKey)
 		if err != nil {
 			logrus.Error("Failed to get disk, diskio metric", err)
 			return nil, err
