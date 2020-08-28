@@ -59,7 +59,7 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 
 	// 멀티 클라우드 인프라 VM 모니터링/실시간 모니터링 정보 조회
 	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/info", metric.GetVMMonInfo)
-	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/rt-info", metric.GetVMLatestMonInfo)
+	//dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/rt-info", metric.GetVMLatestMonInfo)
 
 	// 멀티 클라우드 모니터링 정책 설정
 	dragonfly.PUT("/config", restconfig.SetMonConfig)
@@ -72,6 +72,7 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.POST("/agent/uninstall", agent.UninstallAgent)
 	// MCIS 모니터링(Milkyway)
 	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/mcis_metric/:mcis_metric_name/mcis-monitoring-info", metric.GetMCISMetric)
+
 	// 멀티클라우드 인프라 VM 온디멘드 모니터링
 	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/metric/:metric_name/ondemand-monitoring-info", metric.OndemandMetric)
 

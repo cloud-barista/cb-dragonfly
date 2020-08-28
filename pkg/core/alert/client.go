@@ -17,7 +17,7 @@ const (
 
 func newClient() (*kclient.Client, error) {
 	kapacitorConfig := kclient.Config{
-		URL:                config.GetDefaultConfig().GetKapacitorConfig().GetEndpointUrl(),
+		URL:                config.GetDefaultConfig().GetKapacitorConfig().GetKapacitorEndpointUrl(),
 		Timeout:            time.Duration(kapacitorTimeout),
 		InsecureSkipVerify: true,
 	}
