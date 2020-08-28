@@ -5,7 +5,7 @@ import (
 	"github.com/influxdata/influxdb1-client/models"
 )
 
-func MappingMonMetric(metricName string, metricVal *interface{}) (*interface{}, error) {
+func MappingMonMetric(metricName string, metricVal *interface{}) (interface{}, error) {
 
 	var mappingMetric models.Row
 	var ok bool
@@ -22,13 +22,13 @@ func MappingMonMetric(metricName string, metricVal *interface{}) (*interface{}, 
 		metricKeyArr = Cpu{}.GetField()
 	case "cpufreq":
 		metricKeyArr = Cpufreq{}.GetField()
-	case "mem":
+	case "memory":
 		metricKeyArr = Memory{}.GetField()
 	case "disk":
 		metricKeyArr = Disk{}.GetField()
 	case "diskio":
 		metricKeyArr = DiskIO{}.GetField()
-	case "net":
+	case "network":
 		metricKeyArr = Network{}.GetField()
 	default:
 		err = errors.New("not found metric")
@@ -48,7 +48,22 @@ func MappingMonMetric(metricName string, metricVal *interface{}) (*interface{}, 
 
 	mappingMetric.Columns = metricCols
 
-	var resultMap interface{}
-	resultMap = mappingMetric
-	return &resultMap, nil
+	resultMap := map[string]interface{}{}
+	resultMap["name"] = metricName
+	resultMap["tags"] = mappingMetric.Tags
+	resultMap["values"] = ConvertMetricValFormat(metricCols, mappingMetric.Values)
+
+	return resultMap, nil
+}
+
+func ConvertMetricValFormat(metricKeyArr []string, metricVal [][]interface{}) []interface{} {
+	convertedMetricVal := make([]interface{}, len(metricVal))
+	for i, metricVal := range metricVal {
+		newMetricVal := map[string]interface{}{}
+		for j, key := range metricKeyArr {
+			newMetricVal[key] = metricVal[j]
+		}
+		convertedMetricVal[i] = newMetricVal
+	}
+	return convertedMetricVal
 }

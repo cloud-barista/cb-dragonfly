@@ -1,22 +1,20 @@
 package manager
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdbv1"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore/etcd"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
-	"io/ioutil"
+	"github.com/mitchellh/mapstructure"
 	"net"
-	"os"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdbv1"
+	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore/etcd"
 )
 
 // TODO: implements
@@ -25,9 +23,8 @@ import (
 // TODO: 3. Configuring Policy...
 
 type CollectManager struct {
-	Config            Config
-	InfluxdDB         metricstore.Storage
-	Etcd              realtimestore.Storage
+	//InfluxDB          metricstore.Storage
+	//Etcd              realtimestore.Storage
 	Aggregator        collector.Aggregator
 	WaitGroup         *sync.WaitGroup
 	UdpCOnn           *net.UDPConn
@@ -43,46 +40,33 @@ type CollectManager struct {
 // 콜렉터 매니저 초기화
 func NewCollectorManager() (*CollectManager, error) {
 	manager := CollectManager{}
-	err := manager.LoadConfiguration()
-	if err != nil {
-		return nil, err
-	}
 
 	influxConfig := influxdbv1.Config{
 		ClientOptions: []influxdbv1.ClientOptions{
 			{
-				URL:      manager.Config.InfluxDB.EndpointUrl,
-				Username: manager.Config.InfluxDB.UserName,
-				Password: manager.Config.InfluxDB.Password,
+				URL:      config.GetInstance().GetInfluxDBConfig().EndpointUrl,
+				Username: config.GetInstance().GetInfluxDBConfig().UserName,
+				Password: config.GetInstance().GetInfluxDBConfig().Password,
 			},
 		},
-		Database: manager.Config.InfluxDB.Database,
+		Database: config.GetInstance().GetInfluxDBConfig().Database,
 	}
 
 	// InfluxDB 연결
-	influx, err := metricstore.NewStorage(metricstore.InfluxDBV1Type, influxConfig)
+	err := influxdbv1.Initialize(influxConfig)
 	if err != nil {
 		logrus.Error("Failed to initialize influxDB")
 		return nil, err
 	}
-	manager.InfluxdDB = influx
-
-	etcdConfig := etcd.Config{
-		ClientOptions: etcd.ClientOptions{
-			Endpoints: manager.Config.Etcd.EndpointUrl,
-		},
-	}
 
 	// etcd 연결
-	etcd, err := realtimestore.NewStorage(realtimestore.ETCDV2Type, etcdConfig)
+	err = etcd.Initialize()
 	if err != nil {
 		logrus.Error("Failed to initialize etcd")
 		return nil, err
 	}
 
 	manager.metricL = &sync.RWMutex{}
-
-	manager.Etcd = etcd
 
 	manager.AgentQueueTTL = map[string]time.Time{}
 	manager.AgentQueueColN = map[string]int{}
@@ -93,72 +77,35 @@ func NewCollectorManager() (*CollectManager, error) {
 // 기존의 실시간 모니터링 데이터 삭제
 func (manager *CollectManager) FlushMonitoringData() error {
 	// 모니터링 콜렉터 태그 정보 삭제
-	//manager.Etcd.DeleteMetric("/host-list")
-	manager.Etcd.DeleteMetric("/collector")
+	etcd.GetInstance().DeleteMetric("/collector")
 
 	// 실시간 모니터링 정보 삭제
-	manager.Etcd.DeleteMetric("/host")
-	manager.Etcd.DeleteMetric("/mon")
+	etcd.GetInstance().DeleteMetric("/host")
+	etcd.GetInstance().DeleteMetric("/mon")
 
 	manager.SetConfigurationToETCD()
 
 	return nil
 }
 
-// config 파일 로드
-func (manager *CollectManager) LoadConfiguration() error {
-	configPath := os.Getenv("CBMON_ROOT") + "/conf/config.yaml"
-
-	bytes, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		logrus.Error("Failed to read configuration file in: ", configPath)
-		return err
-	}
-
-	err = yaml.Unmarshal(bytes, &manager.Config)
-	if err != nil {
-		logrus.Error("Failed to unmarshal configuration file")
-		return err
-	}
-
-	return nil
-}
-
-// TODO: 모니터링 정책 설정
 func (manager *CollectManager) SetConfigurationToETCD() error {
-	monConfig := MonConfig{
-		AgentInterval:      manager.Config.Monitoring.AgentInterval,
-		CollectorInterval:  manager.Config.Monitoring.CollectorInterval,
-		SchedulingInterval: manager.Config.Monitoring.ScheduleInterval,
-		MaxHostCount:       manager.Config.Monitoring.MaxHostCount,
-		AgentTtl:           manager.Config.Monitoring.AgentTtl,
-	}
-
-	// TODO: 구조체 map[string]interface{} 타입으로 Unmarshal
-	// TODO: 추후에 별도의 map 변환 함수 (toMap() 개발)
-	reqBodyBytes := new(bytes.Buffer)
-	if err := json.NewEncoder(reqBodyBytes).Encode(monConfig); err != nil {
-		return err
-	}
-	byteData := reqBodyBytes.Bytes()
-
-	jsonMap := map[string]interface{}{}
-	if err := json.Unmarshal(byteData, &jsonMap); err != nil {
+	var monConfigMap map[string]interface{}
+	err := mapstructure.Decode(config.GetInstance().Monitoring, &monConfigMap)
+	if err != nil {
 		return err
 	}
 
 	// etcd 저장소에 모니터링 정책 저장 후 결과 값 반환
-	err := manager.Etcd.WriteMetric("/mon/config", jsonMap)
+	err = etcd.GetInstance().WriteMetric("/mon/config", monConfigMap)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
 func (manager *CollectManager) CreateLoadBalancer(wg *sync.WaitGroup) error {
 
-	udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("0.0.0.0:%d", manager.Config.CollectManager.CollectorPort))
+	udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("0.0.0.0:%d", config.GetInstance().CollectManager.CollectorPort))
 	if err != nil {
 		logrus.Error("Failed to resolve UDP server address: ", err)
 		return err
@@ -245,7 +192,7 @@ func (manager *CollectManager) ManageAgentQueue(hostId string, AgentQueueColN ma
 
 		cAddr := manager.CollectorUUIDAddr[cUUID]
 
-		if len((*cAddr).MarkingAgent) < manager.Config.Monitoring.MaxHostCount {
+		if len((*cAddr).MarkingAgent) < config.GetInstance().Monitoring.MaxHostCount {
 
 			if cashingCAddr != nil {
 				delete((*cashingCAddr).MarkingAgent, hostId)
@@ -265,11 +212,7 @@ func (manager *CollectManager) ManageAgentQueue(hostId string, AgentQueueColN ma
 }
 
 func (manager *CollectManager) ManageAgentTtl(wg *sync.WaitGroup) {
-
 	defer wg.Done()
-
-	//monConfig, err := manager.GetConfigInfo()
-	agentTtl := manager.Config.Monitoring.AgentTtl
 
 	for {
 		currentTime := time.Now()
@@ -277,7 +220,7 @@ func (manager *CollectManager) ManageAgentTtl(wg *sync.WaitGroup) {
 			manager.metricL.RLock()
 			for hostId, arrivedTime := range manager.AgentQueueTTL {
 
-				if currentTime.Sub(arrivedTime) > time.Duration(agentTtl)*time.Second {
+				if currentTime.Sub(arrivedTime) > time.Duration(config.GetInstance().Monitoring.AgentTTL)*time.Second {
 					if _, ok := manager.AgentQueueTTL[hostId]; ok {
 						//manager.metricL.RLock()
 						delete(manager.AgentQueueTTL, hostId)
@@ -297,11 +240,11 @@ func (manager *CollectManager) ManageAgentTtl(wg *sync.WaitGroup) {
 					if _, ok := (*c).MarkingAgent[hostId]; ok {
 						delete((*c).MarkingAgent, hostId)
 					}
-					err := manager.Etcd.DeleteMetric(fmt.Sprintf("/collector/%s/host/%s", cUUID, hostId))
+					err := etcd.GetInstance().DeleteMetric(fmt.Sprintf("/collector/%s/host/%s", cUUID, hostId))
 					if err != nil {
 						logrus.Error("Fail to delete hostInfo ETCD data")
 					}
-					err = manager.Etcd.DeleteMetric(fmt.Sprintf("/host/%s", hostId))
+					err = etcd.GetInstance().DeleteMetric(fmt.Sprintf("/host/%s", hostId))
 					if err != nil {
 						logrus.Error("Fail to delete expired ETCD data")
 					}
@@ -322,7 +265,7 @@ func (manager *CollectManager) StartCollector(wg *sync.WaitGroup) error {
 	manager.AggregatingChan = map[string]*chan string{}
 	manager.TransmitDataChan = map[string]*chan collector.TelegrafMetric{}
 
-	for i := 0; i < manager.Config.CollectManager.CollectorCnt; i++ {
+	for i := 0; i < config.GetInstance().CollectManager.CollectorCnt; i++ {
 		err := manager.CreateCollector()
 		if err != nil {
 			logrus.Error("failed to create collector", err)
@@ -335,7 +278,7 @@ func (manager *CollectManager) StartCollector(wg *sync.WaitGroup) error {
 
 func (manager *CollectManager) CreateCollector() error {
 	// 실시간 데이터 저장을 위한 collector 고루틴 실행
-	mc := collector.NewMetricCollector(map[string]string{}, manager.metricL, manager.Config.Monitoring.CollectorInterval, &manager.Etcd, &manager.InfluxdDB, collector.AVG, manager.AggregatingChan, manager.TransmitDataChan)
+	mc := collector.NewMetricCollector(map[string]string{}, manager.metricL, config.GetInstance().Monitoring.CollectorInterval, collector.AVG, manager.AggregatingChan, manager.TransmitDataChan)
 	manager.metricL.Lock()
 	manager.CollectorIdx = append(manager.CollectorIdx, mc.UUID)
 	manager.metricL.Unlock()
@@ -367,17 +310,17 @@ func (manager *CollectManager) StopCollector(uuid string) error {
 	}
 }
 
-//func (manager *CollectManager) GetConfigInfo() (MonConfig, error) {
+//func (manager *CollectManager) GetConfigInfo() (Monitoring, error) {
 //	// etcd 저장소 조회
 //	configNode, err := manager.Etcd.ReadMetric("/mon/config")
 //	if err != nil {
-//		return MonConfig{}, err
+//		return Monitoring{}, err
 //	}
-//	// MonConfig 매핑
-//	var config MonConfig
+//	// Monitoring 매핑
+//	var config Monitoring
 //	err = json.Unmarshal([]byte(configNode.Value), &config)
 //	if err != nil {
-//		return MonConfig{}, err
+//		return Monitoring{}, err
 //	}
 //	return config, nil
 //}
@@ -386,7 +329,7 @@ func (manager *CollectManager) StartAggregateScheduler(wg *sync.WaitGroup, c *ma
 	defer wg.Done()
 	for {
 		// aggregate 주기 정보 조회
-		collectorInterval := manager.Config.Monitoring.CollectorInterval
+		collectorInterval := config.GetInstance().Monitoring.CollectorInterval
 
 		//// Print Session Start /////
 		//fmt.Print("\nTTL queue List : ")
@@ -420,7 +363,7 @@ func (manager *CollectManager) StartScaleScheduler(wg *sync.WaitGroup) {
 	cs := NewCollectorScheduler(manager)
 	for {
 		// 스케줄링 주기 정보 조회
-		schedulingInterval := manager.Config.Monitoring.ScheduleInterval
+		schedulingInterval := config.GetInstance().Monitoring.SchedulingInterval
 
 		time.Sleep(time.Duration(schedulingInterval) * time.Second)
 
