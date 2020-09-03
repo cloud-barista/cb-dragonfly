@@ -1,0 +1,18 @@
+version: 1
+grpc:
+  dragonflysrv:
+    addr: :50253
+    #reflection: enable
+    #tls:
+    #  tls_cert: $CBMON_ROOT/certs/server.crt
+    #  tls_key: $CBMON_ROOT/certs/server.key
+    interceptors:
+      #auth_jwt:
+      #  jwt_key: your_secret_key
+      prometheus_metrics:
+        listen_port: 9094
+      opentracing:
+        jaeger:
+          endpoint: localhost:6833
+          service_name: dragonfly grpc server
+          sample_rate: 1
