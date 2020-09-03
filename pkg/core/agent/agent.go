@@ -24,7 +24,15 @@ const (
 	CENTOS = "CENTOS"
 )
 
-func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, userName string, sshKey string) (int, error) {
+func InstallTelegraf(
+	nsId string,
+	mcisId string,
+	vmId string,
+	publicIp string,
+	userName string,
+	sshKey string,
+	cspType string,
+) (int, error) {
 	sshInfo := sshrun.SSHInfo{
 		ServerPort: publicIp + ":22",
 		UserName:   userName,
@@ -72,7 +80,7 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 	sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf")
 
 	// telegraf_conf 파일 복사
-	telegrafConfSourceFile, err := createTelegrafConfigFile(nsId, mcisId, vmId)
+	telegrafConfSourceFile, err := createTelegrafConfigFile(nsId, mcisId, vmId, cspType)
 	telegrafConfTargetFile := "$HOME/cb-dragonfly/telegraf.conf"
 	if err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
@@ -140,7 +148,7 @@ func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
 	sshrun.SSHRun(sshInfo, removeDirCmd)
 }
 
-func createTelegrafConfigFile(nsId string, mcisId string, vmId string) (string, error) {
+func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType string) (string, error) {
 	collectorServer := fmt.Sprintf("udp://%s:%d", config.GetInstance().CollectManager.CollectorIP, config.GetInstance().CollectManager.CollectorPort)
 	influxDBServer := fmt.Sprintf("http://%s:8086", config.GetInstance().CollectManager.CollectorIP)
 
@@ -161,6 +169,7 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string) (string, 
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
 	strConf = strings.ReplaceAll(strConf, "{{collector_server}}", collectorServer)
 	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", influxDBServer)
+	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", cspType)
 
 	// telegraf.conf 파일 생성
 	telegrafFilePath := rootPath + "/file/conf/"
