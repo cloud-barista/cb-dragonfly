@@ -14,7 +14,7 @@ import (
 // 멀티클라우드 인프라 VM 온디멘드 모니터링
 func OndemandAllMetric(c echo.Context) error {
 	//온디멘드 모니터링 파라미터 추출
-	publicIP := c.Param("public_ip")
+	publicIP := c.Param("agent_ip")
 
 	// Query 파라미터 값 체크
 	if publicIP == "" {
@@ -42,7 +42,7 @@ func OndemandAllMetric(c echo.Context) error {
 // 멀티클라우드 인프라 VM 온디멘드 모니터링
 func OndemandMetric(c echo.Context) error {
 	//온디멘드 모니터링 Agent IP 파라미터 추출
-	publicIP := c.Param("public_ip")
+	publicIP := c.Param("agent_ip")
 
 	// Query Agent IP 값 체크
 	if publicIP == "" {
@@ -50,7 +50,7 @@ func OndemandMetric(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 	//온디멘드 모니터링 매트릭 파라미터 추출
-	metrictype := c.Param("metrictype")
+	metrictype := c.Param("metric_name")
 
 	//Query 매트릭 값 체크
 	if metrictype == "" {
