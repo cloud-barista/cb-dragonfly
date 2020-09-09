@@ -71,6 +71,5 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	e.POST("/dragonfly/agent/install", agent.InstallTelegraf)
 
 	// 멀티클라우드 인프라 VM 온디멘드 모니터링
-	e.GET("/dragonfly/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip", metric.OndemandAllMetric)
-	e.GET("/dragonfly/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/metric/:metric_name", metric.OndemandMetric)
+	e.GET("/dragonfly/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/metric/:metric_name/ondemand-monitoring-info", metric.OndemandMetric)
 }
