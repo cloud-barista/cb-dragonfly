@@ -73,4 +73,9 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	// 멀티클라우드 인프라 VM 온디멘드 모니터링
 	e.GET("/dragonfly/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip", metric.OndemandAllMetric)
 	e.GET("/dragonfly/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/metric/:metric_name", metric.OndemandMetric)
+
+	// windows 에이전트 config, package 파일 다운로드
+	e.GET("/dragonfly/installer/cbinstaller.zip", agent.GetWindowInstaller)
+	e.GET("/dragonfly/file/agent/conf", agent.GetTelegrafConfFile)
+	e.GET("/dragonfly/file/agent/pkg", agent.GetTelegrafPkgFile)
 }
