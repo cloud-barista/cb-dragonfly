@@ -7,7 +7,7 @@ require (
 	github.com/bramvdbogaerde/go-scp v0.0.0-20191005185035-c96fe084709e
 	github.com/cloud-barista/cb-log v0.0.0-20190829061936-c402c97c951a // indirect
 	github.com/cloud-barista/cb-spider v0.0.0-20191105070034-f3f7c5a74ffe
-	github.com/cloud-barista/cb-store v0.0.0-20191002015823-94b2852cf37d // indirect
+	github.com/cloud-barista/cb-store v0.0.0-20191002015823-94b2852cf37d
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.15+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
@@ -25,9 +25,11 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.1.0 // indirect
 	github.com/prometheus/common v0.10.0 // indirect
+	github.com/shaodan/kapacitor-client v0.0.0-20181228024026-84c816949946
 	github.com/sirupsen/logrus v1.4.2
 	github.com/snowzach/rotatefilehook v0.0.0-20180327172521-2f64f265f58c // indirect
 	github.com/spf13/viper v1.7.1
+	github.com/xujiajun/nutsdb v0.5.0 // indirect
 	go.etcd.io/bbolt v1.3.3 // indirect
 	go.etcd.io/etcd v3.3.15+incompatible
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
