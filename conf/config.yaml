@@ -12,6 +12,9 @@ etcd:
   endpoint_url: http://cb-dragonfly-etcd:2379 # endpoint to etcd storage
   ttl: 60                 # time to live (s)
 
+kapacitor:
+  endpoint_url: http://cb-dragonfly-kapacitor:9092 # endpoint to kapacitor
+
 # collect manager configuration info
 collectManager:
   collector_ip: 127.0.0.1 # local access endpoint to cb-dragonfly API server

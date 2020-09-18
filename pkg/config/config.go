@@ -14,6 +14,7 @@ type Config struct {
 	CollectManager CollectManager
 	APIServer      APIServer
 	Monitoring     Monitoring
+	Kapacitor      Kapacitor
 }
 
 type InfluxDB struct {
@@ -46,6 +47,14 @@ type Monitoring struct {
 	MaxHostCount       int `json:"max_host_count" mapstructure:"max_host_count"`         // 모니터링 콜렉터 수
 }
 
+type Kapacitor struct {
+	EndpointUrl string `json:"endpoint_url" mapstructure:"endpoint_url"`
+}
+
+func (kapacitor Kapacitor) GetEndpointUrl() string {
+	return kapacitor.EndpointUrl
+}
+
 var once sync.Once
 var config Config
 
@@ -72,6 +81,10 @@ func (config *Config) GetInfluxDBConfig() InfluxDB {
 
 func (config *Config) GetETCDConfig() Etcd {
 	return config.Etcd
+}
+
+func (config *Config) GetKapacitorConfig() Kapacitor {
+	return config.Kapacitor
 }
 
 func loadConfigFromYAML(config *Config) {
