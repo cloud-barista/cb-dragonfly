@@ -53,14 +53,19 @@ func InstallTelegraf(
 	}
 
 	rootPath := os.Getenv("CBMON_ROOT")
+	// 제공 설치 파일 탐색
+	filepath := rootPath + fmt.Sprintf("/file/pkg/%s/x64/", strings.ToLower(osType))
+	filename, err := GetPackageName(filepath)
+	if err != nil {
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to get package. osType %s not supported", osType))
+	}
+	sourceFile := filepath + filename
 
-	var sourceFile, targetFile, installCmd string
+	var targetFile, installCmd string
 	if strings.Contains(osType, CENTOS) {
-		sourceFile = rootPath + "/file/pkg/centos/x64/telegraf-1.12.0~f09f2b5-0.x86_64.rpm"
 		targetFile = fmt.Sprintf("$HOME/cb-dragonfly/cb-agent.rpm")
 		installCmd = fmt.Sprintf("sudo rpm -ivh $HOME/cb-dragonfly/cb-agent.rpm")
 	} else if strings.Contains(osType, UBUNTU) {
-		sourceFile = rootPath + "/file/pkg/ubuntu/x64/telegraf_1.12.0~f09f2b5-0_amd64.deb"
 		targetFile = fmt.Sprintf("$HOME/cb-dragonfly/cb-agent.deb")
 		installCmd = fmt.Sprintf("sudo dpkg -i $HOME/cb-dragonfly/cb-agent.deb")
 	}
@@ -211,4 +216,13 @@ func sshCopyWithTimeout(sshInfo sshrun.SSHInfo, sourceFile string, targetFile st
 	}
 
 	return client.CopyFile(file, targetFile, "0755")
+}
+
+func GetPackageName(path string) (string, error) {
+	file, err := ioutil.ReadDir(path)
+	var filename string
+	for _, data := range file {
+		filename = data.Name()
+	}
+	return filename, err
 }

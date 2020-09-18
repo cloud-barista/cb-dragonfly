@@ -51,7 +51,7 @@ func GetTelegrafConfFile(c echo.Context) error {
 	cspType := c.QueryParam("csp_type")
 
 	// Query 파라미터 값 체크
-	if nsId == "" || mcisId == "" || vmId == "" || cspType == ""{
+	if nsId == "" || mcisId == "" || vmId == "" || cspType == "" {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage("query parameter is missing"))
 	}
 	//collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.CollectManager.CollectorPort)
@@ -89,7 +89,7 @@ func GetTelegrafPkgFile(c echo.Context) error {
 
 	// osType, architecture 지원 여부 체크
 	osType = strings.ToLower(osType)
-	if osType != "ubuntu" && osType != "centos" && osType != "windows"{
+	if osType != "ubuntu" && osType != "centos" && osType != "windows" {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage("failed to get package. not supported OS type"))
 	}
 	if !strings.Contains(arch, "32") && !strings.Contains(arch, "64") {
@@ -102,18 +102,13 @@ func GetTelegrafPkgFile(c echo.Context) error {
 		arch = "x32"
 	}
 
+	// 제공 설치 파일 탐색
 	rootPath := os.Getenv("CBMON_ROOT")
-	var filePath string
-	switch osType {
-	case "ubuntu":
-		filePath = rootPath + fmt.Sprintf("/file/pkg/%s/%s/telegraf_1.12.0~f09f2b5-0_amd64.deb", osType, arch)
-	case "centos":
-		filePath = rootPath + fmt.Sprintf("/file/pkg/%s/%s/telegraf-1.12.0~f09f2b5-0.x86_64.rpm", osType, arch)
-	case "windows":
-		filePath = rootPath + fmt.Sprintf("/file/pkg/%s/%s/telegraf_amd64.zip", osType, arch)
-	default:
+	filepath := rootPath + fmt.Sprintf("/file/pkg/%s/%s/", osType, arch)
+	filename, err := agent.GetPackageName(filepath)
+	if err != nil {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("failed to get package. osType %s not supported", osType)))
 	}
-
-	return c.File(filePath)
+	file := filepath + filename
+	return c.File(file)
 }
