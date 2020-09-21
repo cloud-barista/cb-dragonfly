@@ -2,7 +2,6 @@ package event
 
 import (
 	"encoding/json"
-	"fmt"
 
 	cbstore "github.com/cloud-barista/cb-store"
 	"github.com/cloud-barista/cb-store/config"
@@ -31,9 +30,10 @@ func CreateEventLog(eventLog types.AlertEventLog) error {
 		if err != nil {
 			return err
 		}
-		// Add new event log
-		eventLogArr = append(eventLogArr, eventLog)
 	}
+
+	// Add new event log
+	eventLogArr = append(eventLogArr, eventLog)
 
 	// Save event log
 	newEventLogBytes, err := json.Marshal(eventLogArr)
@@ -49,8 +49,6 @@ func CreateEventLog(eventLog types.AlertEventLog) error {
 
 func ListEventLog(taskId string, logLevel string) ([]types.AlertEventLog, error) {
 	eventLogArr := []types.AlertEventLog{}
-	keyList, _ := store.GetList(taskId, true)
-	fmt.Println(keyList)
 	eventLogStr, err := store.Get(taskId)
 	if err != nil {
 		return nil, err

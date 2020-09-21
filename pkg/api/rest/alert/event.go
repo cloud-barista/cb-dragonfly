@@ -32,7 +32,7 @@ func CreateEventLog(c echo.Context) error {
 }
 
 func ListEventLog(c echo.Context) error {
-	taskName := c.Param("task_name")
+	taskName := c.Param("task_id")
 	logLevel := c.QueryParam("level")
 	alertLogList, err := event.ListEventLog(fmt.Sprintf(task.KapacitorTaskFormat, taskName), logLevel)
 	if err != nil {
