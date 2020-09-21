@@ -10,17 +10,33 @@ import (
 
 func CreateTopicHandler(topicName string, eventType string, options map[string]interface{}) error {
 	topicLink := alert.GetClient().TopicLink(topicName)
+
 	createOpts := kapacitorclient.TopicHandlerOptions{
 		Topic:   topicName,
 		ID:      fmt.Sprintf("%s-%s", topicName, eventType),
 		Kind:    eventType,
 		Options: options,
 	}
-	topicHandler, err := alert.GetClient().CreateTopicHandler(topicLink, createOpts)
+	_, err := alert.GetClient().CreateTopicHandler(topicLink, createOpts)
 	if err != nil {
 		return err
 	}
-	fmt.Println(topicHandler)
+	return nil
+}
+
+func UpdateTopicHandler(topicName string, eventType string, options map[string]interface{}) error {
+	topicHandlerLink := alert.GetClient().TopicHandlerLink(topicName, fmt.Sprintf("%s-%s", topicName, eventType))
+
+	updateOpts := kapacitorclient.TopicHandlerOptions{
+		Topic:   topicName,
+		ID:      fmt.Sprintf("%s-%s", topicName, eventType),
+		Kind:    eventType,
+		Options: options,
+	}
+	_, err := alert.GetClient().ReplaceTopicHandler(topicHandlerLink, updateOpts)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

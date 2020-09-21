@@ -2,6 +2,7 @@ package event
 
 import (
 	"encoding/json"
+	"fmt"
 
 	cbstore "github.com/cloud-barista/cb-store"
 	"github.com/cloud-barista/cb-store/config"
@@ -22,10 +23,7 @@ func init() {
 func CreateEventLog(eventLog types.AlertEventLog) error {
 	var eventLogArr []types.AlertEventLog
 
-	eventLogStr, err := store.Get(eventLog.Id)
-	if err != nil {
-		return err
-	}
+	eventLogStr, _ := store.Get(eventLog.Id)
 
 	if eventLogStr != nil {
 		// Get event log array
@@ -49,18 +47,24 @@ func CreateEventLog(eventLog types.AlertEventLog) error {
 	return nil
 }
 
-func ListEventLog(alertName string) ([]types.AlertEventLog, error) {
-	var eventLogArr []types.AlertEventLog
-	eventLogStr, err := store.Get(alertName)
+func ListEventLog(taskId string, logLevel string) ([]types.AlertEventLog, error) {
+	eventLogArr := []types.AlertEventLog{}
+	keyList, _ := store.GetList(taskId, true)
+	fmt.Println(keyList)
+	eventLogStr, err := store.Get(taskId)
 	if err != nil {
 		return nil, err
 	}
 	if eventLogStr == nil {
-		return nil, nil
+		return eventLogArr, nil
 	}
 	err = json.Unmarshal([]byte(eventLogStr.Value), &eventLogArr)
 	if err != nil {
 		return nil, err
 	}
 	return eventLogArr, nil
+}
+
+func DeleteEventLog(taskId string) error {
+	return store.Delete(taskId)
 }

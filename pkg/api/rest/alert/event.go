@@ -1,12 +1,14 @@
 package alert
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/event"
+	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/task"
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/types"
 )
 
@@ -30,8 +32,9 @@ func CreateEventLog(c echo.Context) error {
 }
 
 func ListEventLog(c echo.Context) error {
-	alertName := c.Param("alertName")
-	alertLogList, err := event.ListEventLog(alertName)
+	taskName := c.Param("task_name")
+	logLevel := c.QueryParam("level")
+	alertLogList, err := event.ListEventLog(fmt.Sprintf(task.KapacitorTaskFormat, taskName), logLevel)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
