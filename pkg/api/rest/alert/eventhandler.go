@@ -1,6 +1,7 @@
 package alert
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -48,11 +49,13 @@ func CreateEventHandler(c echo.Context) error {
 
 // 알람 이벤트 핸들러 수정
 func UpdateEventHandler(c echo.Context) error {
+	eventType := c.Param("type")
+	eventHandlerName := c.Param("name")
 	eventHandlerReq, err := setEventHandlerReq(c)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 	}
-	eventHandler, err := eventhandler.UpdateEventHandler(eventHandlerReq.Type, eventHandlerReq)
+	eventHandler, err := eventhandler.UpdateEventHandler(eventType, eventHandlerName, eventHandlerReq)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 	}
@@ -67,7 +70,7 @@ func DeleteEventHandler(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 	}
-	return c.JSON(http.StatusOK, nil)
+	return c.JSON(http.StatusOK, rest.SetMessage(fmt.Sprintf("delete event handler with name %s successfully", eventHandlerName)))
 }
 
 func setEventHandlerReq(c echo.Context) (types.AlertEventHandlerReq, error) {

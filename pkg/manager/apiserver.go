@@ -92,5 +92,5 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 
 	// 알람 이벤트 로그 조회, 생성
 	dragonfly.POST("/alert/event", alert.CreateEventLog)
-	dragonfly.GET("/alert/events/:alertName", alert.ListEventLog)
+	dragonfly.GET("/alert/task/:task_id/events", alert.ListEventLog)
 }

@@ -22,10 +22,7 @@ func init() {
 func CreateEventLog(eventLog types.AlertEventLog) error {
 	var eventLogArr []types.AlertEventLog
 
-	eventLogStr, err := store.Get(eventLog.Id)
-	if err != nil {
-		return err
-	}
+	eventLogStr, _ := store.Get(eventLog.Id)
 
 	if eventLogStr != nil {
 		// Get event log array
@@ -33,9 +30,10 @@ func CreateEventLog(eventLog types.AlertEventLog) error {
 		if err != nil {
 			return err
 		}
-		// Add new event log
-		eventLogArr = append(eventLogArr, eventLog)
 	}
+
+	// Add new event log
+	eventLogArr = append(eventLogArr, eventLog)
 
 	// Save event log
 	newEventLogBytes, err := json.Marshal(eventLogArr)
@@ -49,18 +47,22 @@ func CreateEventLog(eventLog types.AlertEventLog) error {
 	return nil
 }
 
-func ListEventLog(alertName string) ([]types.AlertEventLog, error) {
-	var eventLogArr []types.AlertEventLog
-	eventLogStr, err := store.Get(alertName)
+func ListEventLog(taskId string, logLevel string) ([]types.AlertEventLog, error) {
+	eventLogArr := []types.AlertEventLog{}
+	eventLogStr, err := store.Get(taskId)
 	if err != nil {
 		return nil, err
 	}
 	if eventLogStr == nil {
-		return nil, nil
+		return eventLogArr, nil
 	}
 	err = json.Unmarshal([]byte(eventLogStr.Value), &eventLogArr)
 	if err != nil {
 		return nil, err
 	}
 	return eventLogArr, nil
+}
+
+func DeleteEventLog(taskId string) error {
+	return store.Delete(taskId)
 }

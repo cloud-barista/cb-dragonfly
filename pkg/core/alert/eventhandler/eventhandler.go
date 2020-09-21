@@ -11,6 +11,7 @@ import (
 const (
 	SlackType = "slack"
 	SMTPType  = "smtp"
+	POSTType  = "post"
 )
 
 var (
@@ -21,7 +22,7 @@ type EventHandler interface {
 	ListEventHandlers() ([]types.AlertEventHandler, error)
 	GetEventHandler(name string) (types.AlertEventHandler, error)
 	CreateEventHandler(createOpts types.AlertEventHandlerReq) (types.AlertEventHandler, error)
-	UpdateEventHandler(createOpts types.AlertEventHandlerReq) (types.AlertEventHandler, error)
+	UpdateEventHandler(name string, updateOpts types.AlertEventHandlerReq) (types.AlertEventHandler, error)
 	DeleteEventHandler(name string) error
 }
 
@@ -64,11 +65,11 @@ func CreateEventHandler(eventType string, eventHandlerReq types.AlertEventHandle
 	return EventTypes[eventType].CreateEventHandler(eventHandlerReq)
 }
 
-func UpdateEventHandler(eventType string, eventHandlerReq types.AlertEventHandlerReq) (types.AlertEventHandler, error) {
+func UpdateEventHandler(eventType string, eventHandlerName string, eventHandlerReq types.AlertEventHandlerReq) (types.AlertEventHandler, error) {
 	if _, ok := EventTypes[eventType]; !ok {
 		return types.AlertEventHandler{}, fmt.Errorf("not found eventType with Name %s", eventType)
 	}
-	return EventTypes[eventType].UpdateEventHandler(eventHandlerReq)
+	return EventTypes[eventType].UpdateEventHandler(eventHandlerName, eventHandlerReq)
 }
 
 func DeleteEventHandler(eventType string, eventHandlerName string) error {

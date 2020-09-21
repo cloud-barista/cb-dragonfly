@@ -2,11 +2,15 @@ package task
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	kapacitorclient "github.com/shaodan/kapacitor-client"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	alert "github.com/cloud-barista/cb-dragonfly/pkg/core/alert"
+	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/event"
+	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/eventhandler"
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/topichandler"
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/types"
 )
@@ -20,11 +24,20 @@ const (
 	AlertMessageFormat   = "[{{.Level}}] {{.ID}} {{.TaskName}} Alert \n%s"
 )
 
-func ListTasks() ([]kapacitorclient.Task, error) {
+func ListTasks() ([]types.AlertTask, error) {
 	listOpts := kapacitorclient.ListTasksOptions{
 		Pattern: KapacitorTaskPattern,
 	}
-	return alert.GetClient().ListTasks(&listOpts)
+	alertTaskList, err := alert.GetClient().ListTasks(&listOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	alertTaskInfoList := make([]types.AlertTask, len(alertTaskList))
+	for idx, alertTask := range alertTaskList {
+		alertTaskInfoList[idx] = mappingAlertTaskInfo(alertTask)
+	}
+	return alertTaskInfoList, nil
 }
 
 func GetTask(taskId string) (*types.AlertTask, error) {
@@ -55,6 +68,7 @@ func CreateTask(alertTaskReq types.AlertTaskReq) (*types.AlertTask, error) {
 				RetentionPolicy: InfluxDefaultRP,
 			},
 		},
+		Status: kapacitorclient.Enabled,
 	}
 	vars, err := setTemplateVars(alertTaskReq)
 	if err != nil {
@@ -69,16 +83,49 @@ func CreateTask(alertTaskReq types.AlertTaskReq) (*types.AlertTask, error) {
 	}
 	alertTaskInfo := mappingAlertTaskInfo(alertTask)
 
-	// Create Event Topic Handler
-	err = topichandler.CreateTopicHandler(alertTaskInfo.Name, alertTaskInfo.AlertEventType, nil)
+	// Create Topic Handler
+	topicHandlerOpts := map[string]interface{}{}
+	if alertTaskReq.AlertEventType == eventhandler.SlackType {
+		topicHandlerOpts["workspace"] = alertTaskReq.AlertEventName
+	}
+	err = topichandler.CreateTopicHandler(fmt.Sprintf(KapacitorTaskFormat, alertTaskInfo.Name), alertTaskInfo.AlertEventType, topicHandlerOpts)
 	if err != nil {
 		return nil, err
 	}
-	// Create Log Event Handler
+	// Create Log Topic Handler
 	logOpts := map[string]interface{}{
 		"url": fmt.Sprintf("http://%s:%d/dragonfly/alert/event", config.GetInstance().CollectManager.CollectorIP, config.GetInstance().APIServer.Port),
 	}
-	err = topichandler.CreateTopicHandler(alertTaskInfo.Name, "post", logOpts)
+	err = topichandler.CreateTopicHandler(fmt.Sprintf(KapacitorTaskFormat, alertTaskInfo.Name), eventhandler.POSTType, logOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	return &alertTaskInfo, nil
+}
+
+func UpdateTask(taskId string, alertTaskReq types.AlertTaskReq) (*types.AlertTask, error) {
+	taskLink := alert.GetClient().TaskLink(fmt.Sprintf(KapacitorTaskFormat, taskId))
+	updateOpts := kapacitorclient.UpdateTaskOptions{}
+	vars, err := setTemplateVars(alertTaskReq)
+	if err != nil {
+		return nil, err
+	}
+	updateOpts.Vars = vars
+
+	// Update Alert Task
+	alertTask, err := alert.GetClient().UpdateTask(taskLink, updateOpts)
+	if err != nil {
+		return nil, err
+	}
+	alertTaskInfo := mappingAlertTaskInfo(alertTask)
+
+	// TODO: Update Topic Handler
+	topicHandlerOpts := map[string]interface{}{}
+	if alertTaskReq.AlertEventType == eventhandler.SlackType {
+		topicHandlerOpts["workspace"] = alertTaskReq.AlertEventName
+	}
+	err = topichandler.UpdateTopicHandler(fmt.Sprintf(KapacitorTaskFormat, alertTaskInfo.Name), alertTaskInfo.AlertEventType, topicHandlerOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -100,12 +147,25 @@ func DeleteTask(taskId string) error {
 		return err
 	}
 
-	// Delete Event
-	err = topichandler.DeleteTopicHandler(alertTaskInfo.Name, alertTaskInfo.AlertEventType)
+	// Delete Topic
+	topicLink := alert.GetClient().TopicLink(fmt.Sprintf(KapacitorTaskFormat, taskId))
+	err = alert.GetClient().DeleteTopic(topicLink)
 	if err != nil {
 		return err
 	}
-	err = topichandler.DeleteTopicHandler(alertTaskInfo.Name, "post")
+
+	// Delete Topic Handler
+	err = topichandler.DeleteTopicHandler(fmt.Sprintf(KapacitorTaskFormat, taskId), alertTaskInfo.AlertEventType)
+	if err != nil {
+		return err
+	}
+	err = topichandler.DeleteTopicHandler(fmt.Sprintf(KapacitorTaskFormat, taskId), eventhandler.POSTType)
+	if err != nil {
+		return err
+	}
+
+	// Delete Event Logs
+	err = event.DeleteEventLog(fmt.Sprintf(KapacitorTaskFormat, taskId))
 	if err != nil {
 		return err
 	}
@@ -119,7 +179,7 @@ func setTemplateVars(alertTaskReq types.AlertTaskReq) (map[string]kapacitorclien
 
 	varMaps["target_type"] = newTaskVar(kapacitorclient.VarString, alertTaskReq.TargetType)
 	varMaps["target_id"] = newTaskVar(kapacitorclient.VarString, alertTaskReq.TargetId)
-	varMaps["where_filter"] = newTaskVar(kapacitorclient.VarLambda, fmt.Sprintf("\"%s\" == '%s'", alertTaskReq.TargetType, alertTaskReq.TargetId))
+	varMaps["where_filter"] = newTaskVar(kapacitorclient.VarLambda, fmt.Sprintf("\"%sId\" == '%s'", strings.ToLower(alertTaskReq.TargetType), alertTaskReq.TargetId))
 
 	varMaps["event_params"] = newTaskVar(kapacitorclient.VarString, alertTaskReq.EventDuration)
 	varMaps["event_duration"] = newTaskVar(kapacitorclient.VarDuration, alertTaskReq.EventDuration)
@@ -146,11 +206,12 @@ func setTemplateVars(alertTaskReq types.AlertTaskReq) (map[string]kapacitorclien
 	}
 	varMaps["state_condition"] = newTaskVar(kapacitorclient.VarLambda, fmt.Sprintf("\"%s\" %s %f", alertTaskReq.Metric, compareExpression, alertTaskReq.AlertThreshold))
 
-	varMaps["warn"] = newTaskVar(kapacitorclient.VarLambda, fmt.Sprintf("\"state_count\" > %d", alertTaskReq.WarnEventCnt))
-	varMaps["crit"] = newTaskVar(kapacitorclient.VarLambda, fmt.Sprintf("\"state_count\" > %d", alertTaskReq.CriticEventCnt))
+	varMaps["warn"] = newTaskVar(kapacitorclient.VarLambda, fmt.Sprintf("\"state_count\" >= %d", alertTaskReq.WarnEventCnt))
+	varMaps["crit"] = newTaskVar(kapacitorclient.VarLambda, fmt.Sprintf("\"state_count\" >= %d", alertTaskReq.CriticEventCnt))
 
 	varMaps["alert_event_type"] = newTaskVar(kapacitorclient.VarString, alertTaskReq.AlertEventType)
 	varMaps["alert_event_name"] = newTaskVar(kapacitorclient.VarString, alertTaskReq.AlertEventName)
+	varMaps["custom_message"] = newTaskVar(kapacitorclient.VarString, alertTaskReq.AlertEventMessage)
 	varMaps["alert_message"] = newTaskVar(kapacitorclient.VarString, fmt.Sprintf(AlertMessageFormat, alertTaskReq.AlertEventMessage))
 	varMaps["topic_name"] = newTaskVar(kapacitorclient.VarString, fmt.Sprintf(KapacitorTaskFormat, alertTaskReq.Name))
 
@@ -165,8 +226,19 @@ func newTaskVar(varType kapacitorclient.VarType, varVal interface{}) kapacitorcl
 }
 
 func mappingAlertTaskInfo(task kapacitorclient.Task) types.AlertTask {
+	var taskId string
+	uriArr := strings.Split(task.Link.Href, "/")
+	if len(uriArr) > 0 {
+		taskName := uriArr[len(uriArr)-1]
+		reg, _ := regexp.Compile("dragonfly-(.+)")
+		if reg.MatchString(taskName) {
+			uriParams := reg.FindStringSubmatch(taskName)
+			taskId = uriParams[1]
+		}
+	}
+
 	alertTask := types.AlertTask{
-		Name:                task.ID,
+		Name:                taskId,
 		Measurement:         getVarByKey(task.Vars, "measurement").(string),
 		TargetType:          getVarByKey(task.Vars, "target_type").(string),
 		TargetId:            getVarByKey(task.Vars, "target_id").(string),
@@ -180,7 +252,7 @@ func mappingAlertTaskInfo(task kapacitorclient.Task) types.AlertTask {
 
 		AlertEventType:    getVarByKey(task.Vars, "alert_event_type").(string),
 		AlertEventName:    getVarByKey(task.Vars, "alert_event_name").(string),
-		AlertEventMessage: getVarByKey(task.Vars, "alert_message").(string),
+		AlertEventMessage: getVarByKey(task.Vars, "custom_message").(string),
 	}
 	return alertTask
 }

@@ -68,8 +68,8 @@ func (s SlackHandler) CreateEventHandler(createOpts types.AlertEventHandlerReq) 
 	return s.GetEventHandler(createOpts.Name)
 }
 
-func (s SlackHandler) UpdateEventHandler(updateOpts types.AlertEventHandlerReq) (types.AlertEventHandler, error) {
-	slackLink := alert.GetClient().ConfigElementLink(EventType, updateOpts.Name)
+func (s SlackHandler) UpdateEventHandler(name string, updateOpts types.AlertEventHandlerReq) (types.AlertEventHandler, error) {
+	slackLink := alert.GetClient().ConfigElementLink(EventType, name)
 
 	// Set slack update options
 	options := map[string]interface{}{}
@@ -85,7 +85,7 @@ func (s SlackHandler) UpdateEventHandler(updateOpts types.AlertEventHandlerReq) 
 	if err != nil {
 		return types.AlertEventHandler{}, err
 	}
-	return s.GetEventHandler(updateOpts.Name)
+	return s.GetEventHandler(name)
 }
 
 func (s SlackHandler) DeleteEventHandler(name string) error {

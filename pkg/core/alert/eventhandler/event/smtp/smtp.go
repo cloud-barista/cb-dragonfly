@@ -41,7 +41,7 @@ func (s SmtpHandler) CreateEventHandler(createOpts types.AlertEventHandlerReq) (
 	return types.AlertEventHandler{}, errors.New("SMTP event handler can not create new event handler")
 }
 
-func (s SmtpHandler) UpdateEventHandler(updateOpts types.AlertEventHandlerReq) (types.AlertEventHandler, error) {
+func (s SmtpHandler) UpdateEventHandler(name string, updateOpts types.AlertEventHandlerReq) (types.AlertEventHandler, error) {
 	defaultSmtpLink := kapacitorclient.Link{
 		Relation: kapacitorclient.Self,
 		Href:     fmt.Sprintf("/kapacitor/v1/config/%s/", EventType),
@@ -78,6 +78,7 @@ func mappingAlertEventHandlerInfo(configElement kapacitorclient.ConfigElement) *
 		Name: EventType,
 		Options: map[string]interface{}{
 			"host":     configElement.Options["host"],
+			"port":     configElement.Options["port"],
 			"from":     configElement.Options["from"],
 			"to":       configElement.Options["to"],
 			"username": configElement.Options["username"],

@@ -39,9 +39,9 @@ type AlertTask struct {
 	WarnEventCnt   int64 `json:"warn_event_cnt"`
 	CriticEventCnt int64 `json:"critic_event_cnt"`
 
-	AlertEventType    string `json:"alert_event_type"`
-	AlertEventName    string `json:"alert_event_name"`
-	AlertEventMessage string `json:"alert_event_message"`
+	AlertEventType    string `json:"alert_event_type,omitempty"`
+	AlertEventName    string `json:"alert_event_name,omitempty"`
+	AlertEventMessage string `json:"alert_event_message,omitempty"`
 }
 
 type AlertEventHandlerReq struct {

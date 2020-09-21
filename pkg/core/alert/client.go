@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	kapacitorTimeout = 300
+	kapacitorTimeout = 5 * time.Minute
 )
 
 //var once sync.Once

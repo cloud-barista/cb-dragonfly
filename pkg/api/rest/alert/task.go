@@ -1,6 +1,7 @@
 package alert
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -36,7 +37,42 @@ func GetAlertTask(c echo.Context) error {
 
 // 모니터링 알람 생성
 func CreateAlertTask(c echo.Context) error {
-	createTaskReq := &types.AlertTaskReq{
+	createTaskReq, err := setAlertTaskReq(c)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
+	}
+	alertTask, err := task.CreateTask(*createTaskReq)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
+	}
+	return c.JSON(http.StatusOK, *alertTask)
+}
+
+// 모니터링 수정 생성
+func UpdateAlertTask(c echo.Context) error {
+	updateTaskReq, err := setAlertTaskReq(c)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
+	}
+	alertTask, err := task.UpdateTask(updateTaskReq.Name, *updateTaskReq)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
+	}
+	return c.JSON(http.StatusOK, *alertTask)
+}
+
+// 모니터링 알람 삭제
+func DeleteAlertTask(c echo.Context) error {
+	taskId := c.Param("task_id")
+	err := task.DeleteTask(taskId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
+	}
+	return c.JSON(http.StatusOK, rest.SetMessage(fmt.Sprintf("delete alert task with name %s successfully", taskId)))
+}
+
+func setAlertTaskReq(c echo.Context) (*types.AlertTaskReq, error) {
+	alertTaskReq := &types.AlertTaskReq{
 		Name:                c.FormValue("name"),
 		Measurement:         c.FormValue("measurement"),
 		TargetType:          c.FormValue("target_type"),
@@ -50,44 +86,20 @@ func CreateAlertTask(c echo.Context) error {
 	}
 
 	if alertThreshold, err := strconv.ParseFloat(c.FormValue("alert_threshold"), 64); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
+		return nil, err
 	} else {
-		createTaskReq.AlertThreshold = alertThreshold
+		alertTaskReq.AlertThreshold = alertThreshold
 	}
 
 	if warnEventCnt, err := strconv.ParseInt(c.FormValue("warn_event_cnt"), 10, 64); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
+		return nil, err
 	} else {
-		createTaskReq.WarnEventCnt = warnEventCnt
+		alertTaskReq.WarnEventCnt = warnEventCnt
 	}
 	if criticEventCnt, err := strconv.ParseInt(c.FormValue("critic_event_cnt"), 10, 64); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
+		return nil, err
 	} else {
-		createTaskReq.CriticEventCnt = criticEventCnt
+		alertTaskReq.CriticEventCnt = criticEventCnt
 	}
-
-	/*if err := c.Bind(createTaskReq); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
-	}*/
-
-	alertTask, err := task.CreateTask(*createTaskReq)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
-	}
-	return c.JSON(http.StatusOK, *alertTask)
-}
-
-// 모니터링 수정 생성
-func UpdateAlertTask(c echo.Context) error {
-	return c.JSON(http.StatusOK, nil)
-}
-
-// 모니터링 알람 삭제
-func DeleteAlertTask(c echo.Context) error {
-	taskId := c.Param("task_id")
-	err := task.DeleteTask(taskId)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
-	}
-	return c.JSON(http.StatusOK, nil)
+	return alertTaskReq, nil
 }

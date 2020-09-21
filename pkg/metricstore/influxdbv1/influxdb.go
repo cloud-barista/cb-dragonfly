@@ -31,7 +31,7 @@ var storage Storage
 
 func GetInstance() *Storage {
 	once.Do(func() {
-		//Initialize(config.GetInstance().)
+		//Initialize()
 	})
 	return &storage
 }
@@ -111,9 +111,9 @@ func (s Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.Bat
 
 	now := time.Now().UTC()
 
-	for hostId, v := range metrics {
+	for vmId, v := range metrics {
 		tagArr := map[string]string{}
-		tagArr["hostId"] = hostId
+		tagArr["vmId"] = vmId
 
 		vToMap := v.(map[string]interface{})
 		tagMapsInterface := vToMap["tag"].(map[string]interface{})
@@ -123,6 +123,7 @@ func (s Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.Bat
 			tapMapsString[k] = v.(string)
 		}
 
+		tagArr["nsId"] = tapMapsString["nsId"]
 		tagArr["mcisId"] = tapMapsString["mcisId"]
 		tagArr["osType"] = tapMapsString["osType"]
 
@@ -137,7 +138,6 @@ func (s Storage) parseMetric(metrics map[string]interface{}) (influxdbClient.Bat
 			bp.AddPoint(metricPoint)
 		}
 	}
-	//spew.Dump(bp)
 	return bp, nil
 }
 
@@ -229,9 +229,9 @@ func (s Storage) buildQuery(vmId string, metric string, period string, aggregate
 	}
 
 	query = query.Where("time", influxBuilder.MoreThan, timeDuration).
-		And("\"hostId\"", influxBuilder.Equal, "'"+vmId+"'").
+		And("\"vmId\"", influxBuilder.Equal, "'"+vmId+"'").
 		GroupByTime(timeCriteria).
-		GroupByTag("\"hostId\"").
+		GroupByTag("\"vmId\"").
 		Fill("0").
 		OrderByTime("ASC")
 
@@ -266,7 +266,7 @@ func (s Storage) getPerSecMetric(vmId string, metric string, period string, fiel
 	}
 
 	// 메트릭 조회 조건 쿼리 생성
-	whereQueryForm := " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"hostId\"='%s' GROUP BY time(%s) fill(0)"
+	whereQueryForm := " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"vmId\"='%s' GROUP BY time(%s) fill(0)"
 	query += fmt.Sprintf(whereQueryForm, metric, duration, vmId, timeCriteria)
 
 	return query
