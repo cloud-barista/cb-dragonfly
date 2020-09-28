@@ -13,17 +13,17 @@ ARG ALPINE_VERSION=3
 
 FROM ${BASE_IMAGE_BUILDER}:${GO_VERSION}-alpine AS go-builder
 
-ENV CGO_ENABLED=0 \
-	GO111MODULE="on" \
-	GOOS="linux" \
-	GOARCH="amd64" \
-	GOPATH="/go/src/github.com/cloud-barista"
+ENV CGO_ENABLED=0
+ENV GO111MODULE="on"
+ENV GOOS="linux"
+ENV GOARCH="amd64"
+ENV GOPATH="/go"
 
-ARG GO_FLAGS="-mod=vendor"
+#ARG GO_FLAGS="-mod=vendor"
 ARG LD_FLAGS="-s -w"
 ARG OUTPUT="bin/cb-dragonfly"
 
-WORKDIR ${GOPATH}/cb-dragonfly
+WORKDIR ${GOPATH}/src/github.com/cloud-barista/cb-dragonfly
 COPY . ./
 RUN go build ${GO_FLAGS} -ldflags "${LD_FLAGS}" -o ${OUTPUT} -i ./pkg/manager/main \
     && chmod +x ${OUTPUT}
@@ -51,15 +51,15 @@ RUN apk add --no-cache \
 FROM runtime-alpine as cb-dragonfly
 LABEL maintainer="innogrid <dev.cloudbarista@innogrid.com>"
 
-ENV GOPATH="/go/src/github.com/cloud-barista" \
-    CBSTORE_ROOT=${GOPATH}/cb-dragonfly \
-    CBLOG_ROOT=${GOPATH}/cb-dragonfly \
-    CBMON_ROOT=${GOPATH}/cb-dragonfly
+ENV GOPATH="/go"
+ENV CBSTORE_ROOT=${GOPATH}/src/github.com/cloud-barista/cb-dragonfly
+ENV CBLOG_ROOT=${GOPATH}/src/github.com/cloud-barista/cb-dragonfly
+ENV CBMON_ROOT=${GOPATH}/src/github.com/cloud-barista/cb-dragonfly
 
-COPY --from=go-builder ${GOPATH}/cb-dragonfly/file ${GOPATH}/cb-dragonfly/file
+COPY --from=go-builder ${GOPATH}/src/github.com/cloud-barista/cb-dragonfly/file ${GOPATH}/src/github.com/cloud-barista/cb-dragonfly/file
 
 WORKDIR /opt/cb-dragonfly
-COPY --from=go-builder ${GOPATH}/cb-dragonfly/bin/cb-dragonfly /opt/cb-dragonfly/bin/cb-dragonfly
+COPY --from=go-builder ${GOPATH}/src/github.com/cloud-barista/cb-dragonfly/bin/cb-dragonfly /opt/cb-dragonfly/bin/cb-dragonfly
 RUN chmod +x /opt/cb-dragonfly/bin/cb-dragonfly \
     && ln -s /opt/cb-dragonfly/bin/cb-dragonfly /usr/bin
 
