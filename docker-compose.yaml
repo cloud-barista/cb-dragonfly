@@ -24,7 +24,6 @@ services:
     restart: always
     security_opt:
       - no-new-privileges
-#    network_mode: host
 
   # etcd for CB-Dragonfly
   cb-dragonfly-etcd:
@@ -37,7 +36,6 @@ services:
       - 2379:2379
       - 2380:2380
     restart: always
-#    network_mode: host
 
   # InfluxDB for CB-Dragonfly
   cb-dragonfly-influxdb:
@@ -53,25 +51,22 @@ services:
       - INFLUXDB_ADMIN_PASSWORD=password
       - INFLUXDB_HTTP_AUTH_ENABLED=true
     restart: always
-#    network_mode: host
 
   # Chronograf for CB-Dragonfly
-    cb-dragonfly-kapacitor:
-      image: kapacitor:1.5
-      container_name: cb-dragonfly-kapacitor
-      ports:
-        - 9092:9092
-      environment:
-        - KAPACITOR_HOSTNAME=kapacitor
-        - KAPACITOR_INFLUXDB_0_URLS_0=http://cb-dragonfly-influxdb:8086
-        - KAPACITOR_INFLUXDB_USERNAME=cbmon
-        - KAPACITOR_INFLUXDB_PASSWORD=password
-      volumes:
-        - ./conf/kapacitor.conf:/etc/kapacitor/kapacitor.conf:ro
-      depends_on:
-        - cb-dragonfly-etcd
-        - cb-dragonfly-influxdb
-        - cb-dragonfly
+  cb-dragonfly-kapacitor:
+    image: kapacitor:1.5
+    container_name: cb-dragonfly-kapacitor
+    ports:
+      - 9092:9092
+    environment:
+      - KAPACITOR_HOSTNAME=kapacitor
+      - KAPACITOR_INFLUXDB_0_URLS_0=http://cb-dragonfly-influxdb:8086
+      - KAPACITOR_INFLUXDB_0_USERNAME=cbmon
+      - KAPACITOR_INFLUXDB_0_PASSWORD=password
+    depends_on:
+      - cb-dragonfly-etcd
+      - cb-dragonfly-influxdb
+      - cb-dragonfly
 
   # Chronograf for CB-Dragonfly
   cb-dragonfly-chronograf:
@@ -90,4 +85,3 @@ services:
       - cb-dragonfly-etcd
       - cb-dragonfly-influxdb
       - cb-dragonfly
-#    network_mode: host
