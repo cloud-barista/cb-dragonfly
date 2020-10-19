@@ -70,10 +70,18 @@ func InstallTelegraf(
 		installCmd = fmt.Sprintf("sudo dpkg -i $HOME/cb-dragonfly/cb-agent.deb")
 	}
 
+	mcisInstallFile := rootPath + fmt.Sprintf("/file/install_mcis_script.sh")
+	targetmcisInstallFile := fmt.Sprintf("$HOME/cb-dragonfly/install_mcis_script.sh")
+
 	// 에이전트 설치 패키지 다운로드
 	if err := sshCopyWithTimeout(sshInfo, sourceFile, targetFile); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to download agent package, error=%s", err))
+	}
+	// MCIS 에이전트 설치 패키지 다운로드
+	if err := sshCopyWithTimeout(sshInfo, mcisInstallFile, targetmcisInstallFile); err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to download mcis agent package, error=%s", err))
 	}
 
 	// 패키지 설치 실행
@@ -81,7 +89,16 @@ func InstallTelegraf(
 		cleanTelegrafInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to install agent package, error=%s", err))
 	}
-
+	cmd := "cd $HOME/cb-dragonfly && sudo chmod +x install_mcis_script.sh"
+	if _, err := sshrun.SSHRun(sshInfo, cmd); err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to install agent package, error=%s", err))
+	}
+	installCmd = fmt.Sprintf("cd $HOME/cb-dragonfly && ./install_mcis_script.sh")
+	if _, err := sshrun.SSHRun(sshInfo, installCmd); err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to install mcis agent, error=%s", err))
+	}
 	sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf")
 
 	// telegraf_conf 파일 복사
@@ -225,4 +242,63 @@ func GetPackageName(path string) (string, error) {
 		filename = data.Name()
 	}
 	return filename, err
+}
+
+// 전체 에이전트 삭제 테스트용 코드
+func UninstallAgent(
+	nsId string,
+	mcisId string,
+	vmId string,
+	publicIp string,
+	userName string,
+	sshKey string,
+	cspType string) (int, error) {
+	var err error
+	sshInfo := sshrun.SSHInfo{
+		ServerPort: publicIp + ":22",
+		UserName:   userName,
+		PrivateKey: []byte(sshKey),
+	}
+
+	// {사용자계정}/cb-dragonfly 폴더 생성
+	createFolderCmd := fmt.Sprintf("mkdir $HOME/cb-dragonfly")
+	if _, err := sshrun.SSHRun(sshInfo, createFolderCmd); err != nil {
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to make directory cb-dragonfly, error=%s", err))
+	}
+
+	// 리눅스 OS 환경 체크
+	osType, err := sshrun.SSHRun(sshInfo, "hostnamectl | grep 'Operating System' | awk '{print $3}' | tr 'a-z' 'A-Z'")
+	if err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to check linux OS environments, error=%s", err))
+	}
+
+	rootPath := os.Getenv("CBMON_ROOT")
+	// 제공 설치 파일 탐색
+	sourceFile := rootPath + fmt.Sprintf("/file/uninstall_mcis_script.sh")
+
+	var targetFile, Cmd string
+	targetFile = fmt.Sprintf("$HOME/cb-dragonfly/uninstall_mcis_script.sh")
+
+	// 에이전트 설치 패키지 다운로드
+	if err := sshCopyWithTimeout(sshInfo, sourceFile, targetFile); err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to download agent package, error=%s", err))
+	}
+	cmd := "cd $HOME/cb-dragonfly && sudo chmod +x uninstall_mcis_script.sh"
+	if _, err := sshrun.SSHRun(sshInfo, cmd); err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to chmod agent package, error=%s", err))
+	}
+	Cmd = fmt.Sprintf("cd $HOME/cb-dragonfly && ./uninstall_mcis_script.sh")
+	if _, err := sshrun.SSHRun(sshInfo, Cmd); err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to uninstall agent, error=%s", err))
+	}
+
+	cleanTelegrafInstall(sshInfo, osType)
+	// 에이전트 설치에 사용한 파일 폴더 채로 제거
+
+	return http.StatusOK, nil
+
 }
