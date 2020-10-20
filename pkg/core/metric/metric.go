@@ -28,6 +28,40 @@ const (
 	Network     = "network"
 )
 
+// 단일 MCIS Milkyway 메트릭
+type CBMCISMetric struct {
+	Result  string `json:"result"`
+	Unit    string `json:"unit"`
+	Desc    string `json:"desc"`
+	Elapsed string `json:"elapsed"`
+	SpecId  string `json:"specid"`
+}
+
+// 멀티 MCIS Milkyway 메트릭
+type MCBMCISMetric struct {
+	ResultArray []CBMCISMetric `json:"resultarray"`
+}
+
+func addstring(source string, material string) string {
+	return source + material
+}
+
+// GET Request 단일 Body 정보
+type Request struct {
+	Host string `json:"host"`
+	Spec string `json:"spec"`
+}
+
+// GET Request 멀티 Body 정보
+type Mrequest struct {
+	MultiHost []Request `json:"multihost"`
+}
+
+type Parameter struct {
+	agent_ip    string
+	mcis_metric string
+}
+
 // 가상머신 모니터링 메트릭 조회
 func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, period string, aggregateType string, duration string) (interface{}, int, error) {
 

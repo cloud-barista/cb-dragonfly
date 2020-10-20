@@ -67,7 +67,10 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 
 	// 에이전트 설치
 	dragonfly.POST("/agent/install", agent.InstallTelegraf)
-
+	// MCIS 삭제 (테스트)
+	dragonfly.POST("/agent/uninstall", agent.UninstallAgent)
+	// MCIS 모니터링(Milkyway)
+	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/mcis_metric/:mcis_metric_name/mcis-monitoring-info", metric.GetMCISMetric)
 	// 멀티클라우드 인프라 VM 온디멘드 모니터링
 	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/metric/:metric_name/ondemand-monitoring-info", metric.OndemandMetric)
 
@@ -93,4 +96,5 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	// 알람 이벤트 로그 조회, 생성
 	dragonfly.POST("/alert/event", alert.CreateEventLog)
 	dragonfly.GET("/alert/task/:task_id/events", alert.ListEventLog)
+
 }

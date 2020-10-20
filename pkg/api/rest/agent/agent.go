@@ -112,3 +112,24 @@ func GetTelegrafPkgFile(c echo.Context) error {
 	file := filepath + filename
 	return c.File(file)
 }
+
+func UninstallAgent(c echo.Context) error {
+	nsId := c.FormValue("ns_id")
+	mcisId := c.FormValue("mcis_id")
+	vmId := c.FormValue("vm_id")
+	publicIp := c.FormValue("public_ip")
+	userName := c.FormValue("user_name")
+	sshKey := c.FormValue("ssh_key")
+	cspType := c.FormValue("cspType")
+	// form 파라미터 값 체크
+	if nsId == "" || mcisId == "" || vmId == "" || publicIp == "" || userName == "" || sshKey == "" || cspType == "" {
+		return c.JSON(http.StatusInternalServerError, rest.SetMessage("failed to get package. query parameter is missing"))
+	}
+
+	errCode, err := agent.UninstallAgent(nsId, mcisId, vmId, publicIp, userName, sshKey, cspType)
+	if errCode != http.StatusOK {
+		fmt.Println(errCode)
+		return c.JSON(errCode, rest.SetMessage(err.Error()))
+	}
+	return c.JSON(http.StatusOK, rest.SetMessage("Agent Uninstallation is finished"))
+}
