@@ -166,7 +166,7 @@ func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
 	// Delete Install Files
 	removeRpmCmd := fmt.Sprintf("sudo rm -rf $HOME/cb-dragonfly")
 	sshrun.SSHRun(sshInfo, removeRpmCmd)
-	removeDirCmd := fmt.Sprintf("sudo rm -rf /etc/telegraf/cb-dragonfly")
+	removeDirCmd := fmt.Sprintf("sudo rm -rf /etc/telegraf/telegraf.conf")
 	sshrun.SSHRun(sshInfo, removeDirCmd)
 }
 
