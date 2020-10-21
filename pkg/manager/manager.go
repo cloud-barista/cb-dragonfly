@@ -45,7 +45,7 @@ func NewCollectorManager() (*CollectManager, error) {
 	influxConfig := influxdbv1.Config{
 		ClientOptions: []influxdbv1.ClientOptions{
 			{
-				URL:      fmt.Sprintf("%s:%d", config.GetInstance().GetInfluxDBConfig().EndpointUrl, config.GetInstance().GetInfluxDBConfig().ExternalPort),
+				URL:      fmt.Sprintf("%s:%d", config.GetInstance().GetInfluxDBConfig().EndpointUrl, config.GetInstance().GetInfluxDBConfig().InternalPort),
 				Username: config.GetInstance().GetInfluxDBConfig().UserName,
 				Password: config.GetInstance().GetInfluxDBConfig().Password,
 			},
