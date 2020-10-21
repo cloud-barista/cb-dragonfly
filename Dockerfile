@@ -4,7 +4,7 @@
 
 # Go 빌드 이미지 버전 및 알파인 OS 버전 정보
 ARG BASE_IMAGE_BUILDER=golang
-ARG GO_VERSION=1.14
+ARG GO_VERSION=1.15
 ARG ALPINE_VERSION=3
 
 ###################################################
