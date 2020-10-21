@@ -166,14 +166,15 @@ func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
 	// Delete Install Files
 	removeRpmCmd := fmt.Sprintf("sudo rm -rf $HOME/cb-dragonfly")
 	sshrun.SSHRun(sshInfo, removeRpmCmd)
-	removeDirCmd := fmt.Sprintf("sudo rm -rf /etc/telegraf/cb-dragonfly")
+	removeDirCmd := fmt.Sprintf("sudo rm -rf /etc/telegraf/telegraf.conf")
 	sshrun.SSHRun(sshInfo, removeDirCmd)
 }
 
 func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType string) (string, error) {
 	collectorServer := fmt.Sprintf("udp://%s:%d", config.GetInstance().CollectManager.CollectorIP, config.GetInstance().CollectManager.CollectorPort)
-	influxDBServer := fmt.Sprintf("http://%s:8086", config.GetInstance().CollectManager.CollectorIP)
-
+	influxDBServer := fmt.Sprintf("%s:%d", config.GetInstance().InfluxDB.EndpointUrl, config.GetInstance().InfluxDB.ExternalPort)
+	userName := fmt.Sprintf(config.GetInstance().InfluxDB.UserName)
+	password := fmt.Sprintf(config.GetInstance().InfluxDB.Password)
 	rootPath := os.Getenv("CBMON_ROOT")
 	filePath := rootPath + "/file/conf/telegraf.conf"
 
@@ -191,6 +192,8 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
 	strConf = strings.ReplaceAll(strConf, "{{collector_server}}", collectorServer)
 	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", influxDBServer)
+	strConf = strings.ReplaceAll(strConf, "{{userName}}", userName)
+	strConf = strings.ReplaceAll(strConf, "{{password}}", password)
 	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", cspType)
 
 	// telegraf.conf 파일 생성
