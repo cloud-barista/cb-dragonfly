@@ -18,10 +18,12 @@ type Config struct {
 }
 
 type InfluxDB struct {
-	EndpointUrl string `json:"endpoint_url" mapstructure:"endpoint_url"`
-	Database    string
-	UserName    string
-	Password    string
+	EndpointUrl  string `json:"endpoint_url" mapstructure:"endpoint_url"`
+	InternalPort int    `json:"internal_port" mapstructure:"internal_port"`
+	ExternalPort int    `json:"external_port" mapstructure:"external_port"`
+	Database     string
+	UserName     string
+	Password     string
 }
 
 type Etcd struct {
