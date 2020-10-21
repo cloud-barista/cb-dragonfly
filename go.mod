@@ -1,6 +1,6 @@
 module github.com/cloud-barista/cb-dragonfly
 
-go 1.12
+go 1.15
 
 replace (
 	github.com/coreos/bbolt => go.etcd.io/bbolt v1.3.3

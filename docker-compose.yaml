@@ -6,7 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: cloudbaristaorg/cb-dragonfly:espresso-v0.1
+    image: cloudbaristaorg/cb-dragonfly:espresso-v0.1-inno-test
     container_name: cb-dragonfly
     volumes:
       - ./conf:/go/src/github.com/cloud-barista/cb-dragonfly/conf
@@ -17,6 +17,7 @@ services:
     depends_on:
       - cb-dragonfly-etcd
       - cb-dragonfly-influxdb
+      - cb-dragonfly-kapacitor
     environment:
       - CBSTORE_ROOT=/go/src/github.com/cloud-barista/cb-dragonfly
       - CBLOG_ROOT=/go/src/github.com/cloud-barista/cb-dragonfly
@@ -52,21 +53,20 @@ services:
       - INFLUXDB_HTTP_AUTH_ENABLED=true
     restart: always
 
-  # Chronograf for CB-Dragonfly
+  # Kapacitor for CB-Dragonfly
   cb-dragonfly-kapacitor:
     image: kapacitor:1.5
     container_name: cb-dragonfly-kapacitor
     ports:
       - 9092:9092
     environment:
-      - KAPACITOR_HOSTNAME=kapacitor
+      - KAPACITOR_HOSTNAME=cb-dragonfly-kapacitor
       - KAPACITOR_INFLUXDB_0_URLS_0=http://cb-dragonfly-influxdb:8086
       - KAPACITOR_INFLUXDB_0_USERNAME=cbmon
       - KAPACITOR_INFLUXDB_0_PASSWORD=password
     depends_on:
-      - cb-dragonfly-etcd
       - cb-dragonfly-influxdb
-      - cb-dragonfly
+    restart: always
 
   # Chronograf for CB-Dragonfly
   cb-dragonfly-chronograf:
@@ -84,4 +84,5 @@ services:
     depends_on:
       - cb-dragonfly-etcd
       - cb-dragonfly-influxdb
+      - cb-dragonfly-kapacitor
       - cb-dragonfly
