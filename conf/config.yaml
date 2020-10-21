@@ -2,11 +2,11 @@
 
 # influxdb connection info
 influxdb:
-  endpoint_url: http://cb-draonfly-influxdb # endpoint for influxDB
+  endpoint_url: http://cb-dragonfly-influxdb # endpoint for influxDB
   internal_port: 8086
   external_port: 28086
   database: cbmon
-  userName: cbmon
+  user_name: cbmon
   password: password
 
 # etcd connection info
