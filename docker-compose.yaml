@@ -53,11 +53,34 @@ services:
     restart: always
 
   # Chronograf for CB-Dragonfly
+  cb-dragonfly-kapacitor:
+    image: kapacitor:1.5
+    container_name: cb-dragonfly-kapacitor
+    ports:
+      - 9092:9092
+    environment:
+      - KAPACITOR_HOSTNAME=kapacitor
+      - KAPACITOR_INFLUXDB_0_URLS_0=http://cb-dragonfly-influxdb:8086
+      - KAPACITOR_INFLUXDB_0_USERNAME=cbmon
+      - KAPACITOR_INFLUXDB_0_PASSWORD=password
+    depends_on:
+      - cb-dragonfly-etcd
+      - cb-dragonfly-influxdb
+      - cb-dragonfly
+
+  # Chronograf for CB-Dragonfly
   cb-dragonfly-chronograf:
     image: chronograf:1.8.4-alpine
     container_name: cb-dragonfly-chronograf
     ports:
       - 8888:8888
+    command:
+      - --influxdb-url=http://cb-dragonfly-influxdb:8086
+      - --influxdb-username=cbmon
+      - --influxdb-password=password
+      - --kapacitor-url=http://cb-dragonfly-kapacitor:9092
+      - --kapacitor-username=cbmon
+      - --kapacitor-password=password
     depends_on:
       - cb-dragonfly-etcd
       - cb-dragonfly-influxdb

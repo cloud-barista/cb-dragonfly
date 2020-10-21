@@ -8,6 +8,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/template"
 	"github.com/cloud-barista/cb-dragonfly/pkg/manager"
 )
 
@@ -27,6 +28,8 @@ func main() {
 
 	// 멀티 CPU 기반 고루틴 병렬 처리 활성화
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	template.RegisterTemplate()
 
 	var wg sync.WaitGroup
 

@@ -1,15 +1,16 @@
 package collector
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore/etcd"
-	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"net"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore/etcd"
 )
 
 type MetricCollector struct {
@@ -38,13 +39,13 @@ type TagMetric struct {
 }
 
 type DeviceInfo struct {
-	HostID     string `json:"host_id"`
-	MetricName string `json:"host_id"`
+	VmId       string `json:"vm_id"`
+	MetricName string `json:"metric_name"`
 	DeviceName string `json:"device_name"`
 }
 
 // 메트릭 콜렉터 초기화
-func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex, interval int, aggregateType AggregateType /*hostList *HostInfo, */, aggregatingChan map[string]*chan string, transmitDataChan map[string]*chan TelegrafMetric) MetricCollector {
+func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex, interval int, aggregateType AggregateType, aggregatingChan map[string]*chan string, transmitDataChan map[string]*chan TelegrafMetric) MetricCollector {
 
 	// UUID 생성
 	uuid := uuid.New().String()
@@ -58,7 +59,6 @@ func NewMetricCollector(markingAgent map[string]string, mutexLock *sync.RWMutex,
 		Aggregator: Aggregator{
 			AggregateType: aggregateType,
 		},
-		//HostInfo:      hostList,
 		AggregatingChan:  aggregatingChan,
 		TransmitDataChan: transmitDataChan,
 		Active:           true,
@@ -89,17 +89,17 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 
 	Start:
 
-		hostId, ok := metric.Tags["hostID"].(string)
+		vmId, ok := metric.Tags["vmId"].(string)
 
 		if !ok {
 			continue
 		}
 		mc.metricL.RLock()
-		if _, ok := mc.MarkingAgent[hostId]; !ok {
+		if _, ok := mc.MarkingAgent[vmId]; !ok {
 			continue
 		}
 		mc.metricL.RUnlock()
-		collectorInfo := fmt.Sprintf("/collector/%s/host/%s", mc.UUID, hostId)
+		collectorInfo := fmt.Sprintf("/collector/%s/vm/%s", mc.UUID, vmId)
 		err := etcd.GetInstance().WriteMetric(collectorInfo, "")
 
 		if err != nil {
@@ -116,13 +116,13 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		case "disk":
 			diskName = metric.Tags["device"].(string)
 			diskName = strings.ReplaceAll(diskName, "/", "%")
-			metricKey = fmt.Sprintf("/host/%s/metric/%s/%s/%d", hostId, metric.Name, diskName, curTimestamp)
+			metricKey = fmt.Sprintf("/vm/%s/metric/%s/%s/%d", vmId, metric.Name, diskName, curTimestamp)
 		case "diskio":
 			diskName := metric.Tags["name"].(string)
 			diskName = strings.ReplaceAll(diskName, "/", "%")
-			metricKey = fmt.Sprintf("/host/%s/metric/%s/%s/%d", hostId, metric.Name, diskName, curTimestamp)
+			metricKey = fmt.Sprintf("/vm/%s/metric/%s/%s/%d", vmId, metric.Name, diskName, curTimestamp)
 		default:
-			metricKey = fmt.Sprintf("/host/%s/metric/%s/%d", hostId, metric.Name, curTimestamp)
+			metricKey = fmt.Sprintf("/vm/%s/metric/%s/%d", vmId, metric.Name, curTimestamp)
 		}
 		mc.metricL.RUnlock()
 
@@ -131,11 +131,12 @@ func (mc *MetricCollector) StartCollector(udpConn net.PacketConn, wg *sync.WaitG
 		}
 
 		metric.TagInfo = map[string]interface{}{}
-		metric.TagInfo["mcisId"] = hostId
-		metric.TagInfo["hostId"] = hostId
+		metric.TagInfo["nsId"] = metric.Tags["nsId"].(string)
+		metric.TagInfo["mcisId"] = metric.Tags["mcisId"].(string)
+		metric.TagInfo["vmId"] = vmId
 		metric.TagInfo["osType"] = metric.Tags["osType"].(string)
 
-		osTypeKey = fmt.Sprintf("/host/%s/tag", hostId)
+		osTypeKey = fmt.Sprintf("/vm/%s/tag", vmId)
 
 		if err := etcd.GetInstance().WriteMetric(osTypeKey, metric.TagInfo); err != nil {
 			logrus.Error(err)
@@ -155,7 +156,7 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 			//fmt.Println("mc.UUID : ", mc.UUID)
 			err := mc.Aggregator.AggregateMetric(mc.UUID)
 			if err != nil {
-				logrus.Error("["+mc.UUID+"]Failed to aggregate meric", err)
+				logrus.Error("["+mc.UUID+"]Failed to aggregate metric", err)
 			}
 			logrus.Debug("======================================================================")
 
@@ -188,6 +189,7 @@ func (mc *MetricCollector) StartAggregator(wg *sync.WaitGroup, c *chan string) {
 	}
 }
 
+/*
 func (mc *MetricCollector) MyMarshal(metric interface{}) (string, error) {
 	var metricVal string
 
@@ -207,6 +209,7 @@ func (mc *MetricCollector) MyMarshal(metric interface{}) (string, error) {
 
 	return metricVal, nil
 }
+*/
 
 /*
 func (mc *MetricCollector) UntagHost() error {
@@ -283,7 +286,7 @@ func (mc *MetricCollector) TagHost(hostId string) error {
 			return err
 		}
 		// 현재 콜렉터 기준 태깅
-		tagKey := fmt.Sprintf("/collector/%s/host/%s", mc.UUID, hostId)
+		tagKey := fmt.Sprintf("/collector/%s/vm/%s", mc.UUID, hostId)
 		err = mc.Etcd.WriteMetric(tagKey, "")
 		if err != nil {
 			return err

@@ -6,3 +6,7 @@ compose-up:
 compose-rm:
 	@echo "Stopping Docker Compose..."
 	docker-compose stop && docker-compose rm
+
+clean:
+	@echo "Clean Container in cb-dragonfly module..."
+	docker ps -aqf name="^cb-dragonfly" | xargs -I {} docker rm -f {}
