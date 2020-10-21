@@ -172,7 +172,7 @@ func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
 
 func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType string) (string, error) {
 	collectorServer := fmt.Sprintf("udp://%s:%d", config.GetInstance().CollectManager.CollectorIP, config.GetInstance().CollectManager.CollectorPort)
-	influxDBServer := fmt.Sprintf("http://%s:8086", config.GetInstance().CollectManager.CollectorIP)
+	influxDBServer := fmt.Sprintf("%s:%d", config.GetInstance().InfluxDB.EndpointUrl, config.GetInstance().InfluxDB.ExternalPort)
 	userName := fmt.Sprintf(config.GetInstance().InfluxDB.UserName)
 	password := fmt.Sprintf(config.GetInstance().InfluxDB.Password)
 	rootPath := os.Getenv("CBMON_ROOT")
