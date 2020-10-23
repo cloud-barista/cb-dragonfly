@@ -12,6 +12,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/agent"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/alert"
 	restconfig "github.com/cloud-barista/cb-dragonfly/pkg/api/rest/config"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/healthcheck"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/eventhandler"
@@ -97,4 +98,6 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.POST("/alert/event", alert.CreateEventLog)
 	dragonfly.GET("/alert/task/:task_id/events", alert.ListEventLog)
 
+	// 헬스체크
+	dragonfly.GET("/healthcheck", healthcheck.Ping)
 }
