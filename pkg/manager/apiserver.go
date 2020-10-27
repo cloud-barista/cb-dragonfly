@@ -2,6 +2,7 @@ package manager
 
 import (
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/localstore"
 	"net/http"
 	"sync"
 
@@ -96,5 +97,8 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	// 알람 이벤트 로그 조회, 생성
 	dragonfly.POST("/alert/event", alert.CreateEventLog)
 	dragonfly.GET("/alert/task/:task_id/events", alert.ListEventLog)
+
+	// 메타데이터 관리 테스트용 API
+	dragonfly.GET("/metadata/ns/:ns/mcis/:mcis_id/vm/:vm_id/csp/:csp_type", localstore.ShowMetadata)
 
 }
