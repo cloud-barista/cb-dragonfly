@@ -92,12 +92,12 @@ func InstallTelegraf(
 	cmd := "cd $HOME/cb-dragonfly && sudo chmod +x install_mcis_script.sh"
 	if _, err := sshrun.SSHRun(sshInfo, cmd); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to install agent package, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to install mcis agent package, error=%s", err))
 	}
 	installCmd = fmt.Sprintf("cd $HOME/cb-dragonfly && ./install_mcis_script.sh")
 	if _, err := sshrun.SSHRun(sshInfo, installCmd); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
-		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to install mcis agent, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to start installing mcis agent, error=%s", err))
 	}
 	sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf")
 
@@ -148,6 +148,13 @@ func InstallTelegraf(
 			cleanTelegrafInstall(sshInfo, osType)
 			return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to run telegraf command, error=%s", err))
 		}
+	}
+
+	// 에이전트 권한 변경
+	stopcmd := fmt.Sprintf("sudo systemctl stop telegraf && sudo usermod -u 0 -o telegraf && sudo systemctl restart telegraf")
+	if _, err := sshrun.SSHRun(sshInfo, stopcmd); err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to change telegraf permission, err=%s", err))
 	}
 
 	return http.StatusOK, nil
