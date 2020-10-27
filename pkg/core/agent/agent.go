@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/bramvdbogaerde/go-scp"
+	cbstore "github.com/cloud-barista/cb-dragonfly/pkg/localstore"
 	sshrun "github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -155,6 +156,13 @@ func InstallTelegraf(
 	if _, err := sshrun.SSHRun(sshInfo, stopcmd); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to change telegraf permission, err=%s", err))
+	}
+
+	// 메타데이터 저장
+	err = cbstore.AgentInstallationMetadata(nsId, mcisId, vmId, cspType, publicIp)
+	if err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))
 	}
 
 	return http.StatusOK, nil
@@ -306,8 +314,14 @@ func UninstallAgent(
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to uninstall agent, error=%s", err))
 	}
 
-	cleanTelegrafInstall(sshInfo, osType)
 	// 에이전트 설치에 사용한 파일 폴더 채로 제거
+	cleanTelegrafInstall(sshInfo, osType)
+
+	// 메타데이터 삭제
+	err = cbstore.AgentDeletionMetadata(nsId, mcisId, vmId, cspType, publicIp)
+	if err != nil {
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete metadata, error=%s", err))
+	}
 
 	return http.StatusOK, nil
 
