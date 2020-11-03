@@ -126,26 +126,32 @@ func (t *TopicManager) AddNewTopicsOnCSPCollector(newTopicList []string) error {
 	}
 	for _, topic := range newTopicList {
 		splitTopic := strings.Split(topic, "_")
-		cspType := splitTopic[len(splitTopic)-1]
+		cspType := strings.ToUpper(splitTopic[len(splitTopic)-1])
 		var collectorIdx int
 		switch cspType {
-		case types.CSP1:
+		case types.ALIBABA:
 			collectorIdx = 0
 			break
-		case types.CSP2:
+		case types.AWS:
 			collectorIdx = 1
 			break
-		case types.CSP3:
+		case types.AZURE:
 			collectorIdx = 2
 			break
-		case types.CSP4:
+		case types.CLOUDIT:
 			collectorIdx = 3
 			break
-		case types.CSP5:
+		case types.CLOUDTWIN:
 			collectorIdx = 4
 			break
-		case types.CSP6:
+		case types.DOCKER:
 			collectorIdx = 5
+			break
+		case types.GCP:
+			collectorIdx = 6
+			break
+		case types.OPENSTACK:
+			collectorIdx = 7
 			break
 		}
 		err := localstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.TOPIC, topic), strconv.Itoa(collectorIdx))

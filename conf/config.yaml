@@ -30,4 +30,4 @@ monitoring:
   agent_interval: 2        # agent interval (s)
   collector_interval: 10   # aggregate interval (s)
   max_host_count:  5       # maximum host count per collector
-  monitoring_policy: 0      # 0 => The number of agent, 1 => csp group
+  monitoring_policy: "agentCount"      # "agentCount" => The number of agent, "csp" => csp group

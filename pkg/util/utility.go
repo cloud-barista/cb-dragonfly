@@ -160,23 +160,29 @@ func MakeCollectorTopicMapBasedCSP(allTopics []string) map[int][]string {
 		splitTopic := strings.Split(topic, "_")
 		cspType := splitTopic[len(splitTopic)-1]
 		switch cspType {
-		case types.CSP1:
+		case types.ALIBABA:
 			collectorTopicMap[0] = append(collectorTopicMap[0], topic)
 			break
-		case types.CSP2:
+		case types.AWS:
 			collectorTopicMap[1] = append(collectorTopicMap[1], topic)
 			break
-		case types.CSP3:
+		case types.AZURE:
 			collectorTopicMap[2] = append(collectorTopicMap[2], topic)
 			break
-		case types.CSP4:
+		case types.CLOUDIT:
 			collectorTopicMap[3] = append(collectorTopicMap[3], topic)
 			break
-		case types.CSP5:
+		case types.CLOUDTWIN:
 			collectorTopicMap[4] = append(collectorTopicMap[4], topic)
 			break
-		case types.CSP6:
+		case types.DOCKER:
 			collectorTopicMap[5] = append(collectorTopicMap[5], topic)
+			break
+		case types.GCP:
+			collectorTopicMap[6] = append(collectorTopicMap[6], topic)
+			break
+		case types.OPENSTACK:
+			collectorTopicMap[7] = append(collectorTopicMap[7], topic)
 			break
 		}
 	}
