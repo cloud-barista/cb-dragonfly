@@ -1,11 +1,13 @@
 package config
 
 import (
-	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore/etcd"
+	"github.com/cloud-barista/cb-dragonfly/pkg/localstore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -24,8 +26,10 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 		return nil, http.StatusInternalServerError, err
 	}
 
-	// 모니터링 정책 etcd 저장
-	err = etcd.GetInstance().WriteMetric(MonConfigKey, monConfigMap)
+	mapstructure.Decode(config.GetInstance().Monitoring, &monConfigMap)
+	for key, val := range monConfigMap {
+		localstore.GetInstance().StorePut(types.MONCONFIG+"/"+key, fmt.Sprintf("%v", val))
+	}
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -35,17 +39,22 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 
 // 모니터링 정책 조회
 func GetMonConfig() (*config.Monitoring, int, error) {
-	// etcd에 저장된 모니터링 정책 조회
-	etcdConfigVal, err := etcd.GetInstance().ReadMetric(MonConfigKey)
-	if err != nil {
-		return nil, http.StatusInternalServerError, err
+
+	getValue := func(key string) int {
+		value := localstore.GetInstance().StoreGet(types.MONCONFIG + "/" + key)
+		result, _ := strconv.Atoi(value)
+		return result
+	}
+	monConfig := config.Monitoring{
+		MaxHostCount:      getValue("MaxHostCount"),
+		AgentInterval:     getValue("AgentInterval"),
+		CollectorInterval: getValue("CollectorInterval"),
 	}
 
-	var monConfig config.Monitoring
-	err = json.Unmarshal([]byte(etcdConfigVal.Value), &monConfig)
-	if err != nil {
-		return nil, http.StatusInternalServerError, err
+	if monConfig.CollectorInterval == -1 || monConfig.AgentInterval == -1 || monConfig.MaxHostCount == -1 {
+		return nil, http.StatusInternalServerError, nil
 	}
+
 	return &monConfig, http.StatusOK, nil
 }
 
@@ -59,8 +68,10 @@ func ResetMonConfig() (*config.Monitoring, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	// 모니터링 정책 etcd 저장
-	err = etcd.GetInstance().WriteMetric(MonConfigKey, monConfigMap)
+	mapstructure.Decode(config.GetInstance().Monitoring, &monConfigMap)
+	for key, val := range monConfigMap {
+		localstore.GetInstance().StorePut(types.MONCONFIG+"/"+key, fmt.Sprintf("%v", val))
+	}
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}

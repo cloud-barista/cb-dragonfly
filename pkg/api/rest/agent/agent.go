@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
-
 	"github.com/labstack/echo/v4"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/agent"
 )
@@ -36,6 +36,7 @@ func InstallTelegraf(c echo.Context) error {
 	return c.JSON(http.StatusOK, rest.SetMessage("agent installation is finished"))
 }
 
+// TODO: WINDOW Version
 func GetWindowInstaller(c echo.Context) error {
 	rootPath := os.Getenv("CBMON_ROOT")
 	filePath := rootPath + "/file/pkg/windows/installer/cbinstaller_windows_amd64.zip"
@@ -54,7 +55,6 @@ func GetTelegrafConfFile(c echo.Context) error {
 	if nsId == "" || mcisId == "" || vmId == "" || cspType == "" {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage("query parameter is missing"))
 	}
-	//collectorServer := fmt.Sprintf("udp://%s:%d", apiServer.config.CollectManager.CollectorIP, apiServer.config.CollectManager.CollectorPort)
 
 	rootPath := os.Getenv("CBMON_ROOT")
 	filePath := rootPath + "/file/conf/telegraf.conf"
@@ -70,8 +70,6 @@ func GetTelegrafConfFile(c echo.Context) error {
 	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", mcisId)
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
 	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", cspType)
-	//strConf = strings.ReplaceAll(strConf, "{{collector_server}}", collectorServer)
-	//strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", apiServer.config.InfluxDB.EndpointUrl)
 
 	return c.Blob(http.StatusOK, "text/plain", []byte(strConf))
 }

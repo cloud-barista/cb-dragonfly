@@ -154,8 +154,8 @@ If you have any difficulties in using CB-Dragonfly, please let us know.
             # collect manager configuration info
             collect_manager:
               collector_ip: {{collector_ip}}
-              collector_port: 8094    # udp port
-              collector_count: 1      # default collector count
+              collectorGroup_count: 1      # default collector count
+              group_per_collect_count: 1   # default group per collector count
             
             # below is default setting
             # monitoring interval configuration info
