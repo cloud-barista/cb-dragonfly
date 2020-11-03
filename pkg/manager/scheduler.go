@@ -43,10 +43,10 @@ func (cScheduler CollectorScheduler) Scheduler() error {
 	topicListChanged := !cmp.Equal(beforeTopicsState, currentTopicsState)
 	maxHostCountChanged := !(beforeMaxHostCount == currentMaxHostCount)
 
-	if cScheduler.cm.collectorPolicy == 0 {
+	if cScheduler.cm.collectorPolicy == types.AGENTCOUNT {
 		cScheduler.ScheduleBasedTheNumberOfCollector(currentTopicsState, beforeTopicsState, beforeMaxHostCount, currentMaxHostCount, topicListChanged, maxHostCountChanged)
 	}
-	if cScheduler.cm.collectorPolicy == 1 {
+	if cScheduler.cm.collectorPolicy == types.CSP {
 		cScheduler.ScheduleBasedCollectorCSPType(currentTopicsState, beforeTopicsState, topicListChanged)
 	}
 	return nil

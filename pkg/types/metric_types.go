@@ -22,10 +22,18 @@ const (
 )
 
 const (
-	CSP1 = "CSP1"
-	CSP2 = "CSP2"
-	CSP3 = "CSP3"
-	CSP4 = "CSP4"
-	CSP5 = "CSP5"
-	CSP6 = "CSP6"
+	AGENTCOUNT = "AGENTCOUNT"
+	CSP        = "CSP"
+)
+
+const (
+	ALIBABA     = "ALIBABA"
+	AWS         = "AWS"
+	AZURE       = "AZURE"
+	CLOUDIT     = "CLOUDIT"
+	CLOUDTWIN   = "CLOUDTWIN"
+	DOCKER      = "DOCKER"
+	GCP         = "GCP"
+	OPENSTACK   = "OPENSTACK"
+	TOTALCSPCNT = 8
 )

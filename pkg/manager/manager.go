@@ -3,6 +3,7 @@ package manager
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/mitchellh/mapstructure"
@@ -21,7 +22,7 @@ import (
 type CollectManager struct {
 	CollectorGroupManageMap map[int][]*collector.MetricCollector
 	WaitGroup               *sync.WaitGroup
-	collectorPolicy         int
+	collectorPolicy         string
 }
 
 func NewCollectorManager() (*CollectManager, error) {
@@ -45,7 +46,7 @@ func NewCollectorManager() (*CollectManager, error) {
 		return nil, err
 	}
 
-	manager.collectorPolicy = config.GetInstance().Monitoring.MonitoringPolicy
+	manager.collectorPolicy = strings.ToUpper(config.GetInstance().Monitoring.MonitoringPolicy)
 	manager.CollectorGroupManageMap = map[int][]*collector.MetricCollector{}
 
 	return &manager, nil
@@ -72,7 +73,7 @@ func (manager *CollectManager) SetConfigurationToMemoryDB() {
 
 func (manager *CollectManager) StartCollectorGroup(wg *sync.WaitGroup) error {
 	manager.WaitGroup = wg
-	if manager.collectorPolicy == 0 {
+	if manager.collectorPolicy == types.AGENTCOUNT {
 		startCollectorGroupCnt := config.GetInstance().CollectManager.CollectorGroupCnt
 		for i := 0; i < startCollectorGroupCnt; i++ {
 			err := manager.CreateCollectorGroup()
@@ -82,9 +83,8 @@ func (manager *CollectManager) StartCollectorGroup(wg *sync.WaitGroup) error {
 			}
 		}
 	}
-	if manager.collectorPolicy == 1 {
-		// 0 -> csp1, 1 -> csp2, 2 -> csp3, 3 -> csp4, 4 -> csp5, 5 -> csp6
-		for i := 0; i < 6; i++ {
+	if manager.collectorPolicy == types.CSP {
+		for i := 0; i < types.TOTALCSPCNT; i++ {
 			err := manager.CreateCollectorGroup()
 			if err != nil {
 				logrus.Error("failed to create collector group", err)

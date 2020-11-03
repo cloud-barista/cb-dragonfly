@@ -45,10 +45,10 @@ type APIServer struct {
 }
 
 type Monitoring struct {
-	AgentInterval     int `json:"agent_interval" mapstructure:"agent_interval"`         // 모니터링 에이전트 수집주기
-	CollectorInterval int `json:"collector_interval" mapstructure:"collector_interval"` // 모니터링 콜렉터 Aggregate 주기
-	MaxHostCount      int `json:"max_host_count" mapstructure:"max_host_count"`         // 모니터링 콜렉터 수
-	MonitoringPolicy  int `json:"monitoring_policy" mapstructure:"monitoring_policy"`   // 모니터링 콜렉터 수
+	AgentInterval     int    `json:"agent_interval" mapstructure:"agent_interval"`         // 모니터링 에이전트 수집주기
+	CollectorInterval int    `json:"collector_interval" mapstructure:"collector_interval"` // 모니터링 콜렉터 Aggregate 주기
+	MaxHostCount      int    `json:"max_host_count" mapstructure:"max_host_count"`         // 모니터링 콜렉터 수
+	MonitoringPolicy  string `json:"monitoring_policy" mapstructure:"monitoring_policy"`   // 모니터링 콜렉터 수
 }
 
 func (kapacitor Kapacitor) GetKapacitorEndpointUrl() string {
