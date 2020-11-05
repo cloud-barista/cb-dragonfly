@@ -25,15 +25,7 @@ const (
 	CENTOS = "CENTOS"
 )
 
-func InstallTelegraf(
-	nsId string,
-	mcisId string,
-	vmId string,
-	publicIp string,
-	userName string,
-	sshKey string,
-	cspType string,
-) (int, error) {
+func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, userName string, sshKey string, cspType string) (int, error) {
 	sshInfo := sshrun.SSHInfo{
 		ServerPort: publicIp + ":22",
 		UserName:   userName,

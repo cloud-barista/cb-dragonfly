@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/localstore"
@@ -40,25 +39,21 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 // 모니터링 정책 조회
 func GetMonConfig() (*config.Monitoring, int, error) {
 
-	getValue := func(key string) int {
-		value := localstore.GetInstance().StoreGet(types.MONCONFIG + "/" + key)
-		result, _ := strconv.Atoi(value)
-		return result
-	}
 	monConfig := config.Monitoring{
-		MaxHostCount:      getValue("MaxHostCount"),
-		AgentInterval:     getValue("AgentInterval"),
-		CollectorInterval: getValue("CollectorInterval"),
+		AgentInterval:     localstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MONCONFIG, "agent_interval")),
+		CollectorInterval: localstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MONCONFIG, "collector_interval")),
+		MaxHostCount:      localstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MONCONFIG, "max_host_count")),
+		MonitoringPolicy:  localstore.GetInstance().StoreGetToString(fmt.Sprintf("%s/%s", types.MONCONFIG, "monitoring_policy")),
 	}
 
-	if monConfig.CollectorInterval == -1 || monConfig.AgentInterval == -1 || monConfig.MaxHostCount == -1 {
+	if monConfig.AgentInterval == -1 || monConfig.CollectorInterval == -1 || monConfig.MaxHostCount == -1 || monConfig.MonitoringPolicy == "" {
 		return nil, http.StatusInternalServerError, nil
 	}
 
 	return &monConfig, http.StatusOK, nil
 }
 
-// 모니터링 정책 초기화
+// 모니터링 정책 초기화 co
 func ResetMonConfig() (*config.Monitoring, int, error) {
 	defaultMonConfig := config.GetDefaultConfig().Monitoring
 

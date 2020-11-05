@@ -31,10 +31,12 @@ require (
 	github.com/shaodan/kapacitor-client v0.0.0-20181228024026-84c816949946
 	github.com/sirupsen/logrus v1.6.0
 	github.com/snowzach/rotatefilehook v0.0.0-20180327172521-2f64f265f58c // indirect
+	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.1
 	go.etcd.io/etcd v3.3.18+incompatible // indirect
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	google.golang.org/grpc v1.26.0
 	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.4.2
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
+	gopkg.in/yaml.v2 v2.3.0
 )

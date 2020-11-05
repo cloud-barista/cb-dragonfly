@@ -10,6 +10,11 @@ import (
 	"net/http"
 )
 
+const (
+	Rtt  = "Rtt"
+	Mrtt = "Mrtt"
+)
+
 type MCISMetric struct {
 	client    http.Client
 	data      CBMCISMetric
@@ -19,7 +24,7 @@ type MCISMetric struct {
 	parameter Parameter
 }
 
-func GetMCISMonInfo(nsId string, mcisId string) (interface{}, error) {
+func GetMCISMonInfo() (interface{}, error) {
 	// TODO: MCIS 서비스 모니터링 정보 조회 기능 개발
 	return nil, nil
 }
@@ -29,75 +34,93 @@ func GetMCISRealtimeMonInfo(nsId string, mcisId string) (interface{}, error) {
 	return nil, nil
 }
 
-// MCISMetric ...
-func (mc *MCISMetric) MCISMetric(c echo.Context) error {
-	// API 기반 필요 파라미터 추출
-	_ = mc.CheckParameter(c)
-
+// GetMCISCommonMonInfos ...
+func GetMCISCommonMonInfo(nsId string, mcisId string, vmId string, agentIp string, metricName string) (*CBMCISMetric, int, error) {
 	// MCIS Get 요청 API 생성
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s:8080/cb-dragonfly/mcis/metric/%s", mc.parameter.agent_ip, mc.parameter.mcis_metric), nil)
+	resp, err := http.Get(fmt.Sprintf("http://%s:8080/cb-dragonfly/mcis/metric/%s", agentIp, metricName))
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, http.StatusInternalServerError, errors.New("agent server is closed")
 	}
-
-	resp, err := mc.client.Do(req)
-	if err != nil {
-		return c.JSON(http.StatusNotImplemented, "Server Closed")
-	}
-
 	defer resp.Body.Close()
+
+	var metricData CBMCISMetric
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(body, &mc.data)
+	err = json.Unmarshal(body, &metricData)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, http.StatusInternalServerError, err
 	}
-	return c.JSON(http.StatusOK, &mc.data)
+	return &metricData, http.StatusOK, nil
 }
 
-// Rtt ...
-func (mc *MCISMetric) Rtt(c echo.Context) error {
-	// API Body 데이터 추출
-	if err := c.Bind(&mc.request); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	// API 기반 필요 파라미터 추출
-	_ = mc.CheckParameter(c)
-
+// GetMCISMonRTTInfo ...
+func GetMCISMonRTTInfo(nsId string, mcisId string, vmId string, agentIp string, rttParam Request) (*CBMCISMetric, int, error) {
 	// MCIS Get 요청 API 생성
-	payload, err := json.Marshal(mc.request)
+	payload, err := json.Marshal(rttParam)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, http.StatusInternalServerError, err
 	}
-
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s:8080/cb-dragonfly/mcis/metric/%s", mc.parameter.agent_ip, mc.parameter.mcis_metric), bytes.NewBuffer(payload))
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s:8080/cb-dragonfly/mcis/metric/%s", agentIp, Rtt), bytes.NewBuffer(payload))
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, http.StatusInternalServerError, err
 	}
 	req.Header.Add("Content-Type", "application/json")
-	resp, err := mc.client.Do(req)
+
+	httpClient := http.Client{}
+	resp, err := httpClient.Do(req)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, http.StatusInternalServerError, err
 	}
 	defer resp.Body.Close()
 
+	var metricData CBMCISMetric
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, http.StatusInternalServerError, err
 	}
-
-	err = json.Unmarshal(body, &mc.data)
+	err = json.Unmarshal(body, &metricData)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, http.StatusInternalServerError, err
 	}
-	return c.JSON(http.StatusOK, &mc.data)
-
+	return &metricData, http.StatusOK, nil
 }
 
-// Mrtt ...
-func (mc *MCISMetric) Mrtt(c echo.Context) error {
+// GetMCISMonMRTTInfo ...
+func GetMCISMonMRTTInfo(nsId string, mcisId string, vmId string, agentIp string, mrttParam Mrequest) (*MCBMCISMetric, int, error) {
+	// MCIS Get 요청 API 생성
+	payload, err := json.Marshal(mrttParam)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s:8080/cb-dragonfly/mcis/metric/%s", agentIp, Mrtt), bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	httpClient := http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+	defer resp.Body.Close()
+
+	var metricData MCBMCISMetric
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+	err = json.Unmarshal(body, &metricData)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+	return &metricData, http.StatusOK, nil
+}
+
+// GetMCISMonMRTTInfo ...
+func (mc *MCISMetric) GetMCISMonMRTTInfo(c echo.Context) error {
 	// API Body 데이터 추출
 	if err := c.Bind(&mc.mrequest); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
