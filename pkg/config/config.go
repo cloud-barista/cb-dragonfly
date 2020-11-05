@@ -15,6 +15,7 @@ type Config struct {
 	Monitoring     Monitoring
 	Kapacitor      Kapacitor
 	Kafka          Kafka
+	GrpcServer     GrpcServer
 }
 
 type Kapacitor struct {
@@ -47,8 +48,12 @@ type APIServer struct {
 type Monitoring struct {
 	AgentInterval     int    `json:"agent_interval" mapstructure:"agent_interval"`         // 모니터링 에이전트 수집주기
 	CollectorInterval int    `json:"collector_interval" mapstructure:"collector_interval"` // 모니터링 콜렉터 Aggregate 주기
+	MonitoringPolicy  string `json:"monitoring_policy" mapstructure:"monitoring_policy"`   // 모니터링 콜렉터 정책
 	MaxHostCount      int    `json:"max_host_count" mapstructure:"max_host_count"`         // 모니터링 콜렉터 수
-	MonitoringPolicy  string `json:"monitoring_policy" mapstructure:"monitoring_policy"`   // 모니터링 콜렉터 수
+}
+
+type GrpcServer struct {
+	Port int
 }
 
 func (kapacitor Kapacitor) GetKapacitorEndpointUrl() string {
@@ -89,6 +94,10 @@ func (config *Config) GetKapacitorConfig() Kapacitor {
 
 func (config *Config) GetKafkaConfig() Kafka {
 	return config.Kafka
+}
+
+func (config *Config) GetGrpcConfig() GrpcServer {
+	return config.GrpcServer
 }
 
 func loadConfigFromYAML(config *Config) {

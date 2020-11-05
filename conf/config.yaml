@@ -27,7 +27,10 @@ apiServer:
 
 # monitoring interval configuration info
 monitoring:
-  agent_interval: 2        # agent interval (s)
-  collector_interval: 10   # aggregate interval (s)
-  max_host_count:  5       # maximum host count per collector
-  monitoring_policy: "agentCount"      # "agentCount" => The number of agent, "csp" => csp group
+  agent_interval: 2                 # agent interval (s)
+  collector_interval: 10            # aggregate interval (s)
+  max_host_count:  5                # maximum host count per collector
+  monitoring_policy: "agentCount"   # "agentCount" => The number of agent, "csp" => csp group
+
+grpcServer:
+  port: 9999

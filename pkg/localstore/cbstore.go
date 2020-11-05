@@ -1,6 +1,7 @@
 package localstore
 
 import (
+	"strconv"
 	"sync"
 
 	cb "github.com/cloud-barista/cb-store"
@@ -32,6 +33,23 @@ func (cs *CBStore) StorePut(key string, value string) error {
 }
 
 func (cs *CBStore) StoreGet(key string) string {
+	keyVal, _ := cs.Store.Get(key)
+	if keyVal == nil {
+		return ""
+	}
+	return keyVal.Value
+}
+
+func (cs *CBStore) StoreGetToInt(key string) int {
+	keyVal, _ := cs.Store.Get(key)
+	if keyVal == nil {
+		return -1
+	}
+	returnIntVal, _ := strconv.Atoi(keyVal.Value)
+	return returnIntVal
+}
+
+func (cs *CBStore) StoreGetToString(key string) string {
 	keyVal, _ := cs.Store.Get(key)
 	if keyVal == nil {
 		return ""

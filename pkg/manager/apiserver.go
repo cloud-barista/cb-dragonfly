@@ -54,11 +54,11 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly := e.Group("/dragonfly")
 
 	// 멀티 클라우드 인프라 서비스 모니터링/실시간 모니터링 정보 조회
-	dragonfly.GET("/ns/:ns/mcis/:mcis_id/info", metric.GetMCISMonInfo)
-	dragonfly.GET("/ns/:ns/mcis/:mcis_id/rt-info", metric.GetMCISRealtimeMonInfo)
+	//dragonfly.GET("/ns/:ns_id/mcis/:mcis_id/info", metric.GetMCISMonInfo)
+	//dragonfly.GET("/ns/:ns_id/mcis/:mcis_id/rt-info", metric.GetMCISRealtimeMonInfo)
 
 	// 멀티 클라우드 인프라 VM 모니터링/실시간 모니터링 정보 조회
-	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/info", metric.GetVMMonInfo)
+	dragonfly.GET("/ns/:ns_id/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/info", metric.GetVMMonInfo)
 	//dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/rt-info", metric.GetVMLatestMonInfo)
 
 	// 멀티 클라우드 모니터링 정책 설정
@@ -71,10 +71,10 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	// MCIS 삭제 (테스트)
 	dragonfly.POST("/agent/uninstall", agent.UninstallAgent)
 	// MCIS 모니터링(Milkyway)
-	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/mcis_metric/:mcis_metric_name/mcis-monitoring-info", metric.GetMCISMetric)
+	dragonfly.GET("/ns/:ns_id/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/mcis_metric/:metric_name/mcis-monitoring-info", metric.GetMCISMetric)
 
 	// 멀티클라우드 인프라 VM 온디멘드 모니터링
-	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/metric/:metric_name/ondemand-monitoring-info", metric.OndemandMetric)
+	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/metric/:metric_name/ondemand-monitoring-info", metric.GetVMOnDemandMetric)
 
 	// windows 에이전트 config, package 파일 다운로드
 	dragonfly.GET("/installer/cbinstaller.zip", agent.GetWindowInstaller)
