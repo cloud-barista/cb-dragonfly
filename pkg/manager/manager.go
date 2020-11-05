@@ -49,7 +49,7 @@ func NewCollectorManager() (*CollectManager, error) {
 	}
 
 	timeout := time.Duration(1 * time.Second)
-	_, err = net.DialTimeout("tcp", fmt.Sprintf("%s", config.GetDefaultConfig().GetKafkaConfig().GetKafkaEndpointUrl())+":32000", timeout)
+	_, err = net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().InternalPort), timeout)
 	if err != nil {
 		fmt.Printf("%s %s \n", "kafka is not responding", err.Error())
 		logrus.Error(err)

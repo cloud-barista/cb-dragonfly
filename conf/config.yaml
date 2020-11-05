@@ -14,6 +14,9 @@ kapacitor:
 
 kafka:
   endpoint_url: cb-dragonfly-kafka
+  external_ip: 127.0.0.1
+  external_port: 32000
+  internal_port: 9092
 
 # collect manager configuration info
 collectManager:

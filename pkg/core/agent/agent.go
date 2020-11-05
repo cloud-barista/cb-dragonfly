@@ -112,7 +112,7 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 	}
 
 	// 카프카 도메인 정보 기입 /etc/hosts => agent에서 도메인 등록하도록 기능 변경
-	inputKafkaServerDomain := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", config.GetInstance().CollectManager.CollectorIP, "cb-dragonfly-kafka")
+	inputKafkaServerDomain := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", config.GetInstance().GetKafkaConfig().ExternalIP, "cb-dragonfly-kafka")
 	_, err = sshrun.SSHRun(sshInfo, inputKafkaServerDomain)
 	if err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
@@ -212,7 +212,7 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", cspType)
 
 	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_%s_%s_%s", nsId, mcisId, vmId, cspType))
-	strConf = strings.ReplaceAll(strConf, "{{broker_server}}", fmt.Sprintf("%s:%s", config.GetDefaultConfig().GetKafkaConfig().GetKafkaEndpointUrl(), "9092"))
+	strConf = strings.ReplaceAll(strConf, "{{broker_server}}", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().ExternalPort))
 	// telegraf.conf 파일 생성
 	telegrafFilePath := rootPath + "/file/conf/"
 	createFileName := "telegraf-" + uuid.New().String() + ".conf"
@@ -316,7 +316,7 @@ func UninstallAgent(
 	}
 	// sudo perl -pi -e "s,^192.168.130.14.*tml\n$,," /etc/hosts
 
-	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", config.GetInstance().CollectManager.CollectorIP, "cb-dragonfly-kafka")
+	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", config.GetInstance().GetKafkaConfig().ExternalIP, "cb-dragonfly-kafka")
 	if _, err := sshrun.SSHRun(sshInfo, Cmd); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete domain list, error=%s", err))

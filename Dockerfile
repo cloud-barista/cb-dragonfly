@@ -78,7 +78,8 @@ COPY --from=go-builder ${GOPATH}/src/github.com/cloud-barista/cb-dragonfly/bin/c
 RUN chmod +x /opt/cb-dragonfly/bin/cb-dragonfly \
     && ln -s /opt/cb-dragonfly/bin/cb-dragonfly /usr/bin
 
-EXPOSE 8094/udp
+#EXPOSE 8094/udp
 EXPOSE 9090
+EXPOSE 9999
 
 ENTRYPOINT ["cb-dragonfly"]
