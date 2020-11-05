@@ -2,9 +2,11 @@ package manager
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
@@ -44,6 +46,16 @@ func NewCollectorManager() (*CollectManager, error) {
 	if err != nil {
 		logrus.Error("Failed to initialize influxDB")
 		return nil, err
+	}
+
+	timeout := time.Duration(1 * time.Second)
+	_, err = net.DialTimeout("tcp", fmt.Sprintf("%s", config.GetDefaultConfig().GetKafkaConfig().GetKafkaEndpointUrl())+":32000", timeout)
+	if err != nil {
+		fmt.Printf("%s %s \n", "kafka is not responding", err.Error())
+		logrus.Error(err)
+		return nil, err
+	} else {
+		fmt.Printf("kafka is responding")
 	}
 
 	manager.collectorPolicy = strings.ToUpper(config.GetInstance().Monitoring.MonitoringPolicy)
