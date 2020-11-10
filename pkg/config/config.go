@@ -23,10 +23,12 @@ type Kapacitor struct {
 }
 
 type Kafka struct {
-	EndpointUrl  string `json:"endpoint_url" mapstructure:"endpoint_url"`
-	ExternalIP   string `json:"external_ip" mapstructure:"external_ip"`
-	ExternalPort int    `json:"external_port" mapstructure:"external_port"`
-	InternalPort int    `json:"internal_port" mapstructure:"internal_port"`
+	EndpointUrl           string `json:"endpoint_url" mapstructure:"endpoint_url"`
+	ExternalIP            string `json:"external_ip" mapstructure:"external_ip"`
+	Deploy_Type           string `json:"deploy_type" mapstructure:"deploy_type"`
+	Helm_External_Port    int    `json:"helm_external_port" mapstructure:"helm_external_port"`
+	Compose_External_Port int    `json:"compose_external_port" mapstructure:"compose_external_port"`
+	InternalPort          int    `json:"internal_port" mapstructure:"internal_port"`
 }
 
 type InfluxDB struct {
