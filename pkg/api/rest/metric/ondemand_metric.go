@@ -2,7 +2,6 @@ package metric
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -25,24 +24,7 @@ func GetVMOnDemandMetric(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errors.New("parameter is missing"))
 	}
 
-	//온디멘드 모니터링 매트릭 파라미터 추출
-	var metricKey string
-	switch metricName {
-	case metric.Cpu:
-		metricKey = "cpu"
-	case metric.CpuFreqency:
-		metricKey = "cpufreq"
-	case metric.Memory:
-		metricKey = "mem"
-	case metric.Disk:
-		metricKey = "disk"
-	case metric.Network:
-		metricKey = "net"
-	default:
-		return c.JSON(http.StatusInternalServerError, errors.New(fmt.Sprintf("not found metric : %s", metricName)))
-	}
-
-	result, errCode, err := metric.GetVMOnDemandMonInfo(nsId, mcisId, vmId, metricKey, publicIP)
+	result, errCode, err := metric.GetVMOnDemandMonInfo(nsId, mcisId, vmId, metricName, publicIP)
 	if errCode != http.StatusOK {
 		return echo.NewHTTPError(errCode, rest.SetMessage(err.Error()))
 	}
