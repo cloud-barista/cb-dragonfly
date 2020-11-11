@@ -12,7 +12,7 @@ require (
 	github.com/Scalingo/go-utils v5.5.14+incompatible
 	github.com/bramvdbogaerde/go-scp v0.0.0-20200119201711-987556b8bdd7
 	github.com/cloud-barista/cb-spider v0.2.0-cappuccino.0.20201014061129-f3ef2afbb1b0
-	github.com/cloud-barista/cb-store v0.2.0-cappuccino.0.20201014054737-e2310432d256
+	github.com/cloud-barista/cb-store v0.2.0-cappuccino.0.20201111072717-b0bb715e2694
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/gogo/protobuf v1.3.1

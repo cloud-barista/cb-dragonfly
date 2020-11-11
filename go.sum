@@ -75,6 +75,8 @@ github.com/cloud-barista/cb-spider v0.2.0-cappuccino.0.20201014061129-f3ef2afbb1
 github.com/cloud-barista/cb-spider v0.2.0-cappuccino.0.20201014061129-f3ef2afbb1b0/go.mod h1:vdBlIsh2R87P9kJtMHccbfYnxKVlzAxJv1nD+JLiVHc=
 github.com/cloud-barista/cb-store v0.2.0-cappuccino.0.20201014054737-e2310432d256 h1:bYpH4mANpGUYLIktB58IMMLfszD0Zwb+ELP8PCnG4fM=
 github.com/cloud-barista/cb-store v0.2.0-cappuccino.0.20201014054737-e2310432d256/go.mod h1:tcMkva0951xAwoMcTqn9nXttnzk3ytHlJLs4MyH7p84=
+github.com/cloud-barista/cb-store v0.2.0-cappuccino.0.20201111072717-b0bb715e2694 h1:T0hjZR4xPYZzjAygIR4pz3dNAjC/xhUldJYqkpBRjX8=
+github.com/cloud-barista/cb-store v0.2.0-cappuccino.0.20201111072717-b0bb715e2694/go.mod h1:tcMkva0951xAwoMcTqn9nXttnzk3ytHlJLs4MyH7p84=
 github.com/cncf/udpa/go v0.0.0-20200313221541-5f7e5dd04533/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
 github.com/cncf/udpa/go v0.0.0-20200327203949-e8cd3a4bb307/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
 github.com/containerd/containerd v1.3.4/go.mod h1:bC6axHOhabU15QhwfG7w5PipXdVtMXFTttgp+kVtyUA=
