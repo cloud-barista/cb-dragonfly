@@ -2,6 +2,7 @@ package metric
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 
@@ -21,7 +22,12 @@ func GetVMMonInfo(c echo.Context) error {
 	period := c.QueryParam("periodType")
 	aggregateType := c.QueryParam("statisticsCriteria")
 	duration := c.QueryParam("duration")
-
+	if string(duration[len(duration)-1]) == "m" {
+		durationInt, _ := strconv.Atoi(duration[:len(duration)-1])
+		if durationInt < 2 {
+			return echo.NewHTTPError(404, rest.SetMessage("Error! Mininum duration time is 2m"))
+		}
+	}
 	result, errCode, err := metric.GetVMMonInfo(nsId, mcisId, vmId, metricName, period, aggregateType, duration)
 	if errCode != http.StatusOK {
 		return echo.NewHTTPError(errCode, rest.SetMessage(err.Error()))
