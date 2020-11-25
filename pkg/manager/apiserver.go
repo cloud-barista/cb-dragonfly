@@ -13,6 +13,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/agent"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/alert"
 	restconfig "github.com/cloud-barista/cb-dragonfly/pkg/api/rest/config"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/healthcheck"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/eventhandler"
@@ -98,6 +99,9 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	// 알람 이벤트 로그 조회, 생성
 	dragonfly.POST("/alert/event", alert.CreateEventLog)
 	dragonfly.GET("/alert/task/:task_id/events", alert.ListEventLog)
+
+	// 헬스체크
+	dragonfly.GET("/healthcheck", healthcheck.Ping)
 
 	// 메타데이터 관리 테스트용 API
 	dragonfly.GET("/metadata/ns/:ns/mcis/:mcis_id/vm/:vm_id/csp/:csp_type", localstore.ShowMetadata)
