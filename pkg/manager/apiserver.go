@@ -105,5 +105,4 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 
 	// 메타데이터 관리 테스트용 API
 	dragonfly.GET("/metadata/ns/:ns/mcis/:mcis_id/vm/:vm_id/csp/:csp_type", localstore.ShowMetadata)
-
 }
