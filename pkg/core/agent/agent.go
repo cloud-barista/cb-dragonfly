@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/bramvdbogaerde/go-scp"
+	cbstore "github.com/cloud-barista/cb-dragonfly/pkg/localstore"
 	sshrun "github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -24,15 +25,7 @@ const (
 	CENTOS = "CENTOS"
 )
 
-func InstallTelegraf(
-	nsId string,
-	mcisId string,
-	vmId string,
-	publicIp string,
-	userName string,
-	sshKey string,
-	cspType string,
-) (int, error) {
+func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, userName string, sshKey string, cspType string) (int, error) {
 	sshInfo := sshrun.SSHInfo{
 		ServerPort: publicIp + ":22",
 		UserName:   userName,
@@ -118,6 +111,14 @@ func InstallTelegraf(
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to move telegraf.conf, error=%s", err))
 	}
 
+	// 카프카 도메인 정보 기입 /etc/hosts => agent에서 도메인 등록하도록 기능 변경
+	inputKafkaServerDomain := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", config.GetInstance().GetKafkaConfig().ExternalIP, "cb-dragonfly-kafka")
+	_, err = sshrun.SSHRun(sshInfo, inputKafkaServerDomain)
+	if err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to register kafka domain, error=%s", err))
+	}
+
 	// 공통 서비스 활성화 및 실행
 	if _, err := sshrun.SSHRun(sshInfo, "sudo systemctl enable telegraf && sudo systemctl restart telegraf"); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
@@ -155,6 +156,13 @@ func InstallTelegraf(
 	if _, err := sshrun.SSHRun(sshInfo, stopcmd); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to change telegraf permission, err=%s", err))
+	}
+
+	// 메타데이터 저장
+	err = cbstore.AgentInstallationMetadata(nsId, mcisId, vmId, cspType, publicIp)
+	if err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))
 	}
 
 	return http.StatusOK, nil
@@ -203,6 +211,14 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 	strConf = strings.ReplaceAll(strConf, "{{password}}", password)
 	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", cspType)
 
+	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_%s_%s_%s", nsId, mcisId, vmId, cspType))
+	switch config.GetInstance().GetKafkaConfig().Deploy_Type {
+	case "helm":
+		strConf = strings.ReplaceAll(strConf, "{{broker_server}}", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().Helm_External_Port))
+	default:
+		strConf = strings.ReplaceAll(strConf, "{{broker_server}}", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().Compose_External_Port))
+	}
+
 	// telegraf.conf 파일 생성
 	telegrafFilePath := rootPath + "/file/conf/"
 	createFileName := "telegraf-" + uuid.New().String() + ".conf"
@@ -213,7 +229,6 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 		logrus.Error("failed to create telegraf.conf file.")
 		return "", err
 	}
-
 	return telegrafConfFile, err
 }
 
@@ -305,9 +320,21 @@ func UninstallAgent(
 		cleanTelegrafInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to uninstall agent, error=%s", err))
 	}
+	// sudo perl -pi -e "s,^192.168.130.14.*tml\n$,," /etc/hosts
 
-	cleanTelegrafInstall(sshInfo, osType)
+	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", config.GetInstance().GetKafkaConfig().ExternalIP, "cb-dragonfly-kafka")
+	if _, err := sshrun.SSHRun(sshInfo, Cmd); err != nil {
+		cleanTelegrafInstall(sshInfo, osType)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete domain list, error=%s", err))
+	}
 	// 에이전트 설치에 사용한 파일 폴더 채로 제거
+	cleanTelegrafInstall(sshInfo, osType)
+
+	// 메타데이터 삭제
+	err = cbstore.AgentDeletionMetadata(nsId, mcisId, vmId, cspType, publicIp)
+	if err != nil {
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete metadata, error=%s", err))
+	}
 
 	return http.StatusOK, nil
 

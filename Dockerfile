@@ -13,7 +13,7 @@ ARG ALPINE_VERSION=3
 
 FROM ${BASE_IMAGE_BUILDER}:${GO_VERSION}-alpine AS go-builder
 
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=1
 ENV GO111MODULE="on"
 ENV GOOS="linux"
 ENV GOARCH="amd64"
@@ -25,7 +25,20 @@ ARG OUTPUT="bin/cb-dragonfly"
 
 WORKDIR ${GOPATH}/src/github.com/cloud-barista/cb-dragonfly
 COPY . ./
-RUN go build ${GO_FLAGS} -ldflags "${LD_FLAGS}" -o ${OUTPUT} -i ./pkg/manager/main \
+
+RUN apk add --update gcc
+
+RUN apk add --no-cache \
+    bash \
+    build-base \
+    gcc \
+    make \
+    musl-dev \
+    tzdata \
+    librdkafka-dev \
+    pkgconf
+
+RUN go build -tags musl ${GO_FLAGS} -ldflags "${LD_FLAGS}" -o ${OUTPUT} -i ./pkg/manager/main \
     && chmod +x ${OUTPUT}
 
 ###################################################
@@ -39,6 +52,8 @@ ENV TZ="Asia/Seoul"
 RUN apk add --no-cache \
     bash \
     tzdata \
+    librdkafka-dev \
+    pkgconf \
     && \
     cp --remove-destination /usr/share/zoneinfo/${TZ} /etc/localtime \
     && \
@@ -63,7 +78,8 @@ COPY --from=go-builder ${GOPATH}/src/github.com/cloud-barista/cb-dragonfly/bin/c
 RUN chmod +x /opt/cb-dragonfly/bin/cb-dragonfly \
     && ln -s /opt/cb-dragonfly/bin/cb-dragonfly /usr/bin
 
-EXPOSE 8094/udp
+#EXPOSE 8094/udp
 EXPOSE 9090
+EXPOSE 9999
 
 ENTRYPOINT ["cb-dragonfly"]

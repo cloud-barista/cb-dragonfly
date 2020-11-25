@@ -9,3 +9,4 @@ import (
 func Ping(c echo.Context) error {
 	return c.JSON(http.StatusNoContent, nil)
 }
+

@@ -3,30 +3,18 @@ package event
 import (
 	"encoding/json"
 
-	cbstore "github.com/cloud-barista/cb-store"
-	"github.com/cloud-barista/cb-store/config"
-	icbs "github.com/cloud-barista/cb-store/interfaces"
-	"github.com/sirupsen/logrus"
-
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/types"
+	"github.com/cloud-barista/cb-dragonfly/pkg/localstore"
 )
-
-var cblog *logrus.Logger
-var store icbs.Store
-
-func init() {
-	cblog = config.Cblogger
-	store = cbstore.GetStore()
-}
 
 func CreateEventLog(eventLog types.AlertEventLog) error {
 	var eventLogArr []types.AlertEventLog
 
-	eventLogStr, _ := store.Get(eventLog.Id)
+	eventLogStr := localstore.GetInstance().StoreGet(eventLog.Id)
 
-	if eventLogStr != nil {
+	if eventLogStr != "" {
 		// Get event log array
-		err := json.Unmarshal([]byte(eventLogStr.Value), &eventLogArr)
+		err := json.Unmarshal([]byte(eventLogStr), &eventLogArr)
 		if err != nil {
 			return err
 		}
@@ -40,7 +28,7 @@ func CreateEventLog(eventLog types.AlertEventLog) error {
 	if err != nil {
 		return err
 	}
-	err = store.Put(eventLog.Id, string(newEventLogBytes))
+	err = localstore.GetInstance().StorePut(eventLog.Id, string(newEventLogBytes))
 	if err != nil {
 		return err
 	}
@@ -49,14 +37,14 @@ func CreateEventLog(eventLog types.AlertEventLog) error {
 
 func ListEventLog(taskId string, logLevel string) ([]types.AlertEventLog, error) {
 	eventLogArr := []types.AlertEventLog{}
-	eventLogStr, err := store.Get(taskId)
-	if err != nil {
-		return nil, err
-	}
-	if eventLogStr == nil {
-		return eventLogArr, nil
-	}
-	err = json.Unmarshal([]byte(eventLogStr.Value), &eventLogArr)
+	eventLogStr := localstore.GetInstance().StoreGet(taskId)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//if eventLogStr == nil {
+	//	return eventLogArr, nil
+	//}
+	err := json.Unmarshal([]byte(eventLogStr), &eventLogArr)
 	if err != nil {
 		return nil, err
 	}
@@ -64,5 +52,5 @@ func ListEventLog(taskId string, logLevel string) ([]types.AlertEventLog, error)
 }
 
 func DeleteEventLog(taskId string) error {
-	return store.Delete(taskId)
+	return localstore.GetInstance().StoreDelete(taskId)
 }

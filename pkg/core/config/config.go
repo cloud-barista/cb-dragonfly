@@ -1,11 +1,12 @@
 package config
 
 import (
-	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/realtimestore/etcd"
+	"github.com/cloud-barista/cb-dragonfly/pkg/localstore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -24,8 +25,10 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 		return nil, http.StatusInternalServerError, err
 	}
 
-	// 모니터링 정책 etcd 저장
-	err = etcd.GetInstance().WriteMetric(MonConfigKey, monConfigMap)
+	mapstructure.Decode(config.GetInstance().Monitoring, &monConfigMap)
+	for key, val := range monConfigMap {
+		localstore.GetInstance().StorePut(types.MONCONFIG+"/"+key, fmt.Sprintf("%v", val))
+	}
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -35,21 +38,22 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 
 // 모니터링 정책 조회
 func GetMonConfig() (*config.Monitoring, int, error) {
-	// etcd에 저장된 모니터링 정책 조회
-	etcdConfigVal, err := etcd.GetInstance().ReadMetric(MonConfigKey)
-	if err != nil {
-		return nil, http.StatusInternalServerError, err
+
+	monConfig := config.Monitoring{
+		AgentInterval:     localstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MONCONFIG, "agent_interval")),
+		CollectorInterval: localstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MONCONFIG, "collector_interval")),
+		MaxHostCount:      localstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MONCONFIG, "max_host_count")),
+		MonitoringPolicy:  localstore.GetInstance().StoreGetToString(fmt.Sprintf("%s/%s", types.MONCONFIG, "monitoring_policy")),
 	}
 
-	var monConfig config.Monitoring
-	err = json.Unmarshal([]byte(etcdConfigVal.Value), &monConfig)
-	if err != nil {
-		return nil, http.StatusInternalServerError, err
+	if monConfig.AgentInterval == -1 || monConfig.CollectorInterval == -1 || monConfig.MaxHostCount == -1 || monConfig.MonitoringPolicy == "" {
+		return nil, http.StatusInternalServerError, nil
 	}
+
 	return &monConfig, http.StatusOK, nil
 }
 
-// 모니터링 정책 초기화
+// 모니터링 정책 초기화 co
 func ResetMonConfig() (*config.Monitoring, int, error) {
 	defaultMonConfig := config.GetDefaultConfig().Monitoring
 
@@ -59,8 +63,10 @@ func ResetMonConfig() (*config.Monitoring, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	// 모니터링 정책 etcd 저장
-	err = etcd.GetInstance().WriteMetric(MonConfigKey, monConfigMap)
+	mapstructure.Decode(config.GetInstance().Monitoring, &monConfigMap)
+	for key, val := range monConfigMap {
+		localstore.GetInstance().StorePut(types.MONCONFIG+"/"+key, fmt.Sprintf("%v", val))
+	}
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
