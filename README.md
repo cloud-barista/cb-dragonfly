@@ -1,5 +1,6 @@
-
 # CB-Dragonfly
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcloud-barista%2Fcb-dragonfly.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcloud-barista%2Fcb-dragonfly?ref=badge_shield)
+
 Cloud-Barista Integrated Monitoring Framework
 
 ```
@@ -144,3 +145,7 @@ If you have any difficulties in using CB-Dragonfly, please let us know.
               - `$ cd ~/cb-dragonfly`
               - `$ sudo make compose-rm` (cb-dragonfly 중지 및 삭제)
               
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcloud-barista%2Fcb-dragonfly.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcloud-barista%2Fcb-dragonfly?ref=badge_large)
