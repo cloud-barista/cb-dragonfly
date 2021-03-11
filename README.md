@@ -80,12 +80,11 @@ If you have any difficulties in using CB-Dragonfly, please let us know.
                 export CBSTORE_ROOT=~/cb-dragonfly
                 export CBLOG_ROOT=~/cb-dragonfly
                 export CBMON_ROOT=~/cb-dragonfly
-                export SPIDER_URL=http://localhost:1024
                 
-          - `$ source conf/setup.env` (수정한 setup.env 반영)         
+          - `$ source setup.env` (수정한 setup.env 반영)         
           - `$ go run pkg/manager/main/main.go` (실행)
     
-    - config 파일 설정 (config 파일에 cb-dragonfly 호스트 IP ( kafka IP 및 collector IP ) 정보, 배포 환경, 모니터링 정책을 순차적으로 입력)
+    - config.yaml 파일 설정 (conf/config.yaml 파일에 cb-dragonfly 호스트 IP ( kafka IP 및 collector IP ) 정보, 배포 환경, 모니터링 정책을 순차적으로 입력)
           
           -  #### Config for cb-dragonfly ####
              
