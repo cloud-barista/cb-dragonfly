@@ -80,7 +80,6 @@ If you have any difficulties in using CB-Dragonfly, please let us know.
                 export CBSTORE_ROOT=~/cb-dragonfly
                 export CBLOG_ROOT=~/cb-dragonfly
                 export CBMON_ROOT=~/cb-dragonfly
-                export SPIDER_URL=http://localhost:1024
                 
           - `$ source setup.env` (수정한 setup.env 반영)         
           - `$ go run pkg/manager/main/main.go` (실행)
