@@ -16,9 +16,9 @@ require (
 	github.com/confluentinc/confluent-kafka-go v1.4.2 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.4.0
+	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.4.0
-	github.com/google/uuid v1.1.1
+	github.com/google/uuid v1.1.2
 	github.com/influxdata/influxdb v1.7.8 // indirect
 	github.com/influxdata/influxdb-client-go v0.0.1
 	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
@@ -31,8 +31,8 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.1
-	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	google.golang.org/grpc v1.26.0
+	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
+	google.golang.org/grpc v1.33.0
 	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.4.2
 	gopkg.in/yaml.v2 v2.3.0
 )

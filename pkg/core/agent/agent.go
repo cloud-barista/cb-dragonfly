@@ -16,8 +16,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
-
-	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 )
 
 const (
@@ -25,9 +23,9 @@ const (
 	CENTOS = "CENTOS"
 )
 
-func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, userName string, sshKey string, cspType string) (int, error) {
+func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, userName string, sshKey string, cspType string, port string) (int, error) {
 	sshInfo := sshrun.SSHInfo{
-		ServerPort: publicIp + ":22",
+		ServerPort: publicIp + ":" + port,
 		UserName:   userName,
 		PrivateKey: []byte(sshKey),
 	}
@@ -141,11 +139,11 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 
 	// 정상 설치 확인
 	checkCmd := "telegraf --version"
-	if result, err := util.RunCommand(publicIp, userName, sshKey, checkCmd); err != nil {
+	if result, err := sshrun.SSHRun(sshInfo, checkCmd); err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to run telegraf command, error=%s", err))
 	} else {
-		if strings.Contains(*result, "command not found") {
+		if strings.Contains(result, "command not found") {
 			cleanTelegrafInstall(sshInfo, osType)
 			return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to run telegraf command, error=%s", err))
 		}
@@ -277,10 +275,12 @@ func UninstallAgent(
 	publicIp string,
 	userName string,
 	sshKey string,
-	cspType string) (int, error) {
+	cspType string,
+	port string,
+) (int, error) {
 	var err error
 	sshInfo := sshrun.SSHInfo{
-		ServerPort: publicIp + ":22",
+		ServerPort: publicIp + ":" + port,
 		UserName:   userName,
 		PrivateKey: []byte(sshKey),
 	}
