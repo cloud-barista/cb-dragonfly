@@ -29,7 +29,7 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string)
 		stayConnCount += 1
 		msg, err := kafkaConn.ReadMessage(1 * time.Second)
 		if err != nil {
-			logrus.Debug(err)
+			logrus.Debug("From AggregateMetric, pre-topics conn based kafkaConn bring about above err : ", err)
 		}
 		if msg != nil {
 			msgTime := msg.Timestamp.Unix()
