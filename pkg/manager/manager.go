@@ -48,14 +48,25 @@ func NewCollectorManager() (*CollectManager, error) {
 		return nil, err
 	}
 
-	timeout := time.Duration(1 * time.Second)
-	_, err = net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().InternalPort), timeout)
-	if err != nil {
-		fmt.Printf("%s %s \n", "kafka is not responding", err.Error())
-		logrus.Error(err)
-		return nil, err
-	} else {
-		fmt.Printf("kafka is responding")
+	retryCnt := 5
+	waitInterval := time.Duration(5 * time.Second)
+	for i := 0; i <= retryCnt; i++ {
+		_, err = net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().InternalPort), time.Duration(1*time.Second))
+		if err != nil {
+			if i == retryCnt {
+				fmt.Printf("\n %s %s \n", "kafka is not responding ", err.Error())
+				logrus.Error(err)
+				return nil, err
+			} else {
+				retryMsg := fmt.Sprintf("\nRetry Attempt : %d, Now ReConn to Kafka... ERR MSG: %s ", i+1, err)
+				fmt.Printf(retryMsg)
+				logrus.Debug(retryMsg)
+			}
+		} else {
+			fmt.Printf("\nkafka is responding")
+			break
+		}
+		time.Sleep(waitInterval)
 	}
 
 	manager.collectorPolicy = strings.ToUpper(config.GetInstance().Monitoring.MonitoringPolicy)
