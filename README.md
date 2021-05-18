@@ -9,7 +9,6 @@ Cloud-Barista Integrated Monitoring Framework
 [![Repo Size](https://img.shields.io/github/repo-size/cloud-barista/cb-dragonfly)](#)
 [![GoDoc](https://godoc.org/github.com/cloud-barista/cb-dragonfly?status.svg)](https://pkg.go.dev/github.com/cloud-barista/cb-dragonfly@master)
 [![Release Version](https://img.shields.io/github/v/release/cloud-barista/cb-dragonfly?color=blue)](https://github.com/cloud-barista/cb-dragonfly/releases/latest)
-[![Pre Release Version](https://img.shields.io/github/v/release/cloud-barista/cb-dragonfly?color=brightgreen&include_prereleases&label=release%28dev%29)](https://github.com/cloud-barista/cb-dragonfly/releases)
 [![License](https://img.shields.io/github/license/cloud-barista/cb-dragonfly?color=blue)](https://github.com/cloud-barista/cb-dragonfly/blob/master/LICENSE)
 
 ```
