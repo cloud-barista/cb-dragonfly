@@ -15,7 +15,7 @@ const (
 	MonConfigKey = "/mon/config"
 )
 
-// 모니터링 정책 설정
+// SetMonConfig func setup monitoring policy
 func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, error) {
 	config.GetInstance().SetMonConfig(newMonConfig)
 
@@ -47,7 +47,7 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 	return &monConfig, http.StatusOK, nil
 }
 
-// 모니터링 정책 조회
+// GetMonConfig func return current monitoring policy
 func GetMonConfig() (*config.Monitoring, int, error) {
 
 	monConfig := config.Monitoring{
@@ -64,7 +64,7 @@ func GetMonConfig() (*config.Monitoring, int, error) {
 	return &monConfig, http.StatusOK, nil
 }
 
-// 모니터링 정책 초기화 co
+// ResetMonConfig func initialize existing monitoring policy
 func ResetMonConfig() (*config.Monitoring, int, error) {
 	defaultMonConfig := config.GetDefaultConfig().Monitoring
 
