@@ -2,6 +2,16 @@
 # CB-Dragonfly
 Cloud-Barista Integrated Monitoring Framework
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/cloud-barista/cb-dragonfly)](https://goreportcard.com/badge/github.com/cloud-barista/cb-dragonfly)
+[![Build](https://img.shields.io/github/workflow/status/cloud-barista/cb-dragonfly/Build%20amd64%20container%20image)](https://github.com/cloud-barista/cb-dragonfly/actions?query=workflow%3A%22Build+amd64+container+image%22)
+[![Top Language](https://img.shields.io/github/languages/top/cloud-barista/cb-dragonfly)](https://github.com/cloud-barista/cb-dragonfly/search?l=go)
+[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/cloud-barista/cb-dragonfly?label=go.mod)](https://github.com/cloud-barista/cb-dragonfly/blob/master/go.mod)
+[![Repo Size](https://img.shields.io/github/repo-size/cloud-barista/cb-dragonfly)](#)
+[![GoDoc](https://godoc.org/github.com/cloud-barista/cb-dragonfly?status.svg)](https://pkg.go.dev/github.com/cloud-barista/cb-dragonfly@master)
+[![Release Version](https://img.shields.io/github/v/release/cloud-barista/cb-dragonfly?color=blue)](https://github.com/cloud-barista/cb-dragonfly/releases/latest)
+[![Pre Release Version](https://img.shields.io/github/v/release/cloud-barista/cb-dragonfly?color=brightgreen&include_prereleases&label=release%28dev%29)](https://github.com/cloud-barista/cb-dragonfly/releases)
+[![License](https://img.shields.io/github/license/cloud-barista/cb-dragonfly?color=blue)](https://github.com/cloud-barista/cb-dragonfly/blob/master/LICENSE)
+
 ```
 [NOTE]
 CB-Dragonfly is currently under development. (the latest version is 0.3 espresso)
