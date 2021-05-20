@@ -49,7 +49,7 @@ func NewCollectorManager() (*CollectManager, error) {
 	}
 
 	retryCnt := 5
-	waitInterval := time.Duration(5 * time.Second)
+	waitInterval := 5 * time.Second
 	for i := 0; i <= retryCnt; i++ {
 		_, err = net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().InternalPort), time.Duration(1*time.Second))
 		if err != nil {
