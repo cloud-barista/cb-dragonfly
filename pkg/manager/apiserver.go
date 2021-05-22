@@ -2,9 +2,10 @@ package manager
 
 import (
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/localstore"
 	"net/http"
 	"sync"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/metadata"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -104,5 +105,5 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.GET("/healthcheck", healthcheck.Ping)
 
 	// 메타데이터 관리 테스트용 API
-	dragonfly.GET("/metadata/ns/:ns/mcis/:mcis_id/vm/:vm_id/csp/:csp_type", localstore.ShowMetadata)
+	dragonfly.GET("/metadata/ns/:ns/mcis/:mcis_id/vm/:vm_id/csp/:csp_type", metadata.ShowMetadata)
 }

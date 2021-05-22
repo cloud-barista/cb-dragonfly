@@ -3,15 +3,16 @@ package agent
 import (
 	"errors"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metadata"
+
 	"github.com/bramvdbogaerde/go-scp"
-	cbstore "github.com/cloud-barista/cb-dragonfly/pkg/localstore"
 	sshrun "github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -157,7 +158,7 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 	}
 
 	// 메타데이터 저장
-	err = cbstore.AgentInstallationMetadata(nsId, mcisId, vmId, cspType, publicIp)
+	err = metadata.AgentInstallationMetadata(nsId, mcisId, vmId, cspType, publicIp)
 	if err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))
@@ -331,7 +332,7 @@ func UninstallAgent(
 	cleanTelegrafInstall(sshInfo, osType)
 
 	// 메타데이터 삭제
-	err = cbstore.AgentDeletionMetadata(nsId, mcisId, vmId, cspType, publicIp)
+	err = metadata.AgentDeletionMetadata(nsId, mcisId, vmId, cspType, publicIp)
 	if err != nil {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete metadata, error=%s", err))
 	}

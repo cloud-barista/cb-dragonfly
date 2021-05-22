@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/localstore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 )
@@ -34,19 +34,19 @@ func TopicMangerInstance() *TopicManager {
 func (t *TopicManager) SetTopicToCollectorBasedTheNumberOfAgent(topicList []string, maxHostCount int) {
 	t.IdealCollectorGroupMap, t.IdealCollectorPerAgentCntSlice = util.MakeCollectorTopicMap(topicList, maxHostCount)
 	if len(t.IdealCollectorGroupMap) == 0 && len(t.IdealCollectorPerAgentCntSlice) == 0 {
-		_ = localstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, 0), "")
+		_ = cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, 0), "")
 		return
 	}
 	for collectorIdx, collectorTopics := range t.IdealCollectorGroupMap {
 		for i := 0; i < len(collectorTopics); i++ {
-			_ = localstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.TOPIC, collectorTopics[i]), strconv.Itoa(collectorIdx))
+			_ = cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.TOPIC, collectorTopics[i]), strconv.Itoa(collectorIdx))
 		}
-		_ = localstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx), util.MergeTopicsToOneString(collectorTopics))
+		_ = cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx), util.MergeTopicsToOneString(collectorTopics))
 	}
 }
 
 func (t *TopicManager) DeleteAllTopicsInfo() error {
-	err := localstore.GetInstance().StoreDelList(fmt.Sprintf("%s/", types.COLLECTORGROUPTOPIC))
+	err := cbstore.GetInstance().StoreDelList(fmt.Sprintf("%s/", types.COLLECTORGROUPTOPIC))
 	if err != nil {
 		return err
 	}
@@ -59,13 +59,13 @@ func (t *TopicManager) DeleteTopics(deletedTopicList []string) error {
 	}
 	changedCollectorMapIdx := map[string][]string{}
 	for _, topic := range deletedTopicList {
-		collectorIdx := localstore.GetInstance().StoreGet(fmt.Sprintf("%s/%s", types.TOPIC, topic))
-		topicStrings := localstore.GetInstance().StoreGet(fmt.Sprintf("%s/%s", types.COLLECTORGROUPTOPIC, collectorIdx))
+		collectorIdx := cbstore.GetInstance().StoreGet(fmt.Sprintf("%s/%s", types.TOPIC, topic))
+		topicStrings := cbstore.GetInstance().StoreGet(fmt.Sprintf("%s/%s", types.COLLECTORGROUPTOPIC, collectorIdx))
 		if _, ok := changedCollectorMapIdx[collectorIdx]; !ok {
 			changedCollectorMapIdx[collectorIdx] = util.SplitOneStringToTopicsSlice(topicStrings)
 		}
 		changedCollectorMapIdx[collectorIdx] = util.ReturnDiffTopicList(changedCollectorMapIdx[collectorIdx], []string{topic})
-		err := localstore.GetInstance().StoreDelete(fmt.Sprintf("%s/%s", types.TOPIC, topic))
+		err := cbstore.GetInstance().StoreDelete(fmt.Sprintf("%s/%s", types.TOPIC, topic))
 		if err != nil {
 			return err
 		}
@@ -75,7 +75,7 @@ func (t *TopicManager) DeleteTopics(deletedTopicList []string) error {
 		}
 	}
 	for key, _ := range changedCollectorMapIdx {
-		err := localstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.COLLECTORGROUPTOPIC, key), util.MergeTopicsToOneString(changedCollectorMapIdx[key]))
+		err := cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.COLLECTORGROUPTOPIC, key), util.MergeTopicsToOneString(changedCollectorMapIdx[key]))
 		if err != nil {
 			return err
 		}
@@ -90,11 +90,11 @@ func (t *TopicManager) AddNewTopics(newTopicList []string, maxHostCount int) err
 	for _, topic := range newTopicList {
 		for collectorIdx, collectorTopicCnt := range t.IdealCollectorPerAgentCntSlice {
 			if collectorTopicCnt < maxHostCount {
-				err := localstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.TOPIC, topic), strconv.Itoa(collectorIdx))
+				err := cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.TOPIC, topic), strconv.Itoa(collectorIdx))
 				if err != nil {
 					return err
 				}
-				err = localstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx), localstore.GetInstance().StoreGet(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx))+"&"+topic)
+				err = cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx), cbstore.GetInstance().StoreGet(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx))+"&"+topic)
 				if err != nil {
 					return err
 				}
@@ -111,11 +111,11 @@ func (t *TopicManager) SetTopicToCollectorBasedCSPTypeOfAgent(topicList []string
 	for collectorIdx, collectorTopics := range t.IdealCollectorGroupMap {
 		if len(collectorTopics) != 0 {
 			for i := 0; i < len(collectorTopics); i++ {
-				_ = localstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.TOPIC, collectorTopics[i]), strconv.Itoa(collectorIdx))
+				_ = cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.TOPIC, collectorTopics[i]), strconv.Itoa(collectorIdx))
 			}
-			_ = localstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx), util.MergeTopicsToOneString(collectorTopics))
+			_ = cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx), util.MergeTopicsToOneString(collectorTopics))
 		} else {
-			_ = localstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx), "")
+			_ = cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx), "")
 		}
 	}
 }
@@ -154,11 +154,11 @@ func (t *TopicManager) AddNewTopicsOnCSPCollector(newTopicList []string) error {
 			collectorIdx = 7
 			break
 		}
-		err := localstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.TOPIC, topic), strconv.Itoa(collectorIdx))
+		err := cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.TOPIC, topic), strconv.Itoa(collectorIdx))
 		if err != nil {
 			return err
 		}
-		err = localstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx), localstore.GetInstance().StoreGet(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx))+"&"+topic)
+		err = cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx), cbstore.GetInstance().StoreGet(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, collectorIdx))+"&"+topic)
 		if err != nil {
 			return err
 		}

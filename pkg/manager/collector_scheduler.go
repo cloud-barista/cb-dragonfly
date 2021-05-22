@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/kafka"
-	"github.com/cloud-barista/cb-dragonfly/pkg/localstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 )
@@ -37,7 +37,7 @@ func (cScheduler CollectorScheduler) Scheduler() error {
 	}
 	currentTopicsState := util.GetAllTopicBySort(kafkaAddr.GetAllTopics())
 	beforeTopicsState := currentTopicsState
-	beforeMaxHostCount, _ := strconv.Atoi(localstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "max_host_count"))
+	beforeMaxHostCount, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "max_host_count"))
 	currentMaxHostCount := beforeMaxHostCount
 
 	topicListChanged := !cmp.Equal(beforeTopicsState, currentTopicsState)
@@ -62,7 +62,7 @@ func (cScheduler CollectorScheduler) ScheduleBasedTheNumberOfCollector(currentTo
 	cScheduler.SendTopicsToCollectors()
 
 	for {
-		aggreTime, _ := strconv.Atoi(localstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "collector_interval"))
+		aggreTime, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "collector_interval"))
 		time.Sleep(time.Duration(aggreTime) * time.Second)
 		switch {
 		case maxHostCountChanged:
@@ -93,7 +93,7 @@ func (cScheduler CollectorScheduler) ScheduleBasedTheNumberOfCollector(currentTo
 		currentTopicsState = util.GetAllTopicBySort(kafkaAddr.GetAllTopics())
 		fmt.Println(fmt.Sprintf("##### %s : %s #####", "All topics from kafka", currentTopicsState))
 		beforeMaxHostCount = currentMaxHostCount
-		currentMaxHostCount, _ = strconv.Atoi(localstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "max_host_count"))
+		currentMaxHostCount, _ = strconv.Atoi(cbstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "max_host_count"))
 
 		topicListChanged = !cmp.Equal(beforeTopicsState, currentTopicsState)
 		maxHostCountChanged = !(beforeMaxHostCount == currentMaxHostCount)
@@ -148,7 +148,7 @@ func (cScheduler CollectorScheduler) ScheduleBasedCollectorCSPType(currentTopics
 	cScheduler.SendTopicsToCollectors()
 
 	for {
-		aggreTime, _ := strconv.Atoi(localstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "collector_interval"))
+		aggreTime, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "collector_interval"))
 		time.Sleep(time.Duration(aggreTime) * time.Second)
 		switch {
 		case topicListChanged:
@@ -182,7 +182,7 @@ func (cScheduler CollectorScheduler) ReturnDiffTopics(beforeTopics []string, cur
 func (cScheduler CollectorScheduler) SendTopicsToCollectors() {
 	for idx, cAddrList := range cScheduler.cm.CollectorGroupManageMap {
 		for _, cAddr := range cAddrList {
-			(*cAddr).Ch <- localstore.GetInstance().StoreGet(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, idx))
+			(*cAddr).Ch <- cbstore.GetInstance().StoreGet(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, idx))
 		}
 	}
 }

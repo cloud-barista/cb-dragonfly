@@ -3,10 +3,12 @@ package collector
 import (
 	"context"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
@@ -32,7 +34,7 @@ type TelegrafMetric struct {
 
 var KafkaConfig *kafka.ConfigMap
 
-func NewMetricCollector(aggregateType AggregateType, createOrder int) (MetricCollector, error) {
+func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (MetricCollector, error) {
 
 	KafkaConfig = &kafka.ConfigMap{
 		"bootstrap.servers": fmt.Sprintf("%s", config.GetDefaultConfig().GetKafkaConfig().GetKafkaEndpointUrl()),

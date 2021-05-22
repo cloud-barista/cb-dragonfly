@@ -1,6 +1,7 @@
-package collector
+package cbstore
 
 import (
+	"strconv"
 	"sync"
 
 	cb "github.com/cloud-barista/cb-store"
@@ -27,8 +28,8 @@ func GetInstance() *CBStore {
 	return &cbstore
 }
 
-func (cs *CBStore) StorePut(key string, value string) {
-	_ = cs.Store.Put(key, value)
+func (cs *CBStore) StorePut(key string, value string) error {
+	return cs.Store.Put(key, value)
 }
 
 func (cs *CBStore) StoreGet(key string) string {
@@ -39,8 +40,25 @@ func (cs *CBStore) StoreGet(key string) string {
 	return keyVal.Value
 }
 
-func (cs *CBStore) StoreDelete(key string) {
-	_ = cs.Store.Delete(key)
+func (cs *CBStore) StoreGetToInt(key string) int {
+	keyVal, _ := cs.Store.Get(key)
+	if keyVal == nil {
+		return -1
+	}
+	returnIntVal, _ := strconv.Atoi(keyVal.Value)
+	return returnIntVal
+}
+
+func (cs *CBStore) StoreGetToString(key string) string {
+	keyVal, _ := cs.Store.Get(key)
+	if keyVal == nil {
+		return ""
+	}
+	return keyVal.Value
+}
+
+func (cs *CBStore) StoreDelete(key string) error {
+	return cs.Store.Delete(key)
 }
 
 func (cs *CBStore) StoreGetList(key string, sortAscend bool) []string {
@@ -49,7 +67,7 @@ func (cs *CBStore) StoreGetList(key string, sortAscend bool) []string {
 		logrus.Debug(err)
 		return []string{err.Error()}
 	}
-	result := []string{}
+	var result []string
 	for _, ev := range keyVal {
 		if len(ev.Key) != 0 {
 			result = append(result, ev.Key)

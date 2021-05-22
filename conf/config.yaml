@@ -36,6 +36,7 @@ monitoring:
   collector_interval: 10            # aggregate interval (s)
   max_host_count:  5                # maximum host count per collector
   monitoring_policy: "agentCount"   # "agentCount" => The number of agent, "csp" => csp group
+  default_policy: "pull"
 
 grpcServer:
   port: 9999

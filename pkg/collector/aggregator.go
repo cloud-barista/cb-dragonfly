@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
 
@@ -15,7 +16,7 @@ import (
 )
 
 type Aggregator struct {
-	AggregateType AggregateType
+	AggregateType types.AggregateType
 }
 
 func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string) ([]string, error) {
@@ -41,7 +42,7 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string)
 			stayConnCount = 0
 			msg = nil
 		}
-		if stayConnCount == READ_CONNECTION_TIMEOUT {
+		if stayConnCount == types.ReadConnectionTimeout {
 			break
 		}
 	}
@@ -89,7 +90,7 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string)
 				}
 			}
 		}
-		result, err := a.CalculateMetric(uniqueResponseSlice, tagInfo, a.AggregateType.toString())
+		result, err := a.CalculateMetric(uniqueResponseSlice, tagInfo, a.AggregateType.ToString())
 		if err != nil {
 			logrus.Debug(err)
 		}
@@ -101,20 +102,20 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string)
 
 	currentTopics := unique(msgTopic)
 	for _, topic := range currentTopics {
-		GetInstance().StoreDelete(DELTOPICS + topic)
+		cbstore.GetInstance().StoreDelete(types.DELTOPICS + topic)
 	}
 	delTopics := []string{}
 	needCheckTopics := ReturnDiffTopicList(topics, currentTopics)
 	if len(needCheckTopics) != 0 {
 		for _, topic := range needCheckTopics {
-			if GetInstance().StoreGet(DELTOPICS+topic) == "" {
-				GetInstance().StorePut(DELTOPICS+topic, "0")
+			if cbstore.GetInstance().StoreGet(types.DELTOPICS+topic) == "" {
+				cbstore.GetInstance().StorePut(types.DELTOPICS+topic, "0")
 			} else {
-				count, _ := strconv.Atoi(GetInstance().StoreGet(DELTOPICS + topic))
+				count, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.DELTOPICS + topic))
 				count++
-				GetInstance().StorePut(DELTOPICS+topic, strconv.Itoa(count))
+				cbstore.GetInstance().StorePut(types.DELTOPICS+topic, strconv.Itoa(count))
 			}
-			checkNum, _ := strconv.Atoi(GetInstance().StoreGet(DELTOPICS + topic))
+			checkNum, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.DELTOPICS + topic))
 			if checkNum >= 2 {
 				delTopics = append(delTopics, topic)
 			}
@@ -133,20 +134,20 @@ func (a *Aggregator) CalculateMetric(responseMap map[string]map[string]map[strin
 		for metricName, metricSlice := range metric {
 			metric := map[string]interface{}{}
 			for key, slice := range metricSlice {
-				switch aggregateType {
-				case MINIMUM:
+				switch types.AggregateType(aggregateType) {
+				case types.MIN:
 					sort.Sort(sort.Float64Slice(slice))
 					metric[key] = slice[0]
-				case MAXIMUM:
+				case types.MAX:
 					sort.Sort(sort.Reverse(sort.Float64Slice(slice)))
 					metric[key] = slice[0]
-				case AVERAGE:
+				case types.AVG:
 					var sum float64
 					for _, v := range slice {
 						sum += v
 					}
 					metric[key] = sum / float64(len(slice))
-				case LATEST:
+				case types.LAST:
 					metric[key] = slice[len(slice)-1]
 				}
 				resultMap[vmTopic].(map[string]interface{})[metricName] = metric

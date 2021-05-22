@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
 	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/localstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/influxdbv1"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 )
@@ -87,7 +87,7 @@ func (manager *CollectManager) SetConfigurationToMemoryDB() {
 	monConfigMap := map[string]interface{}{}
 	mapstructure.Decode(config.GetInstance().Monitoring, &monConfigMap)
 	for key, val := range monConfigMap {
-		err := localstore.GetInstance().StorePut(types.MONCONFIG+"/"+key, fmt.Sprintf("%v", val))
+		err := cbstore.GetInstance().StorePut(types.MONCONFIG+"/"+key, fmt.Sprintf("%v", val))
 		if err != nil {
 			logrus.Debug(err)
 		}
@@ -125,7 +125,7 @@ func (manager *CollectManager) CreateCollectorGroup() error {
 	var collectorList []*collector.MetricCollector
 	//for i := 0; i < config.GetInstance().CollectManager.GroupPerCollectCnt; i++ {
 	mc, err := collector.NewMetricCollector(
-		collector.AVG,
+		types.AVG,
 		collectorCreateOrder,
 	)
 	if err != nil {

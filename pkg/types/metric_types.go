@@ -1,39 +1,28 @@
 package types
 
-// TODO: implements
-type Metric struct{}
+type MetricType string
 
-type Metrics struct {
-	metrics []Metric
+const (
+	CPU     MetricType = "cpu"
+	CPUFREQ MetricType = "cpufreq"
+	DISK    MetricType = "disk"
+	DISKIO  MetricType = "diskio"
+	NETWORK MetricType = "network"
+)
+
+func (m MetricType) ToString() string {
+	switch m {
+	case CPU:
+		return "cpu"
+	case CPUFREQ:
+		return "cpufreq"
+	case DISK:
+		return "disk"
+	case DISKIO:
+		return "diskio"
+	case NETWORK:
+		return "network"
+	default:
+		return ""
+	}
 }
-
-const (
-	MONCONFIG           = "config"
-	COLLECTORGROUPTOPIC = "collectorGroupTopic"
-	TOPIC               = "topic"
-)
-
-const (
-	NSID    = "nsId"
-	MCISID  = "mcisId"
-	VMID    = "vmId"
-	OSTYPE  = "osType"
-	CSPTYPE = "cspType"
-)
-
-const (
-	AGENTCOUNT = "AGENTCOUNT"
-	CSP        = "CSP"
-)
-
-const (
-	ALIBABA     = "ALIBABA"
-	AWS         = "AWS"
-	AZURE       = "AZURE"
-	CLOUDIT     = "CLOUDIT"
-	CLOUDTWIN   = "CLOUDTWIN"
-	DOCKER      = "DOCKER"
-	GCP         = "GCP"
-	OPENSTACK   = "OPENSTACK"
-	TOTALCSPCNT = 8
-)

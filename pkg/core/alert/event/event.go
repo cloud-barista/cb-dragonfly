@@ -3,14 +3,14 @@ package event
 import (
 	"encoding/json"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/types"
-	"github.com/cloud-barista/cb-dragonfly/pkg/localstore"
 )
 
 func CreateEventLog(eventLog types.AlertEventLog) error {
 	var eventLogArr []types.AlertEventLog
 
-	eventLogStr := localstore.GetInstance().StoreGet(eventLog.Id)
+	eventLogStr := cbstore.GetInstance().StoreGet(eventLog.Id)
 
 	if eventLogStr != "" {
 		// Get event log array
@@ -28,7 +28,7 @@ func CreateEventLog(eventLog types.AlertEventLog) error {
 	if err != nil {
 		return err
 	}
-	err = localstore.GetInstance().StorePut(eventLog.Id, string(newEventLogBytes))
+	err = cbstore.GetInstance().StorePut(eventLog.Id, string(newEventLogBytes))
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func CreateEventLog(eventLog types.AlertEventLog) error {
 
 func ListEventLog(taskId string, logLevel string) ([]types.AlertEventLog, error) {
 	eventLogArr := []types.AlertEventLog{}
-	eventLogStr := localstore.GetInstance().StoreGet(taskId)
+	eventLogStr := cbstore.GetInstance().StoreGet(taskId)
 	//if err != nil {
 	//	return nil, err
 	//}
@@ -52,5 +52,5 @@ func ListEventLog(taskId string, logLevel string) ([]types.AlertEventLog, error)
 }
 
 func DeleteEventLog(taskId string) error {
-	return localstore.GetInstance().StoreDelete(taskId)
+	return cbstore.GetInstance().StoreDelete(taskId)
 }
