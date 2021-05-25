@@ -5,13 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metadata"
 	"github.com/cloud-barista/cb-dragonfly/pkg/puller"
 )
-
-//import (
-//	_
-//)
 
 type PullManager struct {
 	AgentListManager metadata.AgentListManager
@@ -30,11 +27,19 @@ func NewPullManager() (*PullManager, error) {
 func (pm *PullManager) StartPullCaller() error {
 	for {
 
+		pullingInterval := time.Duration(config.GetInstance().Monitoring.PullerInterval)
+
 		// PULL 콜러 모듈 실행
 		err := pm.syncAgentList()
 		if err != nil {
 			fmt.Println(err)
 			return err
+		}
+
+		// 에이전트가 없을 경우
+		if len(pm.AgentList) == 0 {
+			time.Sleep(pullingInterval * time.Second)
+			continue
 		}
 
 		pullCaller, err := puller.NewPullCaller(pm.AgentList)
@@ -45,7 +50,7 @@ func (pm *PullManager) StartPullCaller() error {
 
 		go pullCaller.StartPull()
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(pullingInterval * time.Second)
 	}
 }
 

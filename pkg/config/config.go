@@ -56,6 +56,7 @@ type Monitoring struct {
 	MonitoringPolicy  string `json:"monitoring_policy" mapstructure:"monitoring_policy"`   // 모니터링 콜렉터 정책
 	MaxHostCount      int    `json:"max_host_count" mapstructure:"max_host_count"`         // 모니터링 콜렉터 수
 	DefaultPolicy     string `json:"default_policy" mapstructure:"default_policy"`         // 모니터링 기본 정책
+	PullerInterval    int    `json:"puller_interval" mapstructure:"puller_interval"`       // 모니터링 puller 실행 주기
 }
 
 type GrpcServer struct {

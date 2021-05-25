@@ -10,7 +10,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/metric"
 )
 
-// 멀티클라우드 인프라 VM 온디멘드 모니터링
+// GetVMOnDemandMetric 멀티클라우드 인프라 VM 온디멘드 모니터링
 func GetVMOnDemandMetric(c echo.Context) error {
 	// 온디멘드 모니터링 Path 파라미터 가져오기
 	nsId := c.Param("ns_id")

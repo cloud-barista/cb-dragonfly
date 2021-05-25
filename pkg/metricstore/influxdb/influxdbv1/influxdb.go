@@ -3,11 +3,18 @@ package influxdbv1
 import (
 	"errors"
 	"fmt"
-	influxBuilder "github.com/Scalingo/go-utils/influx"
-	influxdbClient "github.com/influxdata/influxdb1-client/v2"
-	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
+
+	influxBuilder "github.com/Scalingo/go-utils/influx"
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	influxdbClient "github.com/influxdata/influxdb1-client/v2"
+	"github.com/sirupsen/logrus"
+)
+
+const (
+	DefaultDatabase = "cbmon"
+	PullDatabase    = "cbmonpull"
 )
 
 type ClientOptions struct {
@@ -31,12 +38,12 @@ var storage Storage
 
 func GetInstance() *Storage {
 	once.Do(func() {
-		//Initialize()
+		Initialize()
 	})
 	return &storage
 }
 
-func Initialize(config Config) error {
+/*func Initialize(config Config) error {
 	storage.Config = config
 	for _, c := range config.ClientOptions {
 		client, err := influxdbClient.NewHTTPClient(influxdbClient.HTTPConfig{
@@ -62,6 +69,69 @@ func Initialize(config Config) error {
 		client.Query(q)
 
 		storage.Clients = append(storage.Clients, client)
+	}
+	return nil
+}*/
+
+func Initialize() error {
+	client, err := influxdbClient.NewHTTPClient(influxdbClient.HTTPConfig{
+		Addr:     fmt.Sprintf("%s:%d", config.GetInstance().GetInfluxDBConfig().EndpointUrl, config.GetInstance().GetInfluxDBConfig().ExternalPort),
+		Username: config.GetInstance().GetInfluxDBConfig().UserName,
+		Password: config.GetInstance().GetInfluxDBConfig().Password,
+	})
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+	if _, _, err := client.Ping(time.Millisecond * 100); err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	q1 := influxdbClient.Query{
+		Command: fmt.Sprintf("create database %s", DefaultDatabase),
+		//Database: DefaultDatabase,
+	}
+	// ignore the error of existing database
+	response, err := client.Query(q1)
+	fmt.Println(response, err)
+
+	q2 := influxdbClient.Query{
+		Command: fmt.Sprintf("create database %s", PullDatabase),
+		//Database: PullDatabase,
+	}
+	// ignore the error of existing database
+	response, err = client.Query(q2)
+	fmt.Println(response, err)
+
+	storage.Clients = append(storage.Clients, client)
+
+	return nil
+}
+
+func (s *Storage) WriteOnDemandMetric(metricName string, tagArr map[string]string, metricVal map[string]interface{}) error {
+	bp, err := influxdbClient.NewBatchPoints(influxdbClient.BatchPointsConfig{
+		Database: PullDatabase,
+	})
+	if err != nil {
+		logrus.Error("Failed to create InfluxDB metric point: ", err)
+		return err
+	}
+
+	now := time.Now().UTC()
+	metricPoint, err := influxdbClient.NewPoint(metricName, tagArr, metricVal, now)
+	if err != nil {
+		logrus.Error("Failed to create InfluxDB metric point: ", err)
+		return err
+	}
+	bp.AddPoint(metricPoint)
+
+	for _, influx := range s.Clients {
+		if err := influx.Write(bp); err != nil {
+			logrus.Error("Failed to write influxdb")
+			fmt.Println(err)
+			return err
+		}
 	}
 	return nil
 }

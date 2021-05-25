@@ -11,6 +11,10 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
 )
 
+const (
+	AGENT_PORT = 8888
+)
+
 func GetVMOnDemandMonInfo(nsId string, mcisId string, vmId string, metricName string, publicIP string) (interface{}, int, error) {
 	// disk, diskio 메트릭 조회
 	if metricName == Disk {
@@ -57,7 +61,7 @@ func GetVMOnDemandMonInfo(nsId string, mcisId string, vmId string, metricName st
 }
 
 func getVMOnDemandMonInfo(metricName string, publicIP string) (map[string]interface{}, error) {
-	resp, err := http.Get(fmt.Sprintf("http://%s:8080/cb-dragonfly/metric/%s", publicIP, metricName))
+	resp, err := http.Get(fmt.Sprintf("http://%s:%d/cb-dragonfly/metric/%s", publicIP, AGENT_PORT, metricName))
 	if err != nil {
 		return nil, errors.New("agent server is closed")
 	}

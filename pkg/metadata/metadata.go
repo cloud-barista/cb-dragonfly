@@ -35,7 +35,6 @@ type AgentInfo struct {
 	AgentState  string `json:"agent_state"`
 	AgentType   string `json:"agent_type"`
 	PublicIp    string `json:"public_ip"`
-	Port        string `json:"port"`
 	AgentHealth string `json:"agent_health"`
 }
 

@@ -48,10 +48,7 @@ func startPullModule(wg *sync.WaitGroup) {
 
 	// PULL 콜러 실행
 	wg.Add(1)
-	err = pm.StartPullCaller()
-	if err != nil {
-		panic(err)
-	}
+	go pm.StartPullCaller()
 }
 
 func main() {

@@ -14,7 +14,6 @@ import (
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/influxdbv1"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 )
 
@@ -30,7 +29,7 @@ type CollectManager struct {
 func NewCollectorManager() (*CollectManager, error) {
 	manager := CollectManager{}
 
-	influxConfig := influxdbv1.Config{
+	/*influxConfig := influxdbv1.Config{
 		ClientOptions: []influxdbv1.ClientOptions{
 			{
 				URL: fmt.Sprintf("%s:%d", config.GetInstance().GetInfluxDBConfig().EndpointUrl, config.GetInstance().GetInfluxDBConfig().InternalPort),
@@ -46,12 +45,12 @@ func NewCollectorManager() (*CollectManager, error) {
 	if err != nil {
 		logrus.Error("Failed to initialize influxDB")
 		return nil, err
-	}
+	}*/
 
 	retryCnt := 5
 	waitInterval := 5 * time.Second
 	for i := 0; i <= retryCnt; i++ {
-		_, err = net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().InternalPort), time.Duration(1*time.Second))
+		_, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().InternalPort), time.Duration(1*time.Second))
 		if err != nil {
 			if i == retryCnt {
 				fmt.Printf("\n %s %s \n", "kafka is not responding ", err.Error())
