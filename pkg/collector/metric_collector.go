@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"sort"
-	"strings"
-	"sync"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
+	"sort"
+	"strings"
+	"sync"
 )
 
 type MetricCollector struct {
@@ -18,7 +17,6 @@ type MetricCollector struct {
 	ConsumerKafkaConn *kafka.Consumer
 	AdminKafkaConn    *kafka.AdminClient
 	Aggregator        Aggregator
-	Active            bool
 	Ch                chan string
 }
 
@@ -48,7 +46,6 @@ func NewMetricCollector(aggregateType AggregateType, createOrder int) (MetricCol
 		logrus.Debug(err)
 		return MetricCollector{}, err
 	}
-	fmt.Println(kafka.ResourceBroker)
 	adminKafkaConn, err := kafka.NewAdminClient(KafkaConfig)
 	if err != nil {
 		logrus.Error("Fail to create collector kafka consumer", err)
@@ -63,55 +60,86 @@ func NewMetricCollector(aggregateType AggregateType, createOrder int) (MetricCol
 		Aggregator: Aggregator{
 			AggregateType: aggregateType,
 		},
-		Active: true,
-		Ch:     ch,
+		Ch: ch,
 	}
+	fmt.Println(fmt.Sprintf("#### Group_%d collector Create ####", createOrder))
 	return mc, nil
 }
+
+const (
+	DEFAULT                = "default"
+	SUBSCRIBE_ALIVE_TOPICS = "subscribeAliveTopics"
+	UNSUBSCRIBE            = "unsubscribe"
+	CLOSE                  = "close"
+	TOPIC_HEARTBEAT        = 6
+)
 
 func (mc *MetricCollector) Collector(wg *sync.WaitGroup) error {
 
 	defer wg.Done()
-	DeliveredTopicList := []string{}
-	currentSubscribeTopicList := []string{}
 	aliveTopics := []string{}
-	getTopicsAllow := true
+	isDeadTopics := []string{}
+	topicsPolicy := DEFAULT
+	topicsHeartBeat := TOPIC_HEARTBEAT
 	for {
 		select {
 		case processDecision := <-mc.Ch:
-			if len(processDecision) != 0 {
-				currentSubscribeTopicList, _ = mc.ConsumerKafkaConn.Subscription()
-				sort.Strings(currentSubscribeTopicList)
-				DeliveredTopicList = unique(strings.Split(processDecision, "&")[1:])
-				fmt.Println(fmt.Sprintf("Group_%d collector Delivered : %s", mc.CreateOrder, DeliveredTopicList))
-				if !cmp.Equal(DeliveredTopicList, currentSubscribeTopicList) && getTopicsAllow {
-					_ = mc.ConsumerKafkaConn.SubscribeTopics(DeliveredTopicList, nil)
+			if processDecision == CLOSE {
+
+				close(mc.Ch)
+				err := mc.ConsumerKafkaConn.Close()
+				if err != nil {
+					logrus.Debug("Fail to collector kafka connection close")
 				}
-				if !getTopicsAllow {
-					DeliveredTopicList = aliveTopics
-					getTopicsAllow = true
+				mc.AdminKafkaConn.Close()
+				fmt.Println(fmt.Sprintf("#### Group_%d collector Delete ####", mc.CreateOrder))
+				return nil
+
+			} else if len(processDecision) != 0 {
+
+				DeliveredTopicList := unique(strings.Split(processDecision, "&")[1:])
+				fmt.Println(fmt.Sprintf("Group_%d collector Delivered : %s", mc.CreateOrder, DeliveredTopicList))
+				sort.Strings(aliveTopics)
+
+				switch topicsPolicy {
+				case SUBSCRIBE_ALIVE_TOPICS:
+					_ = mc.ConsumerKafkaConn.SubscribeTopics(aliveTopics, nil)
+					topicsPolicy = DEFAULT
+					break
+				case UNSUBSCRIBE:
+					_ = mc.ConsumerKafkaConn.Unsubscribe()
+					topicsPolicy = DEFAULT
+					break
+				default:
+					_ = mc.ConsumerKafkaConn.SubscribeTopics(DeliveredTopicList, nil)
+					break
 				}
 				aliveTopics, _ = mc.Aggregator.AggregateMetric(mc.ConsumerKafkaConn, DeliveredTopicList)
+				if !cmp.Equal(DeliveredTopicList, aliveTopics) {
+					if len(DeliveredTopicList) != 0 && len(aliveTopics) == 0 {
+						topicsPolicy = UNSUBSCRIBE
+					} else {
+						topicsPolicy = SUBSCRIBE_ALIVE_TOPICS
+					}
+					diffTopics := ReturnDiffTopicList(DeliveredTopicList, aliveTopics)
+					if cmp.Equal(isDeadTopics, diffTopics) {
+						topicsHeartBeat--
+					}
+					isDeadTopics = diffTopics
+					if topicsHeartBeat == 0 {
+						isDeadTopics = []string{}
+						topicsHeartBeat = TOPIC_HEARTBEAT
+						topicsPolicy = DEFAULT
+						break
+					}
+					_, _ = mc.AdminKafkaConn.DeleteTopics(context.Background(), diffTopics)
+				}
+			} else {
+				isDeadTopics = []string{}
+				topicsHeartBeat = TOPIC_HEARTBEAT
+				topicsPolicy = DEFAULT
 			}
 			break
-		}
-		if !cmp.Equal(aliveTopics, DeliveredTopicList) {
-			if len(aliveTopics) == 0 {
-				_ = mc.ConsumerKafkaConn.Unsubscribe()
-			} else {
-				_ = mc.ConsumerKafkaConn.SubscribeTopics(aliveTopics, nil)
-			}
-			_, _ = mc.AdminKafkaConn.DeleteTopics(context.Background(), ReturnDiffTopicList(DeliveredTopicList, aliveTopics))
-			getTopicsAllow = false
-		}
-		if !mc.Active {
-			close(mc.Ch)
-			err := mc.ConsumerKafkaConn.Close()
-			if err != nil {
-				logrus.Debug("Fail to collector kafka connection close")
-			}
-			mc.AdminKafkaConn.Close()
-			return nil
 		}
 	}
 }
