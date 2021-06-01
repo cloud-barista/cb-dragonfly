@@ -8,65 +8,62 @@ import (
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/labstack/echo/v4"
 )
 
 const (
-	AGENT_LIST = "agentlist"
-	ENABLE     = "Enable"
-	DISABLE    = "Disable"
+	AgentListKey = "agentlist"
 )
 
-// AgentHealth 에이전트 API 헬스체크 상태
+// AgentType 에이전트 동작 메커니즘 유형 (Push, Pull)
+type AgentType string
+
+const (
+	Push AgentType = "push"
+	Pull AgentType = "pull"
+)
+
+// AgentState 에이전트 설치 상태 (설치, 제거)
+type AgentState string
+
+const (
+	Enable  AgentState = "enable"
+	Disable AgentState = "disable"
+)
+
+// AgentHealth 에이전트 구동 상태 (정상, 비정상)
 type AgentHealth string
 
 const (
-	HEALTHY   AgentHealth = "healthy"
-	UNHEALTHY AgentHealth = "unhealthy"
+	Healthy   AgentHealth = "healthy"
+	Unhealthy AgentHealth = "unhealthy"
 )
-
-//type Metadata struct {
-//	Key   string
-//	Value *AgentInfo
-//}
 
 // AgentInfo 에이전트 상세 정보
 type AgentInfo struct {
-	AgentState  string `json:"agent_state"`
-	AgentType   string `json:"agent_type"`
-	PublicIp    string `json:"public_ip"`
-	AgentHealth string `json:"agent_health"`
+	NsId                  string `json:"ns_id"`
+	McisId                string `json:"mcis_id"`
+	VmId                  string `json:"vm_id"`
+	CspType               string `json:"csp_type"`
+	AgentType             string `json:"agent_type"`
+	AgentState            string `json:"agent_state"`
+	AgentHealth           string `json:"agent_health"`
+	AgentUnhealthyRespCnt int    `json:"agent_unhealthy_resp_cnt"`
+	PublicIp              string `json:"public_ip"`
 }
 
-//var metadata = &Metadata{}
-//var agentInfo = &AgentInfo{}
-
-/*func setAgentInfo(agentState string, agentType string, publicIp string, agentHealth string) {
-	getAgentInfo().AgentState = agentState
-	getAgentInfo().AgentType = agentType
-	getAgentInfo().PublicIp = publicIp
-	getAgentInfo().AgentHealth = agentHealth
-}
-func getAgentInfo() *AgentInfo {
-	return agentInfo
-}*/
-
-/*
-func setMetadata(uuid string, agentInfo *AgentInfo) {
-	getMetadata().Key = uuid
-	getMetadata().Value = agentInfo
-}
-func getMetadata() *Metadata {
-	return metadata
-}
-*/
-
-func newAgentInfo(publicIp string) AgentInfo {
+func newAgentInfo(nsId string, mcisId string, vmId string, cspType string, publicIp string) AgentInfo {
 	return AgentInfo{
-		AgentState:  ENABLE,
-		AgentType:   ENABLE,
-		PublicIp:    publicIp,
-		AgentHealth: string(HEALTHY),
+		NsId:                  nsId,
+		McisId:                mcisId,
+		VmId:                  vmId,
+		CspType:               cspType,
+		AgentType:             config.GetInstance().Monitoring.DefaultPolicy,
+		AgentState:            string(Enable),
+		AgentHealth:           string(Healthy),
+		AgentUnhealthyRespCnt: 0,
+		PublicIp:              publicIp,
 	}
 }
 
@@ -75,7 +72,7 @@ type AgentListManager struct{}
 
 func (a AgentListManager) getAgentListFromStore() (map[string]AgentInfo, error) {
 	agentList := map[string]AgentInfo{}
-	agentListStr := cbstore.GetInstance().StoreGet(AGENT_LIST)
+	agentListStr := cbstore.GetInstance().StoreGet(AgentListKey)
 	if agentListStr != "" {
 		err := json.Unmarshal([]byte(agentListStr), &agentList)
 		if err != nil {
@@ -90,7 +87,7 @@ func (a AgentListManager) putAgentListToStore(agentList map[string]AgentInfo) er
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to convert agentList format to json, error=%s", err))
 	}
-	err = cbstore.GetInstance().Store.Put(AGENT_LIST, string(agentListBytes))
+	err = cbstore.GetInstance().Store.Put(AgentListKey, string(agentListBytes))
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to put agentList, error=%s", err))
 	}
@@ -103,9 +100,9 @@ func (a AgentListManager) AddAgent(uuid string, agentInfo AgentInfo) error {
 		return err
 	}
 
-	if _, ok := agentList[uuid]; ok {
+	/*if _, ok := agentList[uuid]; ok {
 		return errors.New(fmt.Sprintf("failed to add agent, agent with UUID %s already exist", uuid))
-	}
+	}*/
 	agentList[uuid] = agentInfo
 
 	return a.putAgentListToStore(agentList)
@@ -147,30 +144,18 @@ func (a AgentListManager) GetAgentInfo(uuid string) (AgentInfo, error) {
 	agentInfo := AgentInfo{}
 	agentInfoStr := cbstore.GetInstance().StoreGet(uuid)
 
-	if agentInfoStr != "" {
-		err := json.Unmarshal([]byte(agentInfoStr), &agentInfo)
-		if err != nil {
-			return AgentInfo{}, errors.New(fmt.Sprintf("failed to convert agent info, error=%s", err))
-		}
+	if agentInfoStr == "" {
+		return AgentInfo{}, errors.New(fmt.Sprintf("failed to get agent with UUID %s", uuid))
+	}
+	err := json.Unmarshal([]byte(agentInfoStr), &agentInfo)
+	if err != nil {
+		return AgentInfo{}, errors.New(fmt.Sprintf("failed to convert agent info, error=%s", err))
 	}
 	return agentInfo, nil
 }
 
-func AgentInstallationMetadata(nsId string, mcisId string, vmId string, cspType string, publicIp string) error {
-	//setAgentInfo(agentState, agentType, publicIp, string(agentHealth))
-	//setMetadata(makeAgentUUID(nsId, mcisId, vmId, cspType), getAgentInfo())
-
-	agentUUID := makeAgentUUID(nsId, mcisId, vmId, cspType)
-	agentInfo := newAgentInfo(publicIp)
-
-	// 에이전트 목록 추가
-	var agentList AgentListManager
-	err := agentList.AddAgent(agentUUID, agentInfo)
-	if err != nil {
-		return err
-	}
-
-	// 에이전트 메타데이터 등록
+func PutAgentMetadataToStore(agentUUID string, agentInfo AgentInfo) error {
+	// 에이전트 메타데이터 업데이트
 	agentInfoBytes, err := json.Marshal(agentInfo)
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to convert metadata format to json, error=%s", err))
@@ -179,39 +164,60 @@ func AgentInstallationMetadata(nsId string, mcisId string, vmId string, cspType 
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to put metadata, error=%s", err))
 	}
+	// 에이전트 목록 수정
+	var agentListManager AgentListManager
+	err = agentListManager.UpdateAgent(agentUUID, agentInfo)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func AgentDeletionMetadata(nsId string, mcisId string, vmId string, cspType string, publicIp string) error {
-	//agent_State := DISABLE
-	//agent_Type := DISABLE
-	//setAgentInfo(&agent_State, &agent_Type, &publicIp)
-	//setMetadata(makeAgentUUID(nsId, mcisId, vmId, cspType), getAgentInfo())
+func SetMetadataByAgentInstall(nsId string, mcisId string, vmId string, cspType string, publicIp string) error {
+	agentUUID := makeAgentUUID(nsId, mcisId, vmId, cspType)
+	agentInfo := newAgentInfo(nsId, mcisId, vmId, cspType, publicIp)
 
-	//_, err := json.Marshal(getMetadata().Value)
-	//if err != nil {
-	//	return errors.New(fmt.Sprintf("failed to convert metadata format to json, error=%s", err))
-	//}
+	// 에이전트 메타데이터 업데이트
+	err := PutAgentMetadataToStore(agentUUID, agentInfo)
+	if err != nil {
+		return err
+	}
+	// 에이전트 목록 추가
+	var agentListManager AgentListManager
+	err = agentListManager.AddAgent(agentUUID, agentInfo)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
+func SetMetadataByAgentUninstall(nsId string, mcisId string, vmId string, cspType string) error {
 	agentUUID := makeAgentUUID(nsId, mcisId, vmId, cspType)
 
-	// 에이전트 목록 삭제
-	var agentList AgentListManager
-	err := agentList.DeleteAgent(agentUUID)
+	// 에이전트 정보 조회
+	var agentListManager AgentListManager
+	deletedAgentInfo, err := agentListManager.GetAgentInfo(agentUUID)
 	if err != nil {
 		return err
 	}
 
-	// 에이전트 메타데이터 삭제
-	err = cbstore.GetInstance().StoreDelete(agentUUID)
+	// 에이전트 메타데이터 업데이트 (에이전트 비활성화 처리)
+	deletedAgentInfo.AgentState = string(Disable)
+	deletedAgentInfo.AgentHealth = string(Unhealthy)
+	err = PutAgentMetadataToStore(agentUUID, deletedAgentInfo)
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to delete metadata, error=%s", err))
+	}
+	// 에이전트 목록 수정
+	err = agentListManager.UpdateAgent(agentUUID, deletedAgentInfo)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
 func makeAgentUUID(nsId string, mcisId string, vmId string, cspType string) string {
-	UUID := fmt.Sprintf(nsId + "/" + mcisId + "/" + vmId + "/" + cspType)
+	UUID := nsId + "/" + mcisId + "/" + vmId + "/" + cspType
 	return UUID
 }
 

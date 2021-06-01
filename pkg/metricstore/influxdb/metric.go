@@ -1,8 +1,9 @@
 package influxdb
 
 import (
-	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"reflect"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 )
 
 type MetricType string
@@ -28,7 +29,6 @@ type Cpu struct {
 	CpuSteal       float64 `json:"cpu_steal"`
 	CpuGuest       float64 `json:"cpu_guest"`
 	CpuGuestNice   float64 `json:"cpu_guest_nice"`
-	//CpuNum         float64 `json:"cpu_num"`
 }
 
 type Cpufreq struct {

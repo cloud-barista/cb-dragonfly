@@ -3,11 +3,16 @@ package puller
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metadata"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/influxdbv1"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
+)
+
+const (
+	AgentUnhealthyCnt = 5
 )
 
 type PullCaller struct {
@@ -19,26 +24,64 @@ func NewPullCaller(agentList map[string]metadata.AgentInfo) (PullCaller, error) 
 }
 
 func (pc PullCaller) StartPull() {
+	var wg sync.WaitGroup
 	for key, agent := range pc.AgentList {
-		fmt.Println("PULL AGENT : " + key)
-		go pc.pullMetric(key, agent.PublicIp)
+		// Check agent status
+		if agent.AgentState == string(metadata.Disable) {
+			continue
+		}
+		// Check agent health
+		if agent.AgentHealth == string(metadata.Unhealthy) {
+			// TODO: Call healthcheck API
+			continue
+		}
+		wg.Add(1)
+		go pc.pullMetric(&wg, key, agent)
 	}
+	wg.Wait()
 }
 
-func (pc PullCaller) pullMetric(uuid string, ip string) {
-	metricArr := []types.MetricType{types.CPU, types.CPUFREQ, types.DISK, types.DISKIO, types.NETWORK}
+func (pc PullCaller) pullMetric(wg *sync.WaitGroup, uuid string, agentInfo metadata.AgentInfo) {
+	defer wg.Done()
+	metricArr := []types.Metric{types.Cpu, types.CpuFrequency, types.Memory, types.Disk, types.Network}
 	for _, pullMetric := range metricArr {
-		metricKey := string(pullMetric)
-		fmt.Printf("[%s] CALL API: http://%s:8888/%s\n", uuid, ip, string(metricKey))
 
-		//TODO: call API for pull
-		result, errCode, err := metric.GetVMOnDemandMonInfo("", "", "", metricKey, ip)
-		fmt.Println(result, errCode, err)
-		if errCode != http.StatusOK {
-			fmt.Println(err)
+		if agentInfo.AgentState == string(metadata.Disable) || agentInfo.AgentHealth == string(metadata.Unhealthy) {
+			// TODO: Call healthcheck API
 			continue
-			//TODO: Update Agent Health Status to Unhealthy
 		}
+
+		fmt.Printf("[%s] CALL API: http://%s:%d/cb-dragonfly/metric/%s\n", uuid, agentInfo.PublicIp, metric.AgentPort, pullMetric.ToAgentMetricKey())
+
+		// Pulling agent
+		result, statusCode, err := metric.GetVMOnDemandMonInfo(pullMetric.ToString(), agentInfo.PublicIp)
+
+		// Update Agent Health
+		updated := false
+		if statusCode == http.StatusOK && agentInfo.AgentHealth == string(metadata.Unhealthy) {
+			updated = true
+			agentInfo.AgentHealth = string(metadata.Healthy)
+		}
+		if statusCode != http.StatusOK {
+			updated = true
+			agentInfo.AgentUnhealthyRespCnt += 1
+			if agentInfo.AgentUnhealthyRespCnt > AgentUnhealthyCnt {
+				agentInfo.AgentHealth = string(metadata.Unhealthy)
+			}
+		}
+
+		if updated {
+			err := metadata.PutAgentMetadataToStore(uuid, agentInfo)
+			if err != nil {
+				continue
+			}
+			test := metadata.AgentListManager{}
+			list, _ := test.GetAgentList()
+			fmt.Println("===================================================")
+			fmt.Println(list)
+			fmt.Println("===================================================")
+		}
+
 		if result == nil {
 			continue
 		}
@@ -46,6 +89,9 @@ func (pc PullCaller) pullMetric(uuid string, ip string) {
 		// 메트릭 정보 파싱
 		metricData := result.(map[string]interface{})
 		metricName := metricData["name"].(string)
+		if metricName == "" {
+			continue
+		}
 		tagArr := map[string]string{}
 		for k, v := range metricData["tags"].(map[string]interface{}) {
 			tagArr[k] = v.(string)
