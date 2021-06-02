@@ -137,7 +137,6 @@ func (s *Storage) WriteOnDemandMetric(dbName, metricName string, tagArr map[stri
 }
 
 func (s *Storage) WriteMetric(metrics map[string]interface{}) error {
-
 	//for _, metrics := range vmMetrics{
 	bp, err := s.parseMetric(metrics)
 	if err != nil {
@@ -398,4 +397,24 @@ func (s Storage) getPerSecMetric(isPUSH bool, vmId, metric, period string, field
 	}
 
 	return query
+}
+
+func (s Storage) DeleteMetric(database string, metric, duration string) (interface{}, error) {
+	influx := storage.Clients[0]
+	var queryString string
+	whereQuery := "DELETE FROM \"%s\" WHERE time < now() + 1m - %s"
+	queryString += fmt.Sprintf(whereQuery, metric, duration)
+	query := influxdbClient.NewQuery(queryString, database, "")
+	res, _ := influx.Query(query)
+
+	if res.Err != "" {
+		return nil, errors.New(res.Err)
+	}
+
+	if len(res.Results) != 0 {
+		if len(res.Results[0].Series) != 0 {
+			return res.Results[0].Series[0], nil
+		}
+	}
+	return nil, nil
 }

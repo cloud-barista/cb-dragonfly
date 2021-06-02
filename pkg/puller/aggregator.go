@@ -135,11 +135,14 @@ func (pa *PullAggregator) AggregateMetric(agentList map[string]metadata.AgentInf
 				}
 
 			}
-			err = influxdbv1.GetInstance().WriteOnDemandMetric(influxdbv1.DefaultDatabase, metricName, tagArr, reqValue)
+			err = pa.Storage.WriteOnDemandMetric(influxdbv1.DefaultDatabase, metricName, tagArr, reqValue)
 			if err != nil {
 				logrus.Println(err)
 			}
-			// TODO Aggregate 이후 데이터베이스의 이전 메트릭 데이터 삭제 로직 추가 필요
+			_, err = pa.Storage.DeleteMetric(influxdbv1.PullDatabase, metricName, "5m")
+			if err != nil {
+				logrus.Println(err)
+			}
 		}
 	}
 }
