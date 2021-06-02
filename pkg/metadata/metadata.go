@@ -94,31 +94,12 @@ func (a AgentListManager) putAgentListToStore(agentList map[string]AgentInfo) er
 	return nil
 }
 
-func (a AgentListManager) AddAgent(uuid string, agentInfo AgentInfo) error {
+func (a AgentListManager) PutAgent(uuid string, agentInfo AgentInfo) error {
 	agentList, err := a.getAgentListFromStore()
 	if err != nil {
 		return err
 	}
-
-	/*if _, ok := agentList[uuid]; ok {
-		return errors.New(fmt.Sprintf("failed to add agent, agent with UUID %s already exist", uuid))
-	}*/
 	agentList[uuid] = agentInfo
-
-	return a.putAgentListToStore(agentList)
-}
-
-func (a AgentListManager) UpdateAgent(uuid string, agentInfo AgentInfo) error {
-	agentList, err := a.getAgentListFromStore()
-	if err != nil {
-		return err
-	}
-
-	if _, ok := agentList[uuid]; !ok {
-		return errors.New(fmt.Sprintf("failed to update agent, agent with UUID %s not exist", uuid))
-	}
-	agentList[uuid] = agentInfo
-
 	return a.putAgentListToStore(agentList)
 }
 
@@ -166,7 +147,7 @@ func PutAgentMetadataToStore(agentUUID string, agentInfo AgentInfo) error {
 	}
 	// 에이전트 목록 수정
 	var agentListManager AgentListManager
-	err = agentListManager.UpdateAgent(agentUUID, agentInfo)
+	err = agentListManager.PutAgent(agentUUID, agentInfo)
 	if err != nil {
 		return err
 	}
@@ -184,7 +165,7 @@ func SetMetadataByAgentInstall(nsId string, mcisId string, vmId string, cspType 
 	}
 	// 에이전트 목록 추가
 	var agentListManager AgentListManager
-	err = agentListManager.AddAgent(agentUUID, agentInfo)
+	err = agentListManager.PutAgent(agentUUID, agentInfo)
 	if err != nil {
 		return err
 	}
@@ -209,7 +190,7 @@ func SetMetadataByAgentUninstall(nsId string, mcisId string, vmId string, cspTyp
 		return errors.New(fmt.Sprintf("failed to delete metadata, error=%s", err))
 	}
 	// 에이전트 목록 수정
-	err = agentListManager.UpdateAgent(agentUUID, deletedAgentInfo)
+	err = agentListManager.PutAgent(agentUUID, deletedAgentInfo)
 	if err != nil {
 		return err
 	}

@@ -47,7 +47,6 @@ func (pm *PullManager) StartPullCaller() error {
 			fmt.Println(err)
 			return err
 		}
-
 		go pullCaller.StartPull()
 
 		time.Sleep(pullingInterval * time.Second)
@@ -65,6 +64,5 @@ func (pm *PullManager) syncAgentList() error {
 		return err
 	}
 	pm.AgentList = syncedAgentList
-	fmt.Println(pm.AgentList)
 	return nil
 }

@@ -3,7 +3,7 @@ package puller
 import (
 	"fmt"
 	"net/http"
-	"sync"
+	"time"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metadata"
@@ -24,62 +24,79 @@ func NewPullCaller(agentList map[string]metadata.AgentInfo) (PullCaller, error) 
 }
 
 func (pc PullCaller) StartPull() {
-	var wg sync.WaitGroup
-	for key, agent := range pc.AgentList {
+	for uuid, agent := range pc.AgentList {
 		// Check agent status
 		if agent.AgentState == string(metadata.Disable) {
 			continue
 		}
 		// Check agent health
 		if agent.AgentHealth == string(metadata.Unhealthy) {
-			// TODO: Call healthcheck API
+			// Call healthcheck API
+			err := pc.healthcheck(uuid, agent)
+			if err != nil {
+				fmt.Println(err)
+			}
 			continue
 		}
-		wg.Add(1)
-		go pc.pullMetric(&wg, key, agent)
+		go pc.pullMetric(uuid, agent)
 	}
-	wg.Wait()
+	fmt.Println(fmt.Sprintf("[%s] finished pulling loop", time.Now().Local().String()))
 }
 
-func (pc PullCaller) pullMetric(wg *sync.WaitGroup, uuid string, agentInfo metadata.AgentInfo) {
-	defer wg.Done()
+func (pc PullCaller) healthcheck(uuid string, agent metadata.AgentInfo) error {
+	client := http.Client{
+		Timeout: metric.AgentTimeout * time.Second,
+	}
+	agentUrl := fmt.Sprintf("http://%s:%d/cb-dragonfly/healthcheck", agent.PublicIp, metric.AgentPort)
+	resp, _ := client.Get(agentUrl)
+	if resp != nil {
+		if resp.StatusCode == http.StatusNoContent {
+			agent.AgentHealth = string(metadata.Healthy)
+			err := metadata.PutAgentMetadataToStore(uuid, agent)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (pc PullCaller) pullMetric(uuid string, agent metadata.AgentInfo) {
+
+	pullerIdx := time.Now().Unix()
+
 	metricArr := []types.Metric{types.Cpu, types.CpuFrequency, types.Memory, types.Disk, types.Network}
 	for _, pullMetric := range metricArr {
 
-		if agentInfo.AgentState == string(metadata.Disable) || agentInfo.AgentHealth == string(metadata.Unhealthy) {
+		if agent.AgentState == string(metadata.Disable) || agent.AgentHealth == string(metadata.Unhealthy) {
 			// TODO: Call healthcheck API
 			continue
 		}
 
-		fmt.Printf("[%s] CALL API: http://%s:%d/cb-dragonfly/metric/%s\n", uuid, agentInfo.PublicIp, metric.AgentPort, pullMetric.ToAgentMetricKey())
+		fmt.Printf("[%d][%s][%s] CALL API: http://%s:%d/cb-dragonfly/metric/%s\n", pullerIdx, time.Now().Local().String(), uuid, agent.PublicIp, metric.AgentPort, pullMetric.ToAgentMetricKey())
 
 		// Pulling agent
-		result, statusCode, err := metric.GetVMOnDemandMonInfo(pullMetric.ToString(), agentInfo.PublicIp)
+		result, statusCode, err := metric.GetVMOnDemandMonInfo(pullMetric.ToString(), agent.PublicIp)
 
 		// Update Agent Health
 		updated := false
-		if statusCode == http.StatusOK && agentInfo.AgentHealth == string(metadata.Unhealthy) {
+		if statusCode == http.StatusOK && agent.AgentHealth == string(metadata.Unhealthy) {
 			updated = true
-			agentInfo.AgentHealth = string(metadata.Healthy)
+			agent.AgentHealth = string(metadata.Healthy)
 		}
 		if statusCode != http.StatusOK {
 			updated = true
-			agentInfo.AgentUnhealthyRespCnt += 1
-			if agentInfo.AgentUnhealthyRespCnt > AgentUnhealthyCnt {
-				agentInfo.AgentHealth = string(metadata.Unhealthy)
+			agent.AgentUnhealthyRespCnt += 1
+			if agent.AgentUnhealthyRespCnt > AgentUnhealthyCnt {
+				agent.AgentHealth = string(metadata.Unhealthy)
 			}
 		}
 
 		if updated {
-			err := metadata.PutAgentMetadataToStore(uuid, agentInfo)
+			err := metadata.PutAgentMetadataToStore(uuid, agent)
 			if err != nil {
 				continue
 			}
-			test := metadata.AgentListManager{}
-			list, _ := test.GetAgentList()
-			fmt.Println("===================================================")
-			fmt.Println(list)
-			fmt.Println("===================================================")
 		}
 
 		if result == nil {

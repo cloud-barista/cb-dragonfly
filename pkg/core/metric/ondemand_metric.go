@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	AgentPort    = 8080
+	AgentPort    = 8888
 	AgentTimeout = 10
 )
 
@@ -62,7 +62,6 @@ func getVMOnDemandMonInfo(metric types.Metric, publicIP string) (map[string]inte
 	if err != nil {
 		return nil, err
 	}
-
 	defer resp.Body.Close()
 
 	var metricData = map[string]collector.TelegrafMetric{}
