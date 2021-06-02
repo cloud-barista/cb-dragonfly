@@ -18,17 +18,17 @@ const (
 
 // cpu 메트릭
 type Cpu struct {
-	CpuUtilization float64 `json:"cpu_utilization"`
-	CpuSystem      float64 `json:"cpu_system"`
-	CpuIdle        float64 `json:"cpu_idle"`
-	CpuIowait      float64 `json:"cpu_iowait"`
-	CpuHardIrq     float64 `json:"cpu_hintr"`
-	CpuSoftirq     float64 `json:"cpu_sintr"`
-	CpuUser        float64 `json:"cpu_user"`
-	CpuNice        float64 `json:"cpu_nice"`
-	CpuSteal       float64 `json:"cpu_steal"`
 	CpuGuest       float64 `json:"cpu_guest"`
 	CpuGuestNice   float64 `json:"cpu_guest_nice"`
+	CpuHardIrq     float64 `json:"cpu_hintr"`
+	CpuIdle        float64 `json:"cpu_idle"`
+	CpuIowait      float64 `json:"cpu_iowait"`
+	CpuNice        float64 `json:"cpu_nice"`
+	CpuSoftirq     float64 `json:"cpu_sintr"`
+	CpuSteal       float64 `json:"cpu_steal"`
+	CpuSystem      float64 `json:"cpu_system"`
+	CpuUser        float64 `json:"cpu_user"`
+	CpuUtilization float64 `json:"cpu_utilization"`
 }
 
 type Cpufreq struct {
@@ -46,13 +46,13 @@ func (c Cpu) GetField() []string {
 
 // memory 메트릭
 type Memory struct {
-	MemUtilization float64 `json:"mem_utilization"`
-	MemTotal       float64 `json:"mem_total"`
-	MemUsed        float64 `json:"mem_used"`
-	MemFree        float64 `json:"mem_free"`
-	MemShared      float64 `json:"mem_shared"`
 	MemBuffers     float64 `json:"mem_buffers"`
 	MemCached      float64 `json:"mem_cached"`
+	MemFree        float64 `json:"mem_free"`
+	MemShared      float64 `json:"mem_shared"`
+	MemTotal       float64 `json:"mem_total"`
+	MemUsed        float64 `json:"mem_used"`
+	MemUtilization float64 `json:"mem_utilization"`
 }
 
 func (m Memory) GetField() []string {
@@ -62,10 +62,10 @@ func (m Memory) GetField() []string {
 
 // disk 메트릭
 type Disk struct {
-	DiskUtilization string `json:"disk_utilization"`
+	DiskFree        string `json:"disk_free"`
 	DiskTotal       string `json:"disk_total"`
 	DiskUsed        string `json:"disk_used"`
-	DiskFree        string `json:"disk_free"`
+	DiskUtilization string `json:"disk_utilization"`
 	DiskReadBytes   string `json:"kb_read"`
 	DiskWriteBytes  string `json:"kb_written"`
 	DIskReadIOPS    int64  `json:"ops_read"`

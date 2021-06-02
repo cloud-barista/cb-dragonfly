@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/puller"
 	"os"
 	"runtime"
 	"sync"
@@ -45,10 +46,17 @@ func startPullModule(wg *sync.WaitGroup) {
 		logrus.Error("Failed to initialize collector manager")
 		panic(err)
 	}
-
+	pa, err := puller.NewPullAggregator()
+	if err != nil {
+		logrus.Error("Failed to initialize Aggregator")
+		panic(err)
+	}
 	// PULL 콜러 실행
 	wg.Add(1)
 	go pm.StartPullCaller()
+
+	wg.Add(1)
+	go pa.StartAggregate()
 }
 
 func main() {

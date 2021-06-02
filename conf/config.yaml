@@ -38,6 +38,8 @@ monitoring:
   monitoring_policy: "agentCount"   # "agentCount" => The number of agent, "csp" => csp group
   default_policy: "pull"            # push, pull
   puller_interval: 10
+  puller_aggregate_interval: 30
+  aggregate_type: "max"             # min, max, avg, last
 
 grpcServer:
   port: 9999

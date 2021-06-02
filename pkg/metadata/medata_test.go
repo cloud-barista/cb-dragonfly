@@ -14,7 +14,7 @@ func TestListAgent(t *testing.T) {
 func TestAddAgent(t *testing.T) {
 	var agentListManager AgentListManager
 
-	testAgent01 := []string{"test_ns01", "test_mcis01", "test_vm01", "aws", "192.168.130.204"}
+	testAgent01 := []string{"test", "test", "test", "test", "192.168.130.14"}
 	err := SetMetadataByAgentInstall(testAgent01[0], testAgent01[1], testAgent01[2], testAgent01[3], testAgent01[4])
 	if err != nil {
 		t.Error(err)

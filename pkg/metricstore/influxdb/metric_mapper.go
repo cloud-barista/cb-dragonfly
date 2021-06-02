@@ -31,6 +31,8 @@ func MappingMonMetric(metricName string, metricVal *interface{}) (interface{}, e
 		metricKeyArr = DiskIO{}.GetField()
 	case "network":
 		metricKeyArr = Network{}.GetField()
+	case "net":
+		metricKeyArr = Network{}.GetField()
 	default:
 		err = errors.New("not found metric")
 	}
