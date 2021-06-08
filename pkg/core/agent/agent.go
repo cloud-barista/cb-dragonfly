@@ -189,6 +189,7 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 	influxDBServer := fmt.Sprintf("%s:%d", config.GetInstance().InfluxDB.EndpointUrl, config.GetInstance().InfluxDB.ExternalPort)
 	userName := fmt.Sprintf(config.GetInstance().InfluxDB.UserName)
 	password := fmt.Sprintf(config.GetInstance().InfluxDB.Password)
+	mechanism := fmt.Sprintf(strings.ToLower(config.GetInstance().Monitoring.DefaultPolicy))
 	rootPath := os.Getenv("CBMON_ROOT")
 	filePath := rootPath + "/file/conf/telegraf.conf"
 
@@ -209,6 +210,7 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 	strConf = strings.ReplaceAll(strConf, "{{userName}}", userName)
 	strConf = strings.ReplaceAll(strConf, "{{password}}", password)
 	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", cspType)
+	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", mechanism)
 
 	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_%s_%s_%s", nsId, mcisId, vmId, cspType))
 	switch config.GetInstance().GetKafkaConfig().Deploy_Type {
