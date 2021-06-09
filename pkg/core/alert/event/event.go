@@ -2,6 +2,7 @@ package event
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/localstore"
@@ -36,19 +37,26 @@ func CreateEventLog(eventLog types.AlertEventLog) error {
 }
 
 func ListEventLog(taskId string, logLevel string) ([]types.AlertEventLog, error) {
-	eventLogArr := []types.AlertEventLog{}
+	var eventLogArr []types.AlertEventLog
 	eventLogStr := localstore.GetInstance().StoreGet(taskId)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//if eventLogStr == nil {
-	//	return eventLogArr, nil
-	//}
+	if eventLogStr == "" {
+		return []types.AlertEventLog{}, nil
+	}
 	err := json.Unmarshal([]byte(eventLogStr), &eventLogArr)
 	if err != nil {
 		return nil, err
 	}
-	return eventLogArr, nil
+	if logLevel == "" {
+		return eventLogArr, nil
+	}
+
+	filterdEventLogArr := []types.AlertEventLog{}
+	for _, log := range eventLogArr {
+		if strings.EqualFold(log.Level, logLevel) {
+			filterdEventLogArr = append(filterdEventLogArr, log)
+		}
+	}
+	return filterdEventLogArr, nil
 }
 
 func DeleteEventLog(taskId string) error {
