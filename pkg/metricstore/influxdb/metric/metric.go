@@ -1,4 +1,4 @@
-package influxdb
+package metric
 
 import (
 	"reflect"
@@ -6,17 +6,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 )
 
-type MetricType string
-
-const (
-	CPU     MetricType = "cpu"
-	MEMORY  MetricType = "mem"
-	SWAP    MetricType = "swap"
-	DISK    MetricType = "disk"
-	NETWORK MetricType = "net"
-)
-
-// cpu 메트릭
+// Cpu cpu 메트릭
 type Cpu struct {
 	CpuGuest       float64 `json:"cpu_guest"`
 	CpuGuestNice   float64 `json:"cpu_guest_nice"`

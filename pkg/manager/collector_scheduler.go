@@ -6,12 +6,10 @@ import (
 	"time"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
-	"github.com/google/go-cmp/cmp"
-	"github.com/sirupsen/logrus"
-
 	"github.com/cloud-barista/cb-dragonfly/pkg/kafka"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
+	"github.com/google/go-cmp/cmp"
 )
 
 type CollectorScheduler struct {
@@ -37,13 +35,13 @@ func (cScheduler CollectorScheduler) Scheduler() error {
 	}
 	currentTopicsState := util.GetAllTopicBySort(kafkaAddr.GetAllTopics())
 	beforeTopicsState := currentTopicsState
-	beforeMaxHostCount, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "max_host_count"))
+	beforeMaxHostCount, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MoNConfig + "/" + "max_host_count"))
 	currentMaxHostCount := beforeMaxHostCount
 
 	topicListChanged := !cmp.Equal(beforeTopicsState, currentTopicsState)
 	maxHostCountChanged := !(beforeMaxHostCount == currentMaxHostCount)
 
-	if cScheduler.cm.collectorPolicy == types.AGENTCOUNT {
+	if cScheduler.cm.collectorPolicy == types.AgentCnt {
 		cScheduler.ScheduleBasedTheNumberOfCollector(currentTopicsState, beforeTopicsState, beforeMaxHostCount, currentMaxHostCount, topicListChanged, maxHostCountChanged)
 	}
 	if cScheduler.cm.collectorPolicy == types.CSP {
@@ -62,13 +60,13 @@ func (cScheduler CollectorScheduler) ScheduleBasedTheNumberOfCollector(currentTo
 	cScheduler.SendTopicsToCollectors()
 
 	for {
-		aggreTime, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "collector_interval"))
+		aggreTime, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MoNConfig + "/" + "collector_interval"))
 		time.Sleep(time.Duration(aggreTime) * time.Second)
 		switch {
 		case maxHostCountChanged:
 			err := cScheduler.tm.DeleteAllTopicsInfo()
 			if err != nil {
-				logrus.Debug(err)
+				util.GetLogger().Error(err)
 			}
 			cScheduler.tm.SetTopicToCollectorBasedTheNumberOfAgent(currentTopicsState, currentMaxHostCount)
 			cScheduler.NeedCollectorScaleInOut()
@@ -78,11 +76,11 @@ func (cScheduler CollectorScheduler) ScheduleBasedTheNumberOfCollector(currentTo
 				deletedTopicList, newTopicList := cScheduler.ReturnDiffTopics(beforeTopicsState, currentTopicsState)
 				err := cScheduler.tm.DeleteTopics(deletedTopicList)
 				if err != nil {
-					logrus.Debug(err)
+					util.GetLogger().Error(err)
 				}
 				err = cScheduler.tm.AddNewTopics(newTopicList, currentMaxHostCount)
 				if err != nil {
-					logrus.Debug(err)
+					util.GetLogger().Error(err)
 				}
 			}
 			cScheduler.NeedCollectorScaleInOut()
@@ -93,7 +91,7 @@ func (cScheduler CollectorScheduler) ScheduleBasedTheNumberOfCollector(currentTo
 		currentTopicsState = util.GetAllTopicBySort(kafkaAddr.GetAllTopics())
 		fmt.Println(fmt.Sprintf("##### %s : %s #####", "All topics from kafka", currentTopicsState))
 		beforeMaxHostCount = currentMaxHostCount
-		currentMaxHostCount, _ = strconv.Atoi(cbstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "max_host_count"))
+		currentMaxHostCount, _ = strconv.Atoi(cbstore.GetInstance().StoreGet(types.MoNConfig + "/" + "max_host_count"))
 
 		topicListChanged = !cmp.Equal(beforeTopicsState, currentTopicsState)
 		maxHostCountChanged = !(beforeMaxHostCount == currentMaxHostCount)
@@ -119,7 +117,7 @@ func (cScheduler CollectorScheduler) NeedCollectorScaleInOut() {
 				needScalingCnt++
 			}
 			if err != nil {
-				logrus.Debug(err)
+				util.GetLogger().Error(err)
 			}
 		}
 	}
@@ -131,7 +129,7 @@ func (cScheduler CollectorScheduler) NeedRebalancedTopics(currentTopicsState []s
 	} else {
 		err := cScheduler.tm.DeleteAllTopicsInfo()
 		if err != nil {
-			logrus.Debug(err)
+			util.GetLogger().Error(err)
 		}
 		cScheduler.tm.SetTopicToCollectorBasedTheNumberOfAgent(currentTopicsState, currentMaxHostCount)
 		return true
@@ -148,18 +146,18 @@ func (cScheduler CollectorScheduler) ScheduleBasedCollectorCSPType(currentTopics
 	cScheduler.SendTopicsToCollectors()
 
 	for {
-		aggreTime, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MONCONFIG + "/" + "collector_interval"))
+		aggreTime, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MoNConfig + "/" + "collector_interval"))
 		time.Sleep(time.Duration(aggreTime) * time.Second)
 		switch {
 		case topicListChanged:
 			deletedTopicList, newTopicList := cScheduler.ReturnDiffTopics(beforeTopicsState, currentTopicsState)
 			err := cScheduler.tm.DeleteTopics(deletedTopicList)
 			if err != nil {
-				logrus.Debug(err)
+				util.GetLogger().Error(err)
 			}
 			err = cScheduler.tm.AddNewTopicsOnCSPCollector(newTopicList)
 			if err != nil {
-				logrus.Debug(err)
+				util.GetLogger().Error(err)
 			}
 			break
 		}
@@ -182,7 +180,7 @@ func (cScheduler CollectorScheduler) ReturnDiffTopics(beforeTopics []string, cur
 func (cScheduler CollectorScheduler) SendTopicsToCollectors() {
 	for idx, cAddrList := range cScheduler.cm.CollectorGroupManageMap {
 		for _, cAddr := range cAddrList {
-			(*cAddr).Ch <- cbstore.GetInstance().StoreGet(fmt.Sprintf("%s/%d", types.COLLECTORGROUPTOPIC, idx))
+			(*cAddr).Ch <- cbstore.GetInstance().StoreGet(fmt.Sprintf("%s/%d", types.CollectorGroupTopic, idx))
 		}
 	}
 }

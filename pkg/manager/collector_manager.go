@@ -9,15 +9,18 @@ import (
 	"time"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
-	"github.com/mitchellh/mapstructure"
-	"github.com/sirupsen/logrus"
-
 	"github.com/cloud-barista/cb-dragonfly/pkg/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
+	"github.com/mitchellh/mapstructure"
 )
 
-// TODO: implements
+const (
+	KafkaConnectionRetryCnt      = 5
+	KafkaConnectionRetryInterval = 5
+)
+
 // TODO: VM OR CONTAINER BASED COLLECTOR SCALE OUT => CHANNEL TO API
 
 type CollectManager struct {
@@ -29,43 +32,22 @@ type CollectManager struct {
 func NewCollectorManager() (*CollectManager, error) {
 	manager := CollectManager{}
 
-	/*influxConfig := influxdbv1.Config{
-		ClientOptions: []influxdbv1.ClientOptions{
-			{
-				URL: fmt.Sprintf("%s:%d", config.GetInstance().GetInfluxDBConfig().EndpointUrl, config.GetInstance().GetInfluxDBConfig().InternalPort),
-				//URL: "http://192.168.130.7:28086",
-				Username: config.GetInstance().GetInfluxDBConfig().UserName,
-				Password: config.GetInstance().GetInfluxDBConfig().Password,
-			},
-		},
-		Database: config.GetInstance().GetInfluxDBConfig().Database,
-	}
-
-	err := influxdbv1.Initialize(influxConfig)
-	if err != nil {
-		logrus.Error("Failed to initialize influxDB")
-		return nil, err
-	}*/
-
-	retryCnt := 5
-	waitInterval := 5 * time.Second
+	retryCnt := KafkaConnectionRetryCnt
+	waitInterval := KafkaConnectionRetryInterval * time.Second
 	for i := 0; i <= retryCnt; i++ {
-		_, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().InternalPort), time.Duration(1*time.Second))
+		_, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().InternalPort), waitInterval)
 		if err != nil {
 			if i == retryCnt {
-				fmt.Printf("\n %s %s \n", "kafka is not responding ", err.Error())
-				logrus.Error(err)
+				util.GetLogger().Error("kafka is not responding %s", "kafka is not responding ", err.Error())
 				return nil, err
 			} else {
-				retryMsg := fmt.Sprintf("\nRetry Attempt : %d, Now ReConn to Kafka... ERR MSG: %s ", i+1, err)
-				fmt.Printf(retryMsg)
-				logrus.Debug(retryMsg)
+				util.GetLogger().Error(fmt.Sprintf("\nRetry Attempt : %d, Now ReConn to Kafka... ERR MSG: %s ", i+1, err.Error()))
 			}
 		} else {
-			fmt.Printf("\nkafka is responding")
+			util.GetLogger().Info("kafka is responding")
 			break
 		}
-		time.Sleep(waitInterval)
+		time.Sleep(KafkaConnectionRetryInterval * time.Second)
 	}
 
 	manager.collectorPolicy = strings.ToUpper(config.GetInstance().Monitoring.MonitoringPolicy)
@@ -77,39 +59,42 @@ func NewCollectorManager() (*CollectManager, error) {
 func (manager *CollectManager) FlushMonitoringData() {
 	err := os.RemoveAll("./meta_db")
 	if err != nil {
-		fmt.Println(err)
+		util.GetLogger().Error(fmt.Sprintf("failed to flush monitoring data error=%s", err.Error()))
 	}
 	manager.SetConfigurationToMemoryDB()
 }
 
 func (manager *CollectManager) SetConfigurationToMemoryDB() {
 	monConfigMap := map[string]interface{}{}
-	mapstructure.Decode(config.GetInstance().Monitoring, &monConfigMap)
+	err := mapstructure.Decode(config.GetInstance().Monitoring, &monConfigMap)
+	if err != nil {
+		util.GetLogger().Error(fmt.Sprintf("failed to decode monConfigMap, error=%s", err))
+	}
 	for key, val := range monConfigMap {
-		err := cbstore.GetInstance().StorePut(types.MONCONFIG+"/"+key, fmt.Sprintf("%v", val))
+		err := cbstore.GetInstance().StorePut(types.MoNConfig+"/"+key, fmt.Sprintf("%v", val))
 		if err != nil {
-			logrus.Debug(err)
+			util.GetLogger().Error(fmt.Sprintf("failed to put monitoring configuration info, error=%s", err))
 		}
 	}
 }
 
 func (manager *CollectManager) StartCollectorGroup(wg *sync.WaitGroup) error {
 	manager.WaitGroup = wg
-	if manager.collectorPolicy == types.AGENTCOUNT {
+	if manager.collectorPolicy == types.AgentCnt {
 		startCollectorGroupCnt := config.GetInstance().CollectManager.CollectorGroupCnt
 		for i := 0; i < startCollectorGroupCnt; i++ {
 			err := manager.CreateCollectorGroup()
 			if err != nil {
-				logrus.Error("failed to create collector group", err)
+				util.GetLogger().Error("failed to create collector group", err)
 				return err
 			}
 		}
 	}
 	if manager.collectorPolicy == types.CSP {
-		for i := 0; i < types.TOTALCSPCNT; i++ {
+		for i := 0; i < types.TotalCspCnt; i++ {
 			err := manager.CreateCollectorGroup()
 			if err != nil {
-				logrus.Error("failed to create collector group", err)
+				util.GetLogger().Error("failed to create collector group", err)
 				return err
 			}
 		}
@@ -122,7 +107,6 @@ func (manager *CollectManager) CreateCollectorGroup() error {
 	manager.WaitGroup.Add(1)
 	collectorCreateOrder := len(manager.CollectorGroupManageMap)
 	var collectorList []*collector.MetricCollector
-	//for i := 0; i < config.GetInstance().CollectManager.GroupPerCollectCnt; i++ {
 	mc, err := collector.NewMetricCollector(
 		types.AVG,
 		collectorCreateOrder,
@@ -134,10 +118,9 @@ func (manager *CollectManager) CreateCollectorGroup() error {
 	go func() {
 		err := mc.Collector(manager.WaitGroup)
 		if err != nil {
-			logrus.Debug("Fail to create Collector")
+			util.GetLogger().Error("failed to  create Collector")
 		}
 	}()
-	//}
 	manager.CollectorGroupManageMap[collectorCreateOrder] = collectorList
 	return nil
 }
@@ -159,7 +142,7 @@ func (manager *CollectManager) StartScheduler(wg *sync.WaitGroup) error {
 	defer wg.Done()
 	scheduler, erro := NewCollectorScheduler(manager)
 	if erro != nil {
-		logrus.Error("Failed to initialize influxDB")
+		util.GetLogger().Error("Failed to initialize influxDB")
 		return erro
 	}
 	go func() {
@@ -169,7 +152,7 @@ func (manager *CollectManager) StartScheduler(wg *sync.WaitGroup) error {
 		}
 	}()
 	if erro != nil {
-		logrus.Error("Failed to make scheduler")
+		util.GetLogger().Error("Failed to make scheduler")
 		return erro
 	}
 	return nil

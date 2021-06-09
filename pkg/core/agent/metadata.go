@@ -1,15 +1,12 @@
-package metadata
+package agent
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/labstack/echo/v4"
 )
 
 const (
@@ -155,7 +152,7 @@ func PutAgentMetadataToStore(agentUUID string, agentInfo AgentInfo) error {
 }
 
 func SetMetadataByAgentInstall(nsId string, mcisId string, vmId string, cspType string, publicIp string) error {
-	agentUUID := makeAgentUUID(nsId, mcisId, vmId, cspType)
+	agentUUID := MakeAgentUUID(nsId, mcisId, vmId, cspType)
 	agentInfo := newAgentInfo(nsId, mcisId, vmId, cspType, publicIp)
 
 	// 에이전트 메타데이터 업데이트
@@ -173,7 +170,7 @@ func SetMetadataByAgentInstall(nsId string, mcisId string, vmId string, cspType 
 }
 
 func SetMetadataByAgentUninstall(nsId string, mcisId string, vmId string, cspType string) error {
-	agentUUID := makeAgentUUID(nsId, mcisId, vmId, cspType)
+	agentUUID := MakeAgentUUID(nsId, mcisId, vmId, cspType)
 
 	// 에이전트 정보 조회
 	var agentListManager AgentListManager
@@ -197,26 +194,7 @@ func SetMetadataByAgentUninstall(nsId string, mcisId string, vmId string, cspTyp
 	return nil
 }
 
-func makeAgentUUID(nsId string, mcisId string, vmId string, cspType string) string {
+func MakeAgentUUID(nsId string, mcisId string, vmId string, cspType string) string {
 	UUID := nsId + "/" + mcisId + "/" + vmId + "/" + cspType
 	return UUID
-}
-
-func ShowMetadata(c echo.Context) error {
-	// 에이전트 UUID 파라미터 값 추출
-	nsId := c.Param("ns")
-	mcisId := c.Param("mcis_id")
-	vmId := c.Param("vm_id")
-	cspType := c.Param("csp_type")
-
-	// 파라미터 값 체크
-	if nsId == "" || mcisId == "" || vmId == "" || cspType == "" {
-		return c.JSON(http.StatusInternalServerError, rest.SetMessage("failed to get metadata. parameter is missing."))
-	}
-	metadata, err := cbstore.GetInstance().Store.Get(fmt.Sprintf(nsId + "/" + mcisId + "/" + vmId + "/" + cspType))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, errors.New(fmt.Sprintf("Get Data from CB-Store Error, err=%s", err)))
-	}
-
-	return c.JSON(http.StatusOK, metadata)
 }

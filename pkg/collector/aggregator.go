@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/v1"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/influxdbv1"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 )
 
@@ -58,14 +59,14 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string)
 			vmTopic := msgTopic[idx]
 			if _, ok := tagInfo[vmTopic]; ok {
 				for key, tag := range response.Tags {
-					if key == types.NSID || key == types.MCISID || key == types.VMID || key == types.OSTYPE || key == types.CSPTYPE {
+					if key == types.NsId || key == types.McisId || key == types.VmId || key == types.OsType || key == types.CspType {
 						tagInfo[vmTopic][key] = tag.(string)
 					}
 				}
 			} else {
 				tagInfo[vmTopic] = make(map[string]string)
 				for key, tag := range response.Tags {
-					if key == types.NSID || key == types.MCISID || key == types.VMID || key == types.OSTYPE || key == types.CSPTYPE {
+					if key == types.NsId || key == types.McisId || key == types.VmId || key == types.OsType || key == types.CspType {
 						tagInfo[vmTopic][key] = tag.(string)
 					}
 				}
@@ -92,9 +93,9 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string)
 		}
 		result, err := a.CalculateMetric(uniqueResponseSlice, tagInfo, a.AggregateType.ToString())
 		if err != nil {
-			logrus.Debug(err)
+			util.GetLogger().Error(err)
 		}
-		err = influxdbv1.GetInstance().WriteMetric(result)
+		err = v1.GetInstance().WriteMetric(v1.DefaultDatabase, result)
 		if err != nil {
 			return []string{}, err
 		}

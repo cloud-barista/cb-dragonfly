@@ -1,27 +1,27 @@
 package types
 
 const (
-	PUSH_POLICY = "push"
-	PULL_POLICY = "pull"
+	PushPolicy = "push"
+	PullPolicy = "pull"
 )
 
 const (
-	MONCONFIG           = "config"
-	COLLECTORGROUPTOPIC = "collectorGroupTopic"
-	TOPIC               = "topic"
+	MoNConfig           = "config"
+	CollectorGroupTopic = "collectorGroupTopic"
+	Topic               = "topic"
 )
 
 const (
-	NSID    = "nsId"
-	MCISID  = "mcisId"
-	VMID    = "vmId"
-	OSTYPE  = "osType"
-	CSPTYPE = "cspType"
+	NsId    = "nsId"
+	McisId  = "mcisId"
+	VmId    = "vmId"
+	OsType  = "osType"
+	CspType = "cspType"
 )
 
 const (
-	AGENTCOUNT = "AGENTCOUNT"
-	CSP        = "CSP"
+	AgentCnt = "AgentCnt"
+	CSP      = "CSP"
 )
 
 const (
@@ -33,5 +33,5 @@ const (
 	DOCKER      = "DOCKER"
 	GCP         = "GCP"
 	OPENSTACK   = "OPENSTACK"
-	TOTALCSPCNT = 8
+	TotalCspCnt = 8
 )

@@ -3,27 +3,28 @@ package puller
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metadata"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/influxdbv1"
+	"github.com/cloud-barista/cb-dragonfly/pkg/core/agent"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/metric"
+	v1 "github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/v1"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type PullAggregator struct {
-	AgentListManager metadata.AgentListManager
-	Storage          influxdbv1.Storage
+	AgentListManager agent.AgentListManager
+	Storage          v1.Storage
 	CBStore          cbstore.CBStore
-	AgentList        map[string]metadata.AgentInfo
+	AgentList        map[string]agent.AgentInfo
 }
 
 func NewPullAggregator() (*PullAggregator, error) {
 	pullAggregator := PullAggregator{
-		AgentListManager: metadata.AgentListManager{},
-		Storage:          *influxdbv1.GetInstance(),
+		AgentListManager: agent.AgentListManager{},
+		Storage:          *v1.GetInstance(),
 		CBStore:          *cbstore.GetInstance(),
 	}
 	return &pullAggregator, nil
@@ -51,7 +52,7 @@ func (pa *PullAggregator) StartAggregate() error {
 	}
 }
 
-func (pa *PullAggregator) AggregateMetric(agentList map[string]metadata.AgentInfo, metricArr []types.Metric, aggregateType string) {
+func (pa *PullAggregator) AggregateMetric(agentList map[string]agent.AgentInfo, metricArr []types.Metric, aggregateType string) {
 	for _, agent := range agentList {
 		for _, metricKind := range metricArr {
 			//receivedMetric, err := pa.Storage.ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PUSH_POLICY, agent.AgentID, metricKind.ToString(), "m", aggregateType, "5m")
@@ -59,14 +60,14 @@ func (pa *PullAggregator) AggregateMetric(agentList map[string]metadata.AgentInf
 			var err error
 			//var calculatedMetric interface{}
 			var mappedMetric interface{}
-			receivedMetric, err = pa.Storage.ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PUSH_POLICY, agent.VmId, metricKind.ToAgentMetricKey(), "m", aggregateType, "5m")
+			receivedMetric, err = pa.Storage.ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy, "", "", agent.VmId, metricKind.ToAgentMetricKey(), "m", aggregateType, "5m")
 			if err != nil {
 				logrus.Println(err)
 			}
 			if receivedMetric == nil {
 				continue
 			}
-			mappedMetric, err = influxdb.MappingMonMetric(metricKind.ToString(), &receivedMetric)
+			mappedMetric, err = metric.MappingMonMetric(metricKind.ToString(), &receivedMetric)
 			var metricName string
 			var valueLength float64
 			tagArr := map[string]string{}
@@ -135,11 +136,11 @@ func (pa *PullAggregator) AggregateMetric(agentList map[string]metadata.AgentInf
 				}
 
 			}
-			err = pa.Storage.WriteOnDemandMetric(influxdbv1.DefaultDatabase, metricName, tagArr, reqValue)
+			err = pa.Storage.WriteOnDemandMetric(v1.DefaultDatabase, metricName, tagArr, reqValue)
 			if err != nil {
 				logrus.Println(err)
 			}
-			_, err = pa.Storage.DeleteMetric(influxdbv1.PullDatabase, metricName, "5m")
+			err = pa.Storage.DeleteMetric(v1.PullDatabase, metricName, "5m")
 			if err != nil {
 				logrus.Println(err)
 			}

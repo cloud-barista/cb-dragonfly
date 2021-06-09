@@ -4,10 +4,10 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	cb "github.com/cloud-barista/cb-store"
 	icbs "github.com/cloud-barista/cb-store/interfaces"
 	"github.com/cloud-barista/cb-store/utils"
-	"github.com/sirupsen/logrus"
 )
 
 type CBStore struct {
@@ -64,7 +64,7 @@ func (cs *CBStore) StoreDelete(key string) error {
 func (cs *CBStore) StoreGetList(key string, sortAscend bool) []string {
 	keyVal, err := cs.Store.GetList(key, sortAscend)
 	if err != nil {
-		logrus.Debug(err)
+		util.GetLogger().Error(err)
 		return []string{err.Error()}
 	}
 	var result []string
@@ -79,12 +79,15 @@ func (cs *CBStore) StoreGetList(key string, sortAscend bool) []string {
 func (cs *CBStore) StoreDelList(key string) error {
 	keyVal, err := cs.Store.GetList(key, true)
 	if err != nil {
-		logrus.Debug(err)
+		util.GetLogger().Error(err)
 		return err
 	}
 	for _, ev := range keyVal {
 		err = cs.Store.Delete(ev.Key)
-		return err
+		if err != nil {
+			util.GetLogger().Error(err)
+			return err
+		}
 	}
 	return nil
 }

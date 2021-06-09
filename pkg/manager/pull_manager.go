@@ -6,19 +6,19 @@ import (
 	"time"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metadata"
+	"github.com/cloud-barista/cb-dragonfly/pkg/core/agent"
 	"github.com/cloud-barista/cb-dragonfly/pkg/puller"
 )
 
 type PullManager struct {
-	AgentListManager metadata.AgentListManager
-	AgentList        map[string]metadata.AgentInfo
+	AgentListManager agent.AgentListManager
+	AgentList        map[string]agent.AgentInfo
 	WaitGroup        *sync.WaitGroup
 }
 
 func NewPullManager() (*PullManager, error) {
 	pullManager := PullManager{
-		AgentListManager: metadata.AgentListManager{},
+		AgentListManager: agent.AgentListManager{},
 		WaitGroup:        &sync.WaitGroup{},
 	}
 	return &pullManager, nil

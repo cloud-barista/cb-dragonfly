@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/core/agent"
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/metric"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metadata"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/influxdbv1"
+	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/v1"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 )
 
@@ -16,21 +16,21 @@ const (
 )
 
 type PullCaller struct {
-	AgentList map[string]metadata.AgentInfo
+	AgentList map[string]agent.AgentInfo
 }
 
-func NewPullCaller(agentList map[string]metadata.AgentInfo) (PullCaller, error) {
+func NewPullCaller(agentList map[string]agent.AgentInfo) (PullCaller, error) {
 	return PullCaller{AgentList: agentList}, nil
 }
 
 func (pc PullCaller) StartPull() {
 	for uuid, agent := range pc.AgentList {
 		// Check agent status
-		if agent.AgentState == string(metadata.Disable) {
+		if agent.AgentState == string(agent.Disable) {
 			continue
 		}
 		// Check agent health
-		if agent.AgentHealth == string(metadata.Unhealthy) {
+		if agent.AgentHealth == string(agent.Unhealthy) {
 			// Call healthcheck API
 			err := pc.healthcheck(uuid, agent)
 			if err != nil {
@@ -43,7 +43,7 @@ func (pc PullCaller) StartPull() {
 	fmt.Println(fmt.Sprintf("[%s] finished pulling loop", time.Now().Local().String()))
 }
 
-func (pc PullCaller) healthcheck(uuid string, agent metadata.AgentInfo) error {
+func (pc PullCaller) healthcheck(uuid string, agent agent.AgentInfo) error {
 	client := http.Client{
 		Timeout: metric.AgentTimeout * time.Second,
 	}
@@ -51,8 +51,8 @@ func (pc PullCaller) healthcheck(uuid string, agent metadata.AgentInfo) error {
 	resp, _ := client.Get(agentUrl)
 	if resp != nil {
 		if resp.StatusCode == http.StatusNoContent {
-			agent.AgentHealth = string(metadata.Healthy)
-			err := metadata.PutAgentMetadataToStore(uuid, agent)
+			agent.AgentHealth = string(agent.Healthy)
+			err := agent.PutAgentMetadataToStore(uuid, agent)
 			if err != nil {
 				return err
 			}
@@ -61,13 +61,13 @@ func (pc PullCaller) healthcheck(uuid string, agent metadata.AgentInfo) error {
 	return nil
 }
 
-func (pc PullCaller) pullMetric(uuid string, agent metadata.AgentInfo) {
+func (pc PullCaller) pullMetric(uuid string, agent agent.AgentInfo) {
 
 	pullerIdx := time.Now().Unix()
 	metricArr := []types.Metric{types.Cpu, types.CpuFrequency, types.Memory, types.Disk, types.DiskIO, types.Network}
 	for _, pullMetric := range metricArr {
 
-		if agent.AgentState == string(metadata.Disable) || agent.AgentHealth == string(metadata.Unhealthy) {
+		if agent.AgentState == string(agent.Disable) || agent.AgentHealth == string(agent.Unhealthy) {
 			// TODO: Call healthcheck API
 			continue
 		}
@@ -79,20 +79,20 @@ func (pc PullCaller) pullMetric(uuid string, agent metadata.AgentInfo) {
 
 		// Update Agent Health
 		updated := false
-		if statusCode == http.StatusOK && agent.AgentHealth == string(metadata.Unhealthy) {
+		if statusCode == http.StatusOK && agent.AgentHealth == string(agent.Unhealthy) {
 			updated = true
-			agent.AgentHealth = string(metadata.Healthy)
+			agent.AgentHealth = string(agent.Healthy)
 		}
 		if statusCode != http.StatusOK {
 			updated = true
 			agent.AgentUnhealthyRespCnt += 1
 			if agent.AgentUnhealthyRespCnt > AgentUnhealthyCnt {
-				agent.AgentHealth = string(metadata.Unhealthy)
+				agent.AgentHealth = string(agent.Unhealthy)
 			}
 		}
 
 		if updated {
-			err := metadata.PutAgentMetadataToStore(uuid, agent)
+			err := agent.PutAgentMetadataToStore(uuid, agent)
 			if err != nil {
 				continue
 			}
@@ -115,7 +115,7 @@ func (pc PullCaller) pullMetric(uuid string, agent metadata.AgentInfo) {
 		metricVal := metricData["values"].(map[string]interface{})
 
 		// 메트릭 정보 InfluxDB 저장
-		err = influxdbv1.GetInstance().WriteOnDemandMetric(influxdbv1.PullDatabase, metricName, tagArr, metricVal)
+		err = v1.GetInstance().WriteOnDemandMetric(v1.PullDatabase, metricName, tagArr, metricVal)
 		if err != nil {
 			fmt.Println(err)
 		}

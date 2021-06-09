@@ -9,9 +9,9 @@ import (
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/sirupsen/logrus"
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
 )
 
@@ -46,15 +46,15 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 
 	consumerKafkaConn, err := kafka.NewConsumer(KafkaConfig)
 	if err != nil {
-		logrus.Error("Fail to create collector kafka consumer", err)
-		logrus.Debug(err)
+		util.GetLogger().Error("Fail to create collector kafka consumer", err)
+		util.GetLogger().Error(err)
 		return MetricCollector{}, err
 	}
 	fmt.Println(kafka.ResourceBroker)
 	adminKafkaConn, err := kafka.NewAdminClient(KafkaConfig)
 	if err != nil {
-		logrus.Error("Fail to create collector kafka consumer", err)
-		logrus.Debug(err)
+		util.GetLogger().Error("Fail to create collector kafka consumer", err)
+		util.GetLogger().Error(err)
 		return MetricCollector{}, err
 	}
 	ch := make(chan string)
@@ -110,7 +110,7 @@ func (mc *MetricCollector) Collector(wg *sync.WaitGroup) error {
 			close(mc.Ch)
 			err := mc.ConsumerKafkaConn.Close()
 			if err != nil {
-				logrus.Debug("Fail to collector kafka connection close")
+				util.GetLogger().Error("failed to  collector kafka connection close")
 			}
 			mc.AdminKafkaConn.Close()
 			return nil

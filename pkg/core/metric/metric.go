@@ -3,16 +3,16 @@ package metric
 import (
 	"errors"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"net/http"
 	"sort"
 	"strings"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	influxdbmetric "github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/metric"
+	v1 "github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/v1"
+
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/influxdata/influxdb1-client/models"
-
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/influxdbv1"
 )
 
 // CBMCISMetric 단일 MCIS Milkyway 메트릭
@@ -62,14 +62,14 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 	case types.Network:
 
 		// cpu, cpufreq, memory, network 메트릭 조회
-		cpuMetric, err := influxdbv1.GetInstance().ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PUSH_POLICY, vmId, metric.ToAgentMetricKey(), period, aggregateType, duration)
+		cpuMetric, err := v1.GetInstance().ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy, nsId, mcisId, vmId, metric.ToAgentMetricKey(), period, aggregateType, duration)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
 		if cpuMetric == nil {
 			return nil, http.StatusNotFound, errors.New(fmt.Sprintf("not found metric data, metric=%s", metricName))
 		}
-		resultMetric, err := influxdb.MappingMonMetric(metric.ToString(), &cpuMetric)
+		resultMetric, err := influxdbmetric.MappingMonMetric(metric.ToString(), &cpuMetric)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
@@ -78,11 +78,11 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 	case types.Disk:
 
 		// disk, diskio 메트릭 조회
-		diskMetric, err := influxdbv1.GetInstance().ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PUSH_POLICY, vmId, types.Disk.ToString(), period, aggregateType, duration)
+		diskMetric, err := v1.GetInstance().ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy, nsId, mcisId, vmId, types.Disk.ToString(), period, aggregateType, duration)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
-		diskIoMetric, err := influxdbv1.GetInstance().ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PUSH_POLICY, vmId, types.DiskIO.ToString(), period, aggregateType, duration)
+		diskIoMetric, err := v1.GetInstance().ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy, nsId, mcisId, vmId, types.DiskIO.ToString(), period, aggregateType, duration)
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
@@ -172,7 +172,7 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 		resultMap := map[string]interface{}{}
 		resultMap["name"] = metricName
 		resultMap["tags"] = resultRow.Tags
-		resultMap["values"] = influxdb.ConvertMetricValFormat(resultRow.Columns, resultRow.Values)
+		resultMap["values"] = influxdbmetric.ConvertMetricValFormat(resultRow.Columns, resultRow.Values)
 		return resultMap, http.StatusOK, nil
 
 	default:

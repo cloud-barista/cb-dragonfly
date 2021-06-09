@@ -10,12 +10,11 @@ import (
 	"time"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/metadata"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 
 	"github.com/bramvdbogaerde/go-scp"
 	sshrun "github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -158,7 +157,7 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 	}
 
 	// 메타데이터 저장
-	err = metadata.SetMetadataByAgentInstall(nsId, mcisId, vmId, cspType, publicIp)
+	err = SetMetadataByAgentInstall(nsId, mcisId, vmId, cspType, publicIp)
 	if err != nil {
 		cleanTelegrafInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))
@@ -185,7 +184,6 @@ func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
 }
 
 func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType string) (string, error) {
-	collectorServer := fmt.Sprintf("udp://%s:%d", config.GetInstance().CollectManager.CollectorIP, config.GetInstance().CollectManager.CollectorPort)
 	influxDBServer := fmt.Sprintf("%s:%d", config.GetInstance().InfluxDB.EndpointUrl, config.GetInstance().InfluxDB.ExternalPort)
 	userName := fmt.Sprintf(config.GetInstance().InfluxDB.UserName)
 	password := fmt.Sprintf(config.GetInstance().InfluxDB.Password)
@@ -196,7 +194,7 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 	read, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		// ERROR 정보 출럭
-		logrus.Error("failed to read telegraf.conf file.")
+		util.GetLogger().Error("failed to read telegraf.conf file.")
 		return "", err
 	}
 
@@ -205,7 +203,6 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 	strConf = strings.ReplaceAll(strConf, "{{ns_id}}", nsId)
 	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", mcisId)
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
-	strConf = strings.ReplaceAll(strConf, "{{collector_server}}", collectorServer)
 	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", influxDBServer)
 	strConf = strings.ReplaceAll(strConf, "{{userName}}", userName)
 	strConf = strings.ReplaceAll(strConf, "{{password}}", password)
@@ -213,11 +210,11 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", mechanism)
 
 	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_%s_%s_%s", nsId, mcisId, vmId, cspType))
-	switch config.GetInstance().GetKafkaConfig().Deploy_Type {
+	switch config.GetInstance().GetKafkaConfig().DeployType {
 	case "helm":
-		strConf = strings.ReplaceAll(strConf, "{{broker_server}}", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().Helm_External_Port))
+		strConf = strings.ReplaceAll(strConf, "{{broker_server}}", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().HelmExternalPort))
 	default:
-		strConf = strings.ReplaceAll(strConf, "{{broker_server}}", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().Compose_External_Port))
+		strConf = strings.ReplaceAll(strConf, "{{broker_server}}", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().ComposeExternalPort))
 	}
 
 	// telegraf.conf 파일 생성
@@ -227,7 +224,7 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 
 	err = ioutil.WriteFile(telegrafConfFile, []byte(strConf), os.FileMode(777))
 	if err != nil {
-		logrus.Error("failed to create telegraf.conf file.")
+		util.GetLogger().Error("failed to create telegraf.conf file.")
 		return "", err
 	}
 	return telegrafConfFile, err
@@ -334,7 +331,7 @@ func UninstallAgent(
 	cleanTelegrafInstall(sshInfo, osType)
 
 	// 메타데이터 삭제
-	err = metadata.SetMetadataByAgentUninstall(nsId, mcisId, vmId, cspType)
+	err = SetMetadataByAgentUninstall(nsId, mcisId, vmId, cspType)
 	if err != nil {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete metadata, error=%s", err))
 	}
