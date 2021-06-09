@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	grpc "github.com/cloud-barista/cb-dragonfly/pkg/api/grpc/server"
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/template"
