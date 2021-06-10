@@ -15,7 +15,7 @@ kapacitor:
 kafka:
   endpoint_url: cb-dragonfly-kafka
   external_ip: 127.0.0.1
-deploy_type: "compose"                              # deploy environment "compose" => docker-compose or others , "helm" => helm chart on k8s
+  deploy_type: "compose"                              # deploy environment "compose" => docker-compose or others , "helm" => helm chart on k8s
   compose_external_port: 9092
   helm_external_port: 32000
   internal_port: 9092
