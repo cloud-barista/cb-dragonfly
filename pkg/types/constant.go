@@ -20,7 +20,7 @@ const (
 )
 
 const (
-	AgentCnt = "AgentCnt"
+	AgentCnt = "AGENTCOUNT"
 	CSP      = "CSP"
 )
 

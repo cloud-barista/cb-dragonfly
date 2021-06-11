@@ -131,7 +131,7 @@ func (manager *CollectManager) StopCollectorGroup() error {
 		return nil
 	} else {
 		for _, cAddr := range manager.CollectorGroupManageMap[collectorIdx] {
-			(*cAddr).Active = false
+			(*cAddr).Ch <- "close"
 		}
 		delete(manager.CollectorGroupManageMap, collectorIdx)
 	}

@@ -124,7 +124,7 @@ func (cScheduler CollectorScheduler) NeedCollectorScaleInOut() {
 }
 
 func (cScheduler CollectorScheduler) NeedRebalancedTopics(currentTopicsState []string, currentMaxHostCount int) bool {
-	if len(cScheduler.tm.IdealCollectorPerAgentCntSlice) == ((len(currentTopicsState) / currentMaxHostCount) + 1) {
+	if len(cScheduler.tm.IdealCollectorPerAgentCntSlice) == util.CalculateNumberOfCollector(len(currentTopicsState), currentMaxHostCount) {
 		return false
 	} else {
 		err := cScheduler.tm.DeleteAllTopicsInfo()
