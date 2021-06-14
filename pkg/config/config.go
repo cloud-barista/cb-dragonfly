@@ -23,12 +23,12 @@ type Kapacitor struct {
 }
 
 type Kafka struct {
-	EndpointUrl           string `json:"endpoint_url" mapstructure:"endpoint_url"`
-	ExternalIP            string `json:"external_ip" mapstructure:"external_ip"`
-	Deploy_Type           string `json:"deploy_type" mapstructure:"deploy_type"`
-	Helm_External_Port    int    `json:"helm_external_port" mapstructure:"helm_external_port"`
-	Compose_External_Port int    `json:"compose_external_port" mapstructure:"compose_external_port"`
-	InternalPort          int    `json:"internal_port" mapstructure:"internal_port"`
+	EndpointUrl         string `json:"endpoint_url" mapstructure:"endpoint_url"`
+	ExternalIP          string `json:"external_ip" mapstructure:"external_ip"`
+	DeployType          string `json:"deploy_type" mapstructure:"deploy_type"`
+	HelmExternalPort    int    `json:"helm_external_port" mapstructure:"helm_external_port"`
+	ComposeExternalPort int    `json:"compose_external_port" mapstructure:"compose_external_port"`
+	InternalPort        int    `json:"internal_port" mapstructure:"internal_port"`
 }
 
 type InfluxDB struct {
@@ -42,7 +42,6 @@ type InfluxDB struct {
 
 type CollectManager struct {
 	CollectorIP       string `json:"collector_ip" mapstructure:"collector_ip"`
-	CollectorPort     int    `json:"collector_port" mapstructure:"collector_port"`
 	CollectorGroupCnt int    `json:"collectorGroup_count" mapstructure:"collector_group_count"`
 }
 
@@ -51,10 +50,14 @@ type APIServer struct {
 }
 
 type Monitoring struct {
-	AgentInterval     int    `json:"agent_interval" mapstructure:"agent_interval"`         // 모니터링 에이전트 수집주기
-	CollectorInterval int    `json:"collector_interval" mapstructure:"collector_interval"` // 모니터링 콜렉터 Aggregate 주기
-	MonitoringPolicy  string `json:"monitoring_policy" mapstructure:"monitoring_policy"`   // 모니터링 콜렉터 정책
-	MaxHostCount      int    `json:"max_host_count" mapstructure:"max_host_count"`         // 모니터링 콜렉터 수
+	AgentInterval           int    `json:"agent_interval" mapstructure:"agent_interval"`         // 모니터링 에이전트 수집주기
+	CollectorInterval       int    `json:"collector_interval" mapstructure:"collector_interval"` // 모니터링 콜렉터 Aggregate 주기
+	MonitoringPolicy        string `json:"monitoring_policy" mapstructure:"monitoring_policy"`   // 모니터링 콜렉터 정책
+	MaxHostCount            int    `json:"max_host_count" mapstructure:"max_host_count"`         // 모니터링 콜렉터 수
+	DefaultPolicy           string `json:"default_policy" mapstructure:"default_policy"`         // 모니터링 기본 정책
+	PullerInterval          int    `json:"puller_interval" mapstructure:"puller_interval"`       // 모니터링 puller 실행 주기
+	PullerAggregateInterval int    `json:"puller_aggregate_interval" mapstructure:"puller_aggregate_interval"`
+	AggregateType           string `json:"aggregate_type" mapstructure:"aggregate_type"`
 }
 
 type GrpcServer struct {
@@ -87,6 +90,10 @@ func GetDefaultConfig() *Config {
 
 func (config *Config) SetMonConfig(newMonConfig Monitoring) {
 	config.Monitoring = newMonConfig
+}
+
+func (config *Config) GetMonConfig() Monitoring {
+	return config.Monitoring
 }
 
 func (config *Config) GetInfluxDBConfig() InfluxDB {
