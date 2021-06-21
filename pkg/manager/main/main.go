@@ -34,7 +34,6 @@ func startPushModule(wg *sync.WaitGroup) {
 	}
 
 	// 모니터링 콜렉터 스케일 인/아웃 스케줄러 실행
-	cm.SetConfigurationToMemoryDB()
 	wg.Add(1)
 	err = cm.StartScheduler(wg)
 	if err != nil {
