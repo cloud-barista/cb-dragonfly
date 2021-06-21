@@ -26,7 +26,8 @@ func startPushModule(wg *sync.WaitGroup) {
 		panic(err)
 	}
 
-	// TODO: CB-Store 모니터링 토픽 정보 초기화
+	// CB-Store 모니터링 토픽 정보 초기화
+	cm.SetConfigurationToMemoryDB()
 	err = cm.StartCollectorGroup(wg)
 	if err != nil {
 		panic(err)
