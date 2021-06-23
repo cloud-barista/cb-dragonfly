@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	DefaultDatabase = "cbmon"
-	PullDatabase    = "cbmonpull"
+	DefaultDatabase       = "cbmon"
+	PullDatabase          = "cbmonpull"
+	CBRetentionPolicyName = "df_rp"
 )
 
 type Config struct {
@@ -75,9 +76,59 @@ func (s Storage) Initialize() error {
 	// ignore the error of existing database
 	client.Query(q2)
 
+	// cbmon rp 조회 후 없을 시 rp 생성
+	if isRPonCBMonExist := s.checkDBRetionPolicy(client, DefaultDatabase); !isRPonCBMonExist {
+		createRPq1 := influxdbClient.Query{
+			Command: fmt.Sprintf("create retention policy %s on %s duration %s replication 1 default", CBRetentionPolicyName, DefaultDatabase, config.GetInstance().InfluxDB.RetentionPolicyDuration),
+		}
+		// influxdb rpDuration, shardGroupDuration 특성으로 인한 에러 검출
+		_, err := client.Query(createRPq1)
+		if err != nil {
+			return err
+		}
+	}
+
+	// cbmonpull rp 조회 후 없을 시 rp 생성
+	if isRPonCBMonPullExist := s.checkDBRetionPolicy(client, PullDatabase); !isRPonCBMonPullExist {
+		createRPq2 := influxdbClient.Query{
+			Command: fmt.Sprintf("create retention policy %s on %s duration %s replication 1 default", CBRetentionPolicyName, PullDatabase, config.GetInstance().InfluxDB.RetentionPolicyDuration),
+		}
+
+		// influxdb rpDuration, shardGroupDuration 특성으로 인한 에러 검출
+		_, err := client.Query(createRPq2)
+		if err != nil {
+			return err
+		}
+	}
+
 	s.Client = client
 	storage = s
 	return nil
+}
+
+func (s Storage) checkDBRetionPolicy(client influxdbClient.Client, dbName string) bool {
+	// Retention Policy 조회
+	listQuery := influxdbClient.Query{
+		Command: fmt.Sprintf("show retention policies on %s", dbName),
+	}
+
+	res, _ := client.Query(listQuery)
+
+	isRPExist := false
+
+	for _, db := range res.Results {
+		for _, v := range db.Series {
+			for _, rp := range v.Values {
+				for _, targetValue := range rp {
+					if targetValue == CBRetentionPolicyName {
+						isRPExist = true
+						break
+					}
+				}
+			}
+		}
+	}
+	return isRPExist
 }
 
 func (s Storage) WriteMetric(dbName string, metrics map[string]interface{}) error {

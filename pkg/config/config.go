@@ -32,12 +32,13 @@ type Kafka struct {
 }
 
 type InfluxDB struct {
-	EndpointUrl  string `json:"endpoint_url" mapstructure:"endpoint_url"`
-	InternalPort int    `json:"internal_port" mapstructure:"internal_port"`
-	ExternalPort int    `json:"external_port" mapstructure:"external_port"`
-	Database     string
-	UserName     string `json:"user_name" mapstructure:"user_name"`
-	Password     string
+	EndpointUrl             string `json:"endpoint_url" mapstructure:"endpoint_url"`
+	InternalPort            int    `json:"internal_port" mapstructure:"internal_port"`
+	ExternalPort            int    `json:"external_port" mapstructure:"external_port"`
+	Database                string
+	UserName                string `json:"user_name" mapstructure:"user_name"`
+	Password                string
+	RetentionPolicyDuration string `json:"rpDuration" mapstructure:"rpDuration"`
 }
 
 type CollectManager struct {
