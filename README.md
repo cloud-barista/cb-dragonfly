@@ -27,7 +27,7 @@ If you have any difficulties in using CB-Dragonfly, please let us know.
 1. [설치 개요](#설치-개요)
 2. [설치 절차](#설치-절차)
 3. [설치 & 실행 상세 정보](#설치--실행-상세-정보)
-
+4. [CB-Dragonfly 기능 사용 방법](#cb-dragonfly-기능-사용-방법)
 ***
 
 
@@ -151,4 +151,17 @@ If you have any difficulties in using CB-Dragonfly, please let us know.
 
               - `$ cd ~/cb-dragonfly`
               - `$ sudo make compose-rm` (cb-dragonfly 중지 및 삭제)
-              
+
+## [CB-Dragonfly 기능 사용 방법]
+
+### (1) CB-Dragonfly의 REST API를 사용하여 테스트
+
+- REST API 정의 문서: [링크](https://documenter.getpostman.com/view/7454078/TzJu8wwi)
+- 활용 기능
+  - 에이전트 설치/삭제
+  - MCIS 모니터링 정보 조회
+  - VM 모니터링 정보 조회
+  - 온디멘드 정보 조회
+  - 에이전트 메타데이터 조회
+  - 모니터링 정책 설정
+  - 알람 등록 및 관리
