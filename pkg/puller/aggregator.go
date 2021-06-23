@@ -53,14 +53,15 @@ func (pa *PullAggregator) StartAggregate() error {
 }
 
 func (pa *PullAggregator) AggregateMetric(agentList map[string]agent.AgentInfo, metricArr []types.Metric, aggregateType string) {
-	for _, agent := range agentList {
+	for _, targetAgent := range agentList {
+		if targetAgent.AgentType == types.PushPolicy {
+			continue
+		}
 		for _, metricKind := range metricArr {
-			//receivedMetric, err := pa.Storage.ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PUSH_POLICY, agent.AgentID, metricKind.ToString(), "m", aggregateType, "5m")
 			var receivedMetric interface{}
 			var err error
-			//var calculatedMetric interface{}
 			var mappedMetric interface{}
-			receivedMetric, err = pa.Storage.ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy, "", "", agent.VmId, metricKind.ToAgentMetricKey(), "m", aggregateType, "5m")
+			receivedMetric, err = pa.Storage.ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy, targetAgent.NsId, targetAgent.McisId, targetAgent.VmId, metricKind.ToAgentMetricKey(), "m", aggregateType, "5m")
 			if err != nil {
 				logrus.Println(err)
 			}

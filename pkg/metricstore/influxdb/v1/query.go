@@ -147,6 +147,8 @@ func BuildQuery(isPush bool, vmId string, metric string, period string, aggregat
 		query = query.Where("time", influxBuilder.MoreThan, timeDuration).
 			And("\"vmId\"", influxBuilder.Equal, "'"+vmId+"'").
 			GroupByTag("\"vmId\"").
+			GroupByTag("\"nsId\"").
+			GroupByTag("\"mcisId\"").
 			//GroupByTime(timeCriteria).
 			Fill("0").
 			OrderByTime("ASC")
@@ -187,7 +189,7 @@ func getPerSecMetric(isPUSH bool, vmId, metric, period string, fieldArr []string
 		whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"vmId\"='%s' GROUP BY time(%s) GROUP BY tag(%s) fill(0)"
 		query += fmt.Sprintf(whereQueryForm, metric, duration, vmId, timeCriteria)
 	} else {
-		whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"vmId\"='%s' GROUP BY time(%s), \"vmId\" fill(0)"
+		whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"vmId\"='%s' GROUP BY time(%s), \"vmId\", \"nsId\", \"mcisId\" fill(0)"
 		query += fmt.Sprintf(whereQueryForm, metric, duration, vmId, timeCriteria)
 	}
 
