@@ -84,9 +84,11 @@ func convertMonMetric(metric types.Metric, metricVal collector.TelegrafMetric) (
 	metricMap := map[string]interface{}{}
 	metricMap["name"] = metricVal.Name
 	tagMap := map[string]interface{}{
-		"nsId":   metricVal.Tags["nsId"],
-		"mcisId": metricVal.Tags["mcisId"],
-		"vmId":   metricVal.Tags["vmId"],
+		"nsId":    metricVal.Tags["nsId"],
+		"mcisId":  metricVal.Tags["mcisId"],
+		"vmId":    metricVal.Tags["vmId"],
+		"osType":  metricVal.Tags["osType"],
+		"cspType": metricVal.Tags["cspType"],
 	}
 	metricMap["tags"] = tagMap
 

@@ -66,9 +66,9 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.PUT("/config/reset", restconfig.ResetMonConfig)
 
 	// 에이전트 설치
-	dragonfly.POST("/agent/install", agent.InstallTelegraf)
+	dragonfly.POST("/agent", agent.InstallTelegraf)
 	// 에이전트 삭제
-	dragonfly.POST("/agent/uninstall", agent.UninstallAgent)
+	dragonfly.DELETE("/agent", agent.UninstallAgent)
 	// MCIS 모니터링 (Milkyway)
 	dragonfly.GET("/ns/:ns_id/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/mcis_metric/:metric_name/mcis-monitoring-info", metric.GetMCISMetric)
 	// 멀티클라우드 인프라 VM 온디멘드 모니터링
