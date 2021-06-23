@@ -184,9 +184,6 @@ func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
 }
 
 func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType string) (string, error) {
-	influxDBServer := fmt.Sprintf("%s:%d", config.GetInstance().InfluxDB.EndpointUrl, config.GetInstance().InfluxDB.ExternalPort)
-	userName := fmt.Sprintf(config.GetInstance().InfluxDB.UserName)
-	password := fmt.Sprintf(config.GetInstance().InfluxDB.Password)
 	mechanism := fmt.Sprintf(strings.ToLower(config.GetInstance().Monitoring.DefaultPolicy))
 	rootPath := os.Getenv("CBMON_ROOT")
 	filePath := rootPath + "/file/conf/telegraf.conf"
@@ -203,9 +200,6 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 	strConf = strings.ReplaceAll(strConf, "{{ns_id}}", nsId)
 	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", mcisId)
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
-	strConf = strings.ReplaceAll(strConf, "{{influxdb_server}}", influxDBServer)
-	strConf = strings.ReplaceAll(strConf, "{{userName}}", userName)
-	strConf = strings.ReplaceAll(strConf, "{{password}}", password)
 	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", cspType)
 	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", mechanism)
 
