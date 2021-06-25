@@ -45,6 +45,13 @@ func GetMCISCommonMonInfo(nsId string, mcisId string, vmId string, agentIp strin
 
 	var metricData CBMCISMetric
 	body, err := ioutil.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		var errmsg map[string]interface{}
+		json.Unmarshal(body, &errmsg)
+		return nil, resp.StatusCode, errors.New(errmsg["message"].(string))
+	}
+
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -77,6 +84,13 @@ func GetMCISMonRTTInfo(nsId string, mcisId string, vmId string, agentIp string, 
 
 	var metricData CBMCISMetric
 	body, err := ioutil.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		var errmsg map[string]interface{}
+		json.Unmarshal(body, &errmsg)
+		return nil, resp.StatusCode, errors.New(errmsg["message"].(string))
+	}
+
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -112,6 +126,13 @@ func GetMCISMonMRTTInfo(nsId string, mcisId string, vmId string, agentIp string,
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
+
+	if resp.StatusCode != http.StatusOK {
+		var errmsg map[string]interface{}
+		json.Unmarshal(body, &errmsg)
+		return nil, resp.StatusCode, errors.New(errmsg["message"].(string))
+	}
+
 	err = json.Unmarshal(body, &metricData)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
