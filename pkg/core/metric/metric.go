@@ -56,10 +56,7 @@ func GetVMMonInfo(nsId string, mcisId string, vmId string, metricName string, pe
 
 	switch metric {
 
-	case types.Cpu:
-	case types.CpuFrequency:
-	case types.Memory:
-	case types.Network:
+	case types.Cpu, types.CpuFrequency, types.Memory, types.Network:
 
 		// cpu, cpufreq, memory, network 메트릭 조회
 		cpuMetric, err := v1.GetInstance().ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy, nsId, mcisId, vmId, metric.ToAgentMetricKey(), period, aggregateType, duration)
