@@ -186,7 +186,7 @@ func getPerSecMetric(isPUSH bool, vmId, metric, period string, fieldArr []string
 
 	// 메트릭 조회 조건 쿼리 생성
 	if isPUSH {
-		whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"vmId\"='%s' GROUP BY time(%s) GROUP BY tag(%s) fill(0)"
+		whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"vmId\"='%s' GROUP BY time(%s) fill(0)"
 		query += fmt.Sprintf(whereQueryForm, metric, duration, vmId, timeCriteria)
 	} else {
 		whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"vmId\"='%s' GROUP BY time(%s), \"vmId\", \"nsId\", \"mcisId\" fill(0)"
