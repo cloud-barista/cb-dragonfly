@@ -6,7 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: cloudbaristaorg/cb-dragonfly:espresso-v0.1-kafka
+    image: cloudbaristaorg/cb-dragonfly:dev
     container_name: cb-dragonfly
     volumes:
       - ./conf/:/go/src/github.com/cloud-barista/cb-dragonfly/conf/
@@ -27,8 +27,6 @@ services:
     restart: always
     security_opt:
       - no-new-privileges
-#    extra_hosts:
-#      - "external-cb-dragonfly:192.168.130.7"
     networks:
       cb-dragonfly:
         aliases:
@@ -46,7 +44,7 @@ services:
         aliases:
           - cb-dragonfly-zookeeper
 
-  # etcd for CB-Dragonfly
+  # kafka for CB-Dragonfly
   cb-dragonfly-kafka:
     image: wurstmeister/kafka:2.12-2.4.1
     container_name: cb-dragonfly-kafka
@@ -68,8 +66,6 @@ services:
       cb-dragonfly:
         aliases:
           - cb-dragonfly-kafka
-#    extra_hosts:
-#      - "external-cb-dragonfly:192.168.130.7"
 
   # InfluxDB for CB-Dragonfly
   cb-dragonfly-influxdb:

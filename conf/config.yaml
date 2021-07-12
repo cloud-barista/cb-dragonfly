@@ -16,10 +16,9 @@ kapacitor:
 kafka:
   endpoint_url: cb-dragonfly-kafka
   external_ip: 127.0.0.1
-  deploy_type: "compose"                              # deploy environment "compose" => docker-compose or others , "helm" => helm chart on k8s
+  internal_port: 9092
   compose_external_port: 9092
   helm_external_port: 32000
-  internal_port: 9092
 
 # collect manager configuration info
 collectManager:
@@ -40,6 +39,7 @@ monitoring:
   puller_interval: 10
   puller_aggregate_interval: 30
   aggregate_type: "max"                             # min, max, avg, last
+  deploy_type: "compose"                            # deploy environment "compose" => docker-compose or others , "helm" => helm chart on k8s
 
 grpcServer:
   port: 9999

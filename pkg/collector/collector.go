@@ -3,10 +3,11 @@ package collector
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
@@ -37,8 +38,7 @@ var KafkaConfig *kafka.ConfigMap
 func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (MetricCollector, error) {
 
 	KafkaConfig = &kafka.ConfigMap{
-		"bootstrap.servers": fmt.Sprintf("%s", config.GetDefaultConfig().GetKafkaConfig().GetKafkaEndpointUrl()),
-		//"bootstrap.servers":  "192.168.130.7",
+		"bootstrap.servers":  fmt.Sprintf("%s", config.GetDefaultConfig().GetKafkaConfig().GetKafkaEndpointUrl()),
 		"group.id":           fmt.Sprintf("%d", createOrder),
 		"enable.auto.commit": true,
 		"auto.offset.reset":  "earliest",
