@@ -3,6 +3,7 @@ package v1
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -44,7 +45,14 @@ func GetInstance() *Storage {
 func (s Storage) Initialize() error {
 	if s.Config == (Config{}) {
 		influxDBConfig := config.GetInstance().GetInfluxDBConfig()
-		influxDBAddr := fmt.Sprintf("%s:%d", influxDBConfig.EndpointUrl, influxDBConfig.ExternalPort)
+		var influxDBPort int
+		if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "compose") {
+			influxDBPort = config.GetInstance().GetInfluxDBConfig().InternalPort
+		} else {
+			influxDBPort = config.GetInstance().GetInfluxDBConfig().ExternalPort
+		}
+		influxDBAddr := fmt.Sprintf("%s:%d", influxDBConfig.EndpointUrl, influxDBPort)
+		fmt.Println("port=====" + influxDBAddr)
 		s.Config.Addr = influxDBAddr
 		s.Config.Username = influxDBConfig.UserName
 		s.Config.Password = influxDBConfig.Password

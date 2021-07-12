@@ -204,12 +204,14 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", mechanism)
 
 	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_%s_%s_%s", nsId, mcisId, vmId, cspType))
-	switch config.GetInstance().GetKafkaConfig().DeployType {
-	case "helm":
-		strConf = strings.ReplaceAll(strConf, "{{broker_server}}", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().HelmExternalPort))
-	default:
-		strConf = strings.ReplaceAll(strConf, "{{broker_server}}", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().ComposeExternalPort))
+	var kafkaPort int
+	if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "compose") {
+		kafkaPort = config.GetInstance().GetKafkaConfig().ComposeExternalPort
+	} else {
+		kafkaPort = config.GetInstance().GetKafkaConfig().HelmExternalPort
 	}
+	kafkaAddr := fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), kafkaPort)
+	strConf = strings.ReplaceAll(strConf, "{{broker_server}}", kafkaAddr)
 
 	// telegraf.conf 파일 생성
 	telegrafFilePath := rootPath + "/file/conf/"

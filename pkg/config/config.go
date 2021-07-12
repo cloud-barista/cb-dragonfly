@@ -25,7 +25,6 @@ type Kapacitor struct {
 type Kafka struct {
 	EndpointUrl         string `json:"endpoint_url" mapstructure:"endpoint_url"`
 	ExternalIP          string `json:"external_ip" mapstructure:"external_ip"`
-	DeployType          string `json:"deploy_type" mapstructure:"deploy_type"`
 	HelmExternalPort    int    `json:"helm_external_port" mapstructure:"helm_external_port"`
 	ComposeExternalPort int    `json:"compose_external_port" mapstructure:"compose_external_port"`
 	InternalPort        int    `json:"internal_port" mapstructure:"internal_port"`
@@ -59,6 +58,7 @@ type Monitoring struct {
 	PullerInterval          int    `json:"puller_interval" mapstructure:"puller_interval"`       // 모니터링 puller 실행 주기
 	PullerAggregateInterval int    `json:"puller_aggregate_interval" mapstructure:"puller_aggregate_interval"`
 	AggregateType           string `json:"aggregate_type" mapstructure:"aggregate_type"`
+	DeployType              string `json:"deploy_type" mapstructure:"deploy_type"`
 }
 
 type GrpcServer struct {
