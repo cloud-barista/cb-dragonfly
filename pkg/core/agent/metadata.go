@@ -84,7 +84,7 @@ func (a AgentListManager) putAgentListToStore(agentList map[string]AgentInfo) er
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to convert agentList format to json, error=%s", err))
 	}
-	err = cbstore.GetInstance().Store.Put(AgentListKey, string(agentListBytes))
+	err = cbstore.GetInstance().StorePut(AgentListKey, string(agentListBytes))
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to put agentList, error=%s", err))
 	}
