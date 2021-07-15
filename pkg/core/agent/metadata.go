@@ -7,10 +7,7 @@ import (
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-)
-
-const (
-	AgentListKey = "agentlist"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 )
 
 // AgentType 에이전트 동작 메커니즘 유형 (Push, Pull)
@@ -69,7 +66,7 @@ type AgentListManager struct{}
 
 func (a AgentListManager) getAgentListFromStore() (map[string]AgentInfo, error) {
 	agentList := map[string]AgentInfo{}
-	agentListStr := cbstore.GetInstance().StoreGet(AgentListKey)
+	agentListStr := cbstore.GetInstance().StoreGet(types.Agent)
 	if agentListStr != "" {
 		err := json.Unmarshal([]byte(agentListStr), &agentList)
 		if err != nil {
@@ -84,7 +81,7 @@ func (a AgentListManager) putAgentListToStore(agentList map[string]AgentInfo) er
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to convert agentList format to json, error=%s", err))
 	}
-	err = cbstore.GetInstance().StorePut(AgentListKey, string(agentListBytes))
+	err = cbstore.GetInstance().StorePut(types.Agent, string(agentListBytes))
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to put agentList, error=%s", err))
 	}
@@ -138,7 +135,7 @@ func PutAgentMetadataToStore(agentUUID string, agentInfo AgentInfo) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to convert metadata format to json, error=%s", err))
 	}
-	err = cbstore.GetInstance().StorePut(agentUUID, string(agentInfoBytes))
+	err = cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.Agent, agentUUID), string(agentInfoBytes))
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to put metadata, error=%s", err))
 	}

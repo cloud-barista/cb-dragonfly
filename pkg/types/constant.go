@@ -5,10 +5,14 @@ const (
 	PullPolicy = "pull"
 )
 
+// CB-Store key
 const (
-	MoNConfig           = "config"
-	CollectorGroupTopic = "collectorGroupTopic"
-	Topic               = "topic"
+	Agent               = "/monitoring/agents"
+	MonConfig           = "/monitoring/configs"
+	Topic               = "/monitoring/topics"
+	CollectorGroupTopic = "/monitoring/collectorGroupTopics"
+	DeleteTopic         = "/monitoring/delTopics"
+	EventLog            = "/monitoring/eventLogs"
 )
 
 const (

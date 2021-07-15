@@ -2,14 +2,16 @@ package event
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/types"
+	alerttypes "github.com/cloud-barista/cb-dragonfly/pkg/core/alert/types"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 )
 
-func CreateEventLog(eventLog types.AlertEventLog) error {
-	var eventLogArr []types.AlertEventLog
+func CreateEventLog(eventLog alerttypes.AlertEventLog) error {
+	var eventLogArr []alerttypes.AlertEventLog
 
 	eventLogStr := cbstore.GetInstance().StoreGet(eventLog.Id)
 
@@ -29,18 +31,18 @@ func CreateEventLog(eventLog types.AlertEventLog) error {
 	if err != nil {
 		return err
 	}
-	err = cbstore.GetInstance().StorePut(eventLog.Id, string(newEventLogBytes))
+	err = cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.EventLog, eventLog.Id), string(newEventLogBytes))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func ListEventLog(taskId string, logLevel string) ([]types.AlertEventLog, error) {
-	var eventLogArr []types.AlertEventLog
+func ListEventLog(taskId string, logLevel string) ([]alerttypes.AlertEventLog, error) {
+	var eventLogArr []alerttypes.AlertEventLog
 	eventLogStr := cbstore.GetInstance().StoreGet(taskId)
 	if eventLogStr == "" {
-		return []types.AlertEventLog{}, nil
+		return []alerttypes.AlertEventLog{}, nil
 	}
 	err := json.Unmarshal([]byte(eventLogStr), &eventLogArr)
 	if err != nil {
@@ -50,7 +52,7 @@ func ListEventLog(taskId string, logLevel string) ([]types.AlertEventLog, error)
 		return eventLogArr, nil
 	}
 
-	filterdEventLogArr := []types.AlertEventLog{}
+	filterdEventLogArr := []alerttypes.AlertEventLog{}
 	for _, log := range eventLogArr {
 		if strings.EqualFold(log.Level, logLevel) {
 			filterdEventLogArr = append(filterdEventLogArr, log)

@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/v1"
@@ -105,20 +106,21 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string)
 
 	currentTopics := unique(msgTopic)
 	for _, topic := range currentTopics {
-		cbstore.GetInstance().StoreDelete(types.DELTOPICS + topic)
+		cbstore.GetInstance().StoreDelete(fmt.Sprintf("%s/%s", types.DeleteTopic, topic))
 	}
 	delTopics := []string{}
 	needCheckTopics := ReturnDiffTopicList(topics, currentTopics)
 	if len(needCheckTopics) != 0 {
 		for _, topic := range needCheckTopics {
-			if cbstore.GetInstance().StoreGet(types.DELTOPICS+topic) == "" {
-				cbstore.GetInstance().StorePut(types.DELTOPICS+topic, "0")
+			if cbstore.GetInstance().StoreGet(fmt.Sprintf("%s/%s", types.DeleteTopic, topic)) == "" {
+				cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.DeleteTopic, topic), "0")
+				cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.DeleteTopic, topic), "0")
 			} else {
-				count, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.DELTOPICS + topic))
+				count, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(fmt.Sprintf("%s/%s", types.DeleteTopic, topic)))
 				count++
-				cbstore.GetInstance().StorePut(types.DELTOPICS+topic, strconv.Itoa(count))
+				cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.DeleteTopic, topic), strconv.Itoa(count))
 			}
-			checkNum, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.DELTOPICS + topic))
+			checkNum, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(fmt.Sprintf("%s/%s", types.DeleteTopic, topic)))
 			if checkNum >= 2 {
 				delTopics = append(delTopics, topic)
 			}
