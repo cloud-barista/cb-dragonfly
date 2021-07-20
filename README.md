@@ -83,7 +83,7 @@ If you have any difficulties in using CB-Dragonfly, please let us know.
     
     - 환경변수 설정
           
-          - `$ sudo vim conf/setup.env` (실행에 필요한 PATH를 처리할 파일 생성  (현 위치: ~/cb-dragonfly))
+          - `$ sudo vim setup.env` (실행에 필요한 PATH를 처리할 파일 생성  (현 위치: ~/cb-dragonfly))
                setup.env에 추가
                 
                 export CBSTORE_ROOT=~/cb-dragonfly
