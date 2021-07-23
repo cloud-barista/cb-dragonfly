@@ -32,6 +32,9 @@ func InitializeEventTypes() {
 }
 
 func ListEventHandlers(eventType string) ([]types.AlertEventHandler, error) {
+	if len(EventTypes) == 0 {
+		InitializeEventTypes()
+	}
 	// get specific event type handlers
 	if eventType != "" {
 		if _, ok := EventTypes[eventType]; !ok {

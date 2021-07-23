@@ -14,6 +14,17 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/agent"
 )
 
+// InstallTelegraf 에이전트 설치
+// @Summary Install agent to vm
+// @Description 모니터링 에이전트 설치
+// @Tags [Agent] Monitoring Agent
+// @Accept  json
+// @Produce  json
+// @Param agentInfo body rest.AgentType true "Details for an Agent Install object"
+// @Success 200 {object} rest.SimpleMsg
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /agent [post]
 func InstallTelegraf(c echo.Context) error {
 	// form 파라미터 값 가져오기
 	nsId := c.FormValue("ns_id")
@@ -115,6 +126,17 @@ func GetTelegrafPkgFile(c echo.Context) error {
 	return c.File(file)
 }
 
+// UninstallAgent 에이전트 삭제
+// @Summary Uninstall agent to vm
+// @Description 모니터링 에이전트 제거
+// @Tags [Agent] Monitoring Agent
+// @Accept  json
+// @Produce  json
+// @Param agentInfo body rest.AgentType true "Details for an Agent Remove object"
+// @Success 200 {object} rest.SimpleMsg
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /agent [delete]
 func UninstallAgent(c echo.Context) error {
 	nsId := c.FormValue("ns_id")
 	mcisId := c.FormValue("mcis_id")

@@ -13,7 +13,17 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/types"
 )
 
-// 알람 이벤트 핸들러 목록 조회
+// ListEventHandler 알람 이벤트 핸들러 목록 조회
+// @Summary List monitoring alert event-handler
+// @Description 알람 이벤트 핸들러 목록 조회
+// @Tags [EventHandler] Alarm Event Handler management
+// @Accept  json
+// @Produce  json
+// @Param eventType query string false "이벤트 핸들러 유형" Enums(slack, smtp)
+// @Success 200 {object} []types.AlertEventHandler
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /alert/eventhandlers [get]
 func ListEventHandler(c echo.Context) error {
 	eventType := c.QueryParam("eventType")
 	eventHandlerList, err := eventhandler.ListEventHandlers(eventType)
@@ -23,7 +33,18 @@ func ListEventHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, eventHandlerList)
 }
 
-// 알람 이벤트 핸들러 상세 조회
+// GetEventHandler 알람 이벤트 핸들러 상세 조회
+// @Summary Get monitoring alert event-handler
+// @Description 알람 이벤트 핸들러 조회
+// @Tags [EventHandler] Alarm Event Handler management
+// @Accept  json
+// @Produce  json
+// @Param type path string true "이벤트 핸들러 유형"
+// @Param name path string true "이벤트 핸들러 이름"
+// @Success 200 {object} types.AlertEventHandler
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /alert/eventhandler/type/{type}/event/{name} [get]
 func GetEventHandler(c echo.Context) error {
 	eventType := c.Param("type")
 	eventHandlerName := c.Param("name")
@@ -34,7 +55,17 @@ func GetEventHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, eventHandler)
 }
 
-// 알람 이벤트 핸들러 생성
+// CreateEventHandler 알람 이벤트 핸들러 생성
+// @Summary Create monitoring alert event-handler
+// @Description 알람 이벤트 핸들러 생성
+// @Tags [EventHandler] Alarm Event Handler management
+// @Accept  json
+// @Produce  json
+// @Param eventHandlerInfo body types.AlertEventHandlerReq true "Details for an EventHandler object"
+// @Success 200 {object} types.AlertEventHandler
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /alert/eventhandler [post]
 func CreateEventHandler(c echo.Context) error {
 	eventHandlerReq, err := setEventHandlerReq(c)
 	if err != nil {
@@ -47,7 +78,19 @@ func CreateEventHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, eventHandler)
 }
 
-// 알람 이벤트 핸들러 수정
+// UpdateEventHandler 알람 이벤트 핸들러 수정
+// @Summary Update monitoring alert event-handler
+// @Description 알람 이벤트 핸들러 수정
+// @Tags [EventHandler] Alarm Event Handler management
+// @Accept  json
+// @Produce  json
+// @Param type path string true "이벤트 핸들러 유형"
+// @Param name path string true "이벤트 핸들러 이름"
+// @Param eventHandlerInfo body types.AlertEventHandlerReq true "Details for an EventHandler (slack) object"
+// @Success 200 {object} types.AlertEventHandler
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /alert/eventhandler/type/{type}/event/{name} [put]
 func UpdateEventHandler(c echo.Context) error {
 	eventType := c.Param("type")
 	eventHandlerName := c.Param("name")
@@ -62,7 +105,18 @@ func UpdateEventHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, eventHandler)
 }
 
-// 알람 이벤트 핸들러 삭제
+// DeleteEventHandler 알람 이벤트 핸들러 삭제
+// @Summary Delete monitoring alert event-handler
+// @Description 알람 이벤트 핸들러 삭제
+// @Tags [EventHandler] Alarm Event Handler management
+// @Accept  json
+// @Produce  json
+// @Param type path string true "이벤트 핸들러 유형"
+// @Param name path string true "이벤트 핸들러 이름"
+// @Success 200 {object} rest.SimpleMsg
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /alert/eventhandler/type/{type}/event/{name} [delete]
 func DeleteEventHandler(c echo.Context) error {
 	eventType := c.Param("type")
 	eventHandlerName := c.Param("name")
