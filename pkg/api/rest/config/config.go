@@ -13,7 +13,18 @@ import (
 	coreconfig "github.com/cloud-barista/cb-dragonfly/pkg/core/config"
 )
 
-// 모니터링 정책 설정
+
+// SetMonConfig 모니터링 정책 설정
+// @Summary Set monitoring config
+// @Description 모니터링 정책 설정
+// @Tags [Setting] Multi-Cloud Monitor Policy Setting
+// @Accept  json
+// @Produce  json
+// @Param monitorInfo body config.Monitoring true "Details for an Monitor object"
+// @Success 200 {object} Monitoring
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /config [put]
 func SetMonConfig(c echo.Context) error {
 	params, err := c.FormParams()
 	if len(params) == 0 {
@@ -45,7 +56,16 @@ func SetMonConfig(c echo.Context) error {
 	return c.JSON(http.StatusOK, monConfig)
 }
 
-// 모니터링 정책 조회
+// GetMonConfig 모니터링 정책 조회
+// @Summary Get monitoring config
+// @Description 모니터링 정책 조회
+// @Tags [Setting] Multi-Cloud Monitor Policy Setting
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} config.Monitoring
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /config [get]
 func GetMonConfig(c echo.Context) error {
 	monConfig, errCode, err := coreconfig.GetMonConfig()
 	if errCode != http.StatusOK {
@@ -54,7 +74,16 @@ func GetMonConfig(c echo.Context) error {
 	return c.JSON(http.StatusOK, monConfig)
 }
 
-// 모니터링 정책 초기화
+// ResetMonConfig 모니터링 정책 초기화
+// @Summary Reset monitoring config
+// @Description 모니터링 정책 초기화
+// @Tags [Setting] Multi-Cloud Monitor Policy Setting
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} config.Monitoring
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /config/reset [put]
 func ResetMonConfig(c echo.Context) error {
 	monConfig, errCode, err := coreconfig.ResetMonConfig()
 	if errCode != http.StatusOK {

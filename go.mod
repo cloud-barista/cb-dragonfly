@@ -10,13 +10,17 @@ replace (
 
 require (
 	github.com/Scalingo/go-utils v7.1.0+incompatible
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/bramvdbogaerde/go-scp v1.0.0
 	github.com/cloud-barista/cb-log v0.4.0
 	github.com/cloud-barista/cb-spider v0.4.5
 	github.com/cloud-barista/cb-store v0.4.1
-	github.com/confluentinc/confluent-kafka-go v1.7.0 // indirect
+	github.com/confluentinc/confluent-kafka-go v1.7.0
 	github.com/coreos/bbolt v1.3.4 // indirect
 	github.com/deepmap/oapi-codegen v1.8.1 // indirect
+	github.com/go-openapi/jsonreference v0.19.6 // indirect
+	github.com/go-openapi/spec v0.20.3 // indirect
+	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6
@@ -28,6 +32,7 @@ require (
 	github.com/influxdata/line-protocol v0.0.0-20210311194329-9aa0e372d097 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/labstack/echo/v4 v4.3.0
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/pkg/errors v0.9.1
@@ -36,12 +41,17 @@ require (
 	github.com/smartystreets/assertions v1.1.0 // indirect
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
+	github.com/swaggo/echo-swagger v1.1.0
+	github.com/swaggo/swag v1.7.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20200427203606-3cfed13b9966 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
+	go.uber.org/zap v1.18.1 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
+	golang.org/x/net v0.0.0-20210716203947-853a461950ff // indirect
+	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
+	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/grpc v1.39.0
-	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.7.0
 	gopkg.in/yaml.v2 v2.4.0
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )

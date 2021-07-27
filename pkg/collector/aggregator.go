@@ -13,7 +13,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/v1"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 )
