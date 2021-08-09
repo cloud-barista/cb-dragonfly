@@ -40,6 +40,3 @@ monitoring:
   puller_aggregate_interval: 30
   aggregate_type: "avg"                             # min, max, avg, last
   deploy_type: "compose"                            # deploy environment "compose" => docker-compose or others , "helm" => helm chart on k8s
-
-grpcServer:
-  port: 9999

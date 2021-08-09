@@ -13,7 +13,6 @@ import (
 	coreconfig "github.com/cloud-barista/cb-dragonfly/pkg/core/config"
 )
 
-
 // SetMonConfig 모니터링 정책 설정
 // @Summary Set monitoring config
 // @Description 모니터링 정책 설정
