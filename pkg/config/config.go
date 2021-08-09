@@ -15,7 +15,6 @@ type Config struct {
 	Monitoring     Monitoring
 	Kapacitor      Kapacitor
 	Kafka          Kafka
-	GrpcServer     GrpcServer
 }
 
 type Kapacitor struct {
@@ -61,10 +60,6 @@ type Monitoring struct {
 	DeployType              string `json:"deploy_type" mapstructure:"deploy_type"`
 }
 
-type GrpcServer struct {
-	Port int
-}
-
 func (kapacitor Kapacitor) GetKapacitorEndpointUrl() string {
 	return kapacitor.EndpointUrl
 }
@@ -107,10 +102,6 @@ func (config *Config) GetKapacitorConfig() Kapacitor {
 
 func (config *Config) GetKafkaConfig() Kafka {
 	return config.Kafka
-}
-
-func (config *Config) GetGrpcConfig() GrpcServer {
-	return config.GrpcServer
 }
 
 func loadConfigFromYAML(config *Config) {
