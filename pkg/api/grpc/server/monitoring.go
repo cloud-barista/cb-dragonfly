@@ -8,6 +8,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/grpc/common"
 	pb "github.com/cloud-barista/cb-dragonfly/pkg/api/grpc/protobuf/cbdragonfly"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	coreagent "github.com/cloud-barista/cb-dragonfly/pkg/core/agent"
 	coreconfig "github.com/cloud-barista/cb-dragonfly/pkg/core/config"
 	coremetric "github.com/cloud-barista/cb-dragonfly/pkg/core/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
@@ -359,6 +360,10 @@ func (c MonitoringService) ResetMonConfig(ctx context.Context, empty *pb.Empty) 
 	return resp, nil
 }
 
-func (c MonitoringService) InstallTelegraf(ctx context.Context, request *pb.InstallTelegrafRequest) (*pb.MessageResponse, error) {
-	panic("implement me")
+func (c MonitoringService) InstallAgent(ctx context.Context, request *pb.InstallAgentRequest) (*pb.MessageResponse, error) {
+	statusCode, err := coreagent.InstallAgent(request.NsId, request.McisId, request.VmId, request.PublicIp, request.UserName, request.SshKey, request.CspType, request.Port)
+	if statusCode != http.StatusOK {
+		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.InstallAgent()")
+	}
+	return &pb.MessageResponse{Message: "agent installation is finished"}, nil
 }

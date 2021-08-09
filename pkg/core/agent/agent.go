@@ -23,7 +23,7 @@ const (
 	CENTOS = "CENTOS"
 )
 
-func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, userName string, sshKey string, cspType string, port string) (int, error) {
+func InstallAgent(nsId string, mcisId string, vmId string, publicIp string, userName string, sshKey string, cspType string, port string) (int, error) {
 	sshInfo := sshrun.SSHInfo{
 		ServerPort: publicIp + ":" + port,
 		UserName:   userName,
@@ -39,7 +39,7 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 	// 리눅스 OS 환경 체크
 	osType, err := sshrun.SSHRun(sshInfo, "hostnamectl | grep 'Operating System' | awk '{print $3}' | tr 'a-z' 'A-Z'")
 	if err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to check linux OS environments, error=%s", err))
 	}
 
@@ -66,28 +66,28 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 
 	// 에이전트 설치 패키지 다운로드
 	if err := sshCopyWithTimeout(sshInfo, sourceFile, targetFile); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to download agent package, error=%s", err))
 	}
 	// MCIS 에이전트 설치 패키지 다운로드
 	if err := sshCopyWithTimeout(sshInfo, mcisInstallFile, targetmcisInstallFile); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to download mcis agent package, error=%s", err))
 	}
 
 	// 패키지 설치 실행
 	if _, err := sshrun.SSHRun(sshInfo, installCmd); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to install agent package, error=%s", err))
 	}
 	cmd := "cd $HOME/cb-dragonfly && sudo chmod +x install_mcis_script.sh"
 	if _, err := sshrun.SSHRun(sshInfo, cmd); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to install mcis agent package, error=%s", err))
 	}
 	installCmd = fmt.Sprintf("cd $HOME/cb-dragonfly && ./install_mcis_script.sh")
 	if _, err := sshrun.SSHRun(sshInfo, installCmd); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to start installing mcis agent, error=%s", err))
 	}
 	sshrun.SSHRun(sshInfo, "sudo rm /etc/telegraf/telegraf.conf")
@@ -96,16 +96,16 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 	telegrafConfSourceFile, err := createTelegrafConfigFile(nsId, mcisId, vmId, cspType)
 	telegrafConfTargetFile := "$HOME/cb-dragonfly/telegraf.conf"
 	if err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to create telegraf.conf, error=%s", err))
 	}
 	if err := sshrun.SSHCopy(sshInfo, telegrafConfSourceFile, telegrafConfTargetFile); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to copy telegraf.conf, error=%s", err))
 	}
 
 	if _, err := sshrun.SSHRun(sshInfo, "sudo mv $HOME/cb-dragonfly/telegraf.conf /etc/telegraf/"); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to move telegraf.conf, error=%s", err))
 	}
 
@@ -113,38 +113,38 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 	inputKafkaServerDomain := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", config.GetInstance().GetKafkaConfig().ExternalIP, "cb-dragonfly-kafka")
 	_, err = sshrun.SSHRun(sshInfo, inputKafkaServerDomain)
 	if err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to register kafka domain, error=%s", err))
 	}
 
 	// 공통 서비스 활성화 및 실행
 	if _, err := sshrun.SSHRun(sshInfo, "sudo systemctl enable telegraf && sudo systemctl restart telegraf"); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to enable and start telegraf service, error=%s", err))
 	}
 
 	// telegraf UUId conf 파일 삭제
 	err = os.Remove(telegrafConfSourceFile)
 	if err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to remove temporary telegraf.conf file, error=%s", err))
 	}
 
 	// 에이전트 설치에 사용한 파일 폴더 채로 제거
 	removeRpmCmd := fmt.Sprintf("sudo rm -rf $HOME/cb-dragonfly")
 	if _, err := sshrun.SSHRun(sshInfo, removeRpmCmd); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to remove cb-dragonfly directory, error=%s", err))
 	}
 
 	// 정상 설치 확인
 	checkCmd := "telegraf --version"
 	if result, err := sshrun.SSHRun(sshInfo, checkCmd); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to run telegraf command, error=%s", err))
 	} else {
 		if strings.Contains(result, "command not found") {
-			cleanTelegrafInstall(sshInfo, osType)
+			cleanAgentInstall(sshInfo, osType)
 			return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to run telegraf command, error=%s", err))
 		}
 	}
@@ -152,21 +152,21 @@ func InstallTelegraf(nsId string, mcisId string, vmId string, publicIp string, u
 	// 에이전트 권한 변경
 	stopcmd := fmt.Sprintf("sudo systemctl stop telegraf && sudo usermod -u 0 -o telegraf && sudo systemctl restart telegraf")
 	if _, err := sshrun.SSHRun(sshInfo, stopcmd); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to change telegraf permission, err=%s", err))
 	}
 
 	// 메타데이터 저장
 	err = SetMetadataByAgentInstall(nsId, mcisId, vmId, cspType, publicIp)
 	if err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))
 	}
 
 	return http.StatusOK, nil
 }
 
-func cleanTelegrafInstall(sshInfo sshrun.SSHInfo, osType string) {
+func cleanAgentInstall(sshInfo sshrun.SSHInfo, osType string) {
 	// Uninstall Telegraf
 	var uninstallCmd string
 	if strings.Contains(osType, CENTOS) {
@@ -290,7 +290,7 @@ func UninstallAgent(
 	// 리눅스 OS 환경 체크
 	osType, err := sshrun.SSHRun(sshInfo, "hostnamectl | grep 'Operating System' | awk '{print $3}' | tr 'a-z' 'A-Z'")
 	if err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to check linux OS environments, error=%s", err))
 	}
 
@@ -303,28 +303,28 @@ func UninstallAgent(
 
 	// 에이전트 설치 패키지 다운로드
 	if err := sshCopyWithTimeout(sshInfo, sourceFile, targetFile); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to download agent package, error=%s", err))
 	}
 	cmd := "cd $HOME/cb-dragonfly && sudo chmod +x uninstall_mcis_script.sh"
 	if _, err := sshrun.SSHRun(sshInfo, cmd); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to chmod agent package, error=%s", err))
 	}
 	Cmd = fmt.Sprintf("cd $HOME/cb-dragonfly && ./uninstall_mcis_script.sh")
 	if _, err := sshrun.SSHRun(sshInfo, Cmd); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to uninstall agent, error=%s", err))
 	}
 	// sudo perl -pi -e "s,^192.168.130.14.*tml\n$,," /etc/hosts
 
 	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", config.GetInstance().GetKafkaConfig().ExternalIP, "cb-dragonfly-kafka")
 	if _, err := sshrun.SSHRun(sshInfo, Cmd); err != nil {
-		cleanTelegrafInstall(sshInfo, osType)
+		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete domain list, error=%s", err))
 	}
 	// 에이전트 설치에 사용한 파일 폴더 채로 제거
-	cleanTelegrafInstall(sshInfo, osType)
+	cleanAgentInstall(sshInfo, osType)
 
 	// 메타데이터 삭제
 	err = SetMetadataByAgentUninstall(nsId, mcisId, vmId, cspType)
