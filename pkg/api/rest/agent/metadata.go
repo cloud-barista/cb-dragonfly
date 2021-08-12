@@ -18,6 +18,10 @@ type JSONResult struct {
 	//Data    interface{}  `json:"data"`
 }
 
+type MetaDataListType struct {
+	Id agent.AgentInfo `json:"id(ns_id/mcis_id/vm_id/csp_type)"`
+}
+
 // ListAgentMetadata 에이전트 메타데이터 조회
 // @Summary List agent metadata
 // @Description 에이전트 메타데이터 조회
@@ -28,7 +32,7 @@ type JSONResult struct {
 // @Param mcisId query string false "MCIS 아이디" Enums(test_mcis)
 // @Param vmId query string false "VM 아이디" Enums(test_vm)
 // @Param cspType query string false "VM의 CSP 정보" Enums(aws)
-// @Success 200 {object}  JSONResult{[DEFAULT]=[]rest.AgentMetaDataListType,[ID]=AgentInfo} "Different return structures by the given param"
+// @Success 200 {object}  JSONResult{[DEFAULT]=[]MetaDataListType,[ID]=AgentInfo} "Different return structures by the given param"
 // @Failure 404 {object} rest.SimpleMsg
 // @Failure 500 {object} rest.SimpleMsg
 // @Router /agent/metadata [get]

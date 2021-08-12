@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/agent"
 	"github.com/labstack/echo/v4"
 )
 
@@ -71,6 +70,3 @@ type VMMonInfoType struct {
 	Values []VMMonInfoValues `json:"values"`
 }
 
-type AgentMetaDataListType struct {
-	Id agent.AgentInfo `json:"id(ns_id/mcis_id/vm_id/csp_type)"`
-}

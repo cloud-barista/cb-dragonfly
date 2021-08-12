@@ -2,12 +2,11 @@ package agent
 
 import (
 	"fmt"
+	"github.com/labstack/echo/v4"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
-
-	"github.com/labstack/echo/v4"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 
@@ -26,25 +25,20 @@ import (
 // @Failure 500 {object} rest.SimpleMsg
 // @Router /agent [post]
 func InstallTelegraf(c echo.Context) error {
-	// form 파라미터 값 가져오기
-	nsId := c.FormValue("ns_id")
-	mcisId := c.FormValue("mcis_id")
-	vmId := c.FormValue("vm_id")
-	publicIp := c.FormValue("public_ip")
-	userName := c.FormValue("user_name")
-	sshKey := c.FormValue("ssh_key")
-	cspType := c.FormValue("cspType")
-	port := c.FormValue("port")
+	params := &rest.AgentType{}
+	if err:= c.Bind(params); err != nil {
+		return err
+	}
 
 	// form 파라미터 값 체크
-	if nsId == "" || mcisId == "" || vmId == "" || publicIp == "" || userName == "" || sshKey == "" || cspType == "" {
+	if params.NsId == "" || params.McisId == "" || params.VmId == "" || params.PublicIp == "" || params.UserName == "" || params.SshKey == "" || params.CspType == "" {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage("failed to get package. query parameter is missing"))
 	}
-	if port == "" {
-		port = "22"
+	if params.Port == "" {
+		params.Port = "22"
 	}
 
-	errCode, err := agent.InstallAgent(nsId, mcisId, vmId, publicIp, userName, sshKey, cspType, port)
+	errCode, err := agent.InstallTelegraf(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType, params.Port)
 	if errCode != http.StatusOK {
 		return c.JSON(errCode, rest.SetMessage(err.Error()))
 	}
@@ -138,24 +132,21 @@ func GetTelegrafPkgFile(c echo.Context) error {
 // @Failure 500 {object} rest.SimpleMsg
 // @Router /agent [delete]
 func UninstallAgent(c echo.Context) error {
-	nsId := c.FormValue("ns_id")
-	mcisId := c.FormValue("mcis_id")
-	vmId := c.FormValue("vm_id")
-	publicIp := c.FormValue("public_ip")
-	userName := c.FormValue("user_name")
-	sshKey := c.FormValue("ssh_key")
-	cspType := c.FormValue("cspType")
-	port := c.FormValue("port")
+	params := &rest.AgentType{}
+	if err := c.Bind(params); err != nil {
+		return err
+	}
+
 	// form 파라미터 값 체크
-	if nsId == "" || mcisId == "" || vmId == "" || publicIp == "" || userName == "" || sshKey == "" || cspType == "" {
+	if params.NsId == "" || params.McisId == "" || params.VmId == "" || params.PublicIp == "" || params.UserName == "" || params.SshKey == "" || params.CspType == "" {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage("failed to get package. query parameter is missing"))
 	}
 
-	if port == "" {
-		port = "22"
+	if params.Port == "" {
+		params.Port = "22"
 	}
 
-	errCode, err := agent.UninstallAgent(nsId, mcisId, vmId, publicIp, userName, sshKey, cspType, port)
+	errCode, err := agent.UninstallAgent(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType, params.Port)
 	if errCode != http.StatusOK {
 		fmt.Println(errCode)
 		return c.JSON(errCode, rest.SetMessage(err.Error()))
