@@ -187,7 +187,7 @@ var doc = `{
                                         "[DEFAULT]": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/rest.AgentMetaDataListType"
+                                                "$ref": "#/definitions/agent.MetaDataListType"
                                             }
                                         },
                                         "[ID]": {
@@ -1176,6 +1176,14 @@ var doc = `{
         "agent.JSONResult": {
             "type": "object"
         },
+        "agent.MetaDataListType": {
+            "type": "object",
+            "properties": {
+                "id(ns_id/mcis_id/vm_id/csp_type)": {
+                    "$ref": "#/definitions/agent.AgentInfo"
+                }
+            }
+        },
         "config.Monitoring": {
             "type": "object",
             "properties": {
@@ -1245,14 +1253,6 @@ var doc = `{
                     "items": {
                         "$ref": "#/definitions/metric.CBMCISMetric"
                     }
-                }
-            }
-        },
-        "rest.AgentMetaDataListType": {
-            "type": "object",
-            "properties": {
-                "id(ns_id/mcis_id/vm_id/csp_type)": {
-                    "$ref": "#/definitions/agent.AgentInfo"
                 }
             }
         },

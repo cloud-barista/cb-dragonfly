@@ -23,6 +23,11 @@ definitions:
     type: object
   agent.JSONResult:
     type: object
+  agent.MetaDataListType:
+    properties:
+      id(ns_id/mcis_id/vm_id/csp_type):
+        $ref: '#/definitions/agent.AgentInfo'
+    type: object
   config.Monitoring:
     properties:
       agent_interval:
@@ -71,11 +76,6 @@ definitions:
         items:
           $ref: '#/definitions/metric.CBMCISMetric'
         type: array
-    type: object
-  rest.AgentMetaDataListType:
-    properties:
-      id(ns_id/mcis_id/vm_id/csp_type):
-        $ref: '#/definitions/agent.AgentInfo'
     type: object
   rest.AgentType:
     properties:
@@ -372,7 +372,7 @@ paths:
             - properties:
                 '[DEFAULT]':
                   items:
-                    $ref: '#/definitions/rest.AgentMetaDataListType'
+                    $ref: '#/definitions/agent.MetaDataListType'
                   type: array
                 '[ID]':
                   $ref: '#/definitions/agent.AgentInfo'
