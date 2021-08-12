@@ -38,7 +38,7 @@ func InstallTelegraf(c echo.Context) error {
 		params.Port = "22"
 	}
 
-	errCode, err := agent.InstallTelegraf(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType, params.Port)
+	errCode, err := agent.InstallAgent(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType, params.Port)
 	if errCode != http.StatusOK {
 		return c.JSON(errCode, rest.SetMessage(err.Error()))
 	}
