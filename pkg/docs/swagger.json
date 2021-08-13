@@ -164,7 +164,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/agent.JSONResult"
+                                    "$ref": "#/definitions/rest.JSONResult"
                                 },
                                 {
                                     "type": "object",
@@ -922,7 +922,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/metric.JSONResult"
+                                    "$ref": "#/definitions/rest.JSONResult"
                                 },
                                 {
                                     "type": "object",
@@ -1158,9 +1158,6 @@
                 }
             }
         },
-        "agent.JSONResult": {
-            "type": "object"
-        },
         "agent.MetaDataListType": {
             "type": "object",
             "properties": {
@@ -1227,9 +1224,6 @@
                 }
             }
         },
-        "metric.JSONResult": {
-            "type": "object"
-        },
         "metric.MCBMCISMetric": {
             "type": "object",
             "properties": {
@@ -1269,6 +1263,9 @@
                     "type": "string"
                 }
             }
+        },
+        "rest.JSONResult": {
+            "type": "object"
         },
         "rest.SimpleMsg": {
             "type": "object",

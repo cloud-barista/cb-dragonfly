@@ -179,7 +179,7 @@ var doc = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/agent.JSONResult"
+                                    "$ref": "#/definitions/rest.JSONResult"
                                 },
                                 {
                                     "type": "object",
@@ -937,7 +937,7 @@ var doc = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/metric.JSONResult"
+                                    "$ref": "#/definitions/rest.JSONResult"
                                 },
                                 {
                                     "type": "object",
@@ -1173,9 +1173,6 @@ var doc = `{
                 }
             }
         },
-        "agent.JSONResult": {
-            "type": "object"
-        },
         "agent.MetaDataListType": {
             "type": "object",
             "properties": {
@@ -1242,9 +1239,6 @@ var doc = `{
                 }
             }
         },
-        "metric.JSONResult": {
-            "type": "object"
-        },
         "metric.MCBMCISMetric": {
             "type": "object",
             "properties": {
@@ -1284,6 +1278,9 @@ var doc = `{
                     "type": "string"
                 }
             }
+        },
+        "rest.JSONResult": {
+            "type": "object"
         },
         "rest.SimpleMsg": {
             "type": "object",
