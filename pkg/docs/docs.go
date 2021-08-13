@@ -179,7 +179,7 @@ var doc = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/agent.JSONResult"
+                                    "$ref": "#/definitions/rest.JSONResult"
                                 },
                                 {
                                     "type": "object",
@@ -187,7 +187,7 @@ var doc = `{
                                         "[DEFAULT]": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/rest.AgentMetaDataListType"
+                                                "$ref": "#/definitions/agent.MetaDataListType"
                                             }
                                         },
                                         "[ID]": {
@@ -937,7 +937,7 @@ var doc = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/metric.JSONResult"
+                                    "$ref": "#/definitions/rest.JSONResult"
                                 },
                                 {
                                     "type": "object",
@@ -1173,8 +1173,13 @@ var doc = `{
                 }
             }
         },
-        "agent.JSONResult": {
-            "type": "object"
+        "agent.MetaDataListType": {
+            "type": "object",
+            "properties": {
+                "id(ns_id/mcis_id/vm_id/csp_type)": {
+                    "$ref": "#/definitions/agent.AgentInfo"
+                }
+            }
         },
         "config.Monitoring": {
             "type": "object",
@@ -1234,9 +1239,6 @@ var doc = `{
                 }
             }
         },
-        "metric.JSONResult": {
-            "type": "object"
-        },
         "metric.MCBMCISMetric": {
             "type": "object",
             "properties": {
@@ -1245,14 +1247,6 @@ var doc = `{
                     "items": {
                         "$ref": "#/definitions/metric.CBMCISMetric"
                     }
-                }
-            }
-        },
-        "rest.AgentMetaDataListType": {
-            "type": "object",
-            "properties": {
-                "id(ns_id/mcis_id/vm_id/csp_type)": {
-                    "$ref": "#/definitions/agent.AgentInfo"
                 }
             }
         },
@@ -1284,6 +1278,9 @@ var doc = `{
                     "type": "string"
                 }
             }
+        },
+        "rest.JSONResult": {
+            "type": "object"
         },
         "rest.SimpleMsg": {
             "type": "object",

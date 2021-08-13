@@ -3,7 +3,6 @@ package alert
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -66,11 +65,11 @@ func GetAlertTask(c echo.Context) error {
 // @Failure 500 {object} rest.SimpleMsg
 // @Router /alert/task [post]
 func CreateAlertTask(c echo.Context) error {
-	createTaskReq, err := setAlertTaskReq(c)
-	if err != nil {
+	params := &types.AlertTaskReq{}
+	if err := c.Bind(params); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 	}
-	alertTask, err := task.CreateTask(*createTaskReq)
+	alertTask, err := task.CreateTask(*params)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 	}
@@ -90,11 +89,11 @@ func CreateAlertTask(c echo.Context) error {
 // @Failure 500 {object} rest.SimpleMsg
 // @Router /alert/task/{task_id} [put]
 func UpdateAlertTask(c echo.Context) error {
-	updateTaskReq, err := setAlertTaskReq(c)
-	if err != nil {
+	params := &types.AlertTaskReq{}
+	if err := c.Bind(params); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 	}
-	alertTask, err := task.UpdateTask(updateTaskReq.Name, *updateTaskReq)
+	alertTask, err := task.UpdateTask(params.Name, *params)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 	}
@@ -119,37 +118,4 @@ func DeleteAlertTask(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 	}
 	return c.JSON(http.StatusOK, rest.SetMessage(fmt.Sprintf("delete alert task with name %s successfully", taskId)))
-}
-
-func setAlertTaskReq(c echo.Context) (*types.AlertTaskReq, error) {
-	alertTaskReq := &types.AlertTaskReq{
-		Name:                c.FormValue("name"),
-		Measurement:         c.FormValue("measurement"),
-		TargetType:          c.FormValue("target_type"),
-		TargetId:            c.FormValue("target_id"),
-		EventDuration:       c.FormValue("event_duration"),
-		Metric:              c.FormValue("metric"),
-		AlertMathExpression: c.FormValue("alert_math_expression"),
-		AlertEventType:      c.FormValue("alert_event_type"),
-		AlertEventName:      c.FormValue("alert_event_name"),
-		AlertEventMessage:   c.FormValue("alert_event_message"),
-	}
-
-	if alertThreshold, err := strconv.ParseFloat(c.FormValue("alert_threshold"), 64); err != nil {
-		return nil, err
-	} else {
-		alertTaskReq.AlertThreshold = alertThreshold
-	}
-
-	if warnEventCnt, err := strconv.ParseInt(c.FormValue("warn_event_cnt"), 10, 64); err != nil {
-		return nil, err
-	} else {
-		alertTaskReq.WarnEventCnt = warnEventCnt
-	}
-	if criticEventCnt, err := strconv.ParseInt(c.FormValue("critic_event_cnt"), 10, 64); err != nil {
-		return nil, err
-	} else {
-		alertTaskReq.CriticEventCnt = criticEventCnt
-	}
-	return alertTaskReq, nil
 }

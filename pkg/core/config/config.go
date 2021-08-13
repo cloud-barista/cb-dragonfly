@@ -34,7 +34,10 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 		if val == nil || val == 0 || val == "" {
 			val = defaultMonConfigMap[key]
 		}
-		cbstore.GetInstance().StorePut(types.MoNConfig+"/"+key, fmt.Sprintf("%v", val))
+		err := cbstore.GetInstance().StorePut(types.MoNConfig+"/"+key, fmt.Sprintf("%v", val))
+		if err != nil {
+			return nil, http.StatusInternalServerError, err
+		}
 	}
 
 	monConfig := config.Monitoring{
@@ -69,17 +72,15 @@ func ResetMonConfig() (*config.Monitoring, int, error) {
 	defaultMonConfig := config.GetDefaultConfig().Monitoring
 
 	var monConfigMap map[string]interface{}
-	err := mapstructure.Decode(config.GetDefaultConfig().Monitoring, &monConfigMap)
+	err := mapstructure.Decode(defaultMonConfig, &monConfigMap)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-
-	mapstructure.Decode(config.GetInstance().Monitoring, &monConfigMap)
 	for key, val := range monConfigMap {
-		cbstore.GetInstance().StorePut(types.MoNConfig+"/"+key, fmt.Sprintf("%v", val))
-	}
-	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		err := cbstore.GetInstance().StorePut(types.MoNConfig+"/"+key, fmt.Sprintf("%v", val))
+		if err != nil {
+			return nil, http.StatusInternalServerError, err
+		}
 	}
 
 	return &defaultMonConfig, http.StatusOK, nil

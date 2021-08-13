@@ -164,7 +164,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/agent.JSONResult"
+                                    "$ref": "#/definitions/rest.JSONResult"
                                 },
                                 {
                                     "type": "object",
@@ -172,7 +172,7 @@
                                         "[DEFAULT]": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/rest.AgentMetaDataListType"
+                                                "$ref": "#/definitions/agent.MetaDataListType"
                                             }
                                         },
                                         "[ID]": {
@@ -922,7 +922,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/metric.JSONResult"
+                                    "$ref": "#/definitions/rest.JSONResult"
                                 },
                                 {
                                     "type": "object",
@@ -1158,8 +1158,13 @@
                 }
             }
         },
-        "agent.JSONResult": {
-            "type": "object"
+        "agent.MetaDataListType": {
+            "type": "object",
+            "properties": {
+                "id(ns_id/mcis_id/vm_id/csp_type)": {
+                    "$ref": "#/definitions/agent.AgentInfo"
+                }
+            }
         },
         "config.Monitoring": {
             "type": "object",
@@ -1219,9 +1224,6 @@
                 }
             }
         },
-        "metric.JSONResult": {
-            "type": "object"
-        },
         "metric.MCBMCISMetric": {
             "type": "object",
             "properties": {
@@ -1230,14 +1232,6 @@
                     "items": {
                         "$ref": "#/definitions/metric.CBMCISMetric"
                     }
-                }
-            }
-        },
-        "rest.AgentMetaDataListType": {
-            "type": "object",
-            "properties": {
-                "id(ns_id/mcis_id/vm_id/csp_type)": {
-                    "$ref": "#/definitions/agent.AgentInfo"
                 }
             }
         },
@@ -1269,6 +1263,9 @@
                     "type": "string"
                 }
             }
+        },
+        "rest.JSONResult": {
+            "type": "object"
         },
         "rest.SimpleMsg": {
             "type": "object",
