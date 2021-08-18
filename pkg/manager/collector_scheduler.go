@@ -35,7 +35,7 @@ func (cScheduler CollectorScheduler) Scheduler() error {
 	}
 	currentTopicsState := util.GetAllTopicBySort(kafkaAddr.GetAllTopics())
 	beforeTopicsState := currentTopicsState
-	beforeMaxHostCount, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MoNConfig + "/" + "max_host_count"))
+	beforeMaxHostCount, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "max_host_count"))
 	currentMaxHostCount := beforeMaxHostCount
 
 	topicListChanged := !cmp.Equal(beforeTopicsState, currentTopicsState)
@@ -60,7 +60,7 @@ func (cScheduler CollectorScheduler) ScheduleBasedTheNumberOfCollector(currentTo
 	cScheduler.SendTopicsToCollectors()
 
 	for {
-		aggreTime, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MoNConfig + "/" + "collector_interval"))
+		aggreTime, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "collector_interval"))
 		time.Sleep(time.Duration(aggreTime) * time.Second)
 		switch {
 		case maxHostCountChanged:
@@ -91,7 +91,7 @@ func (cScheduler CollectorScheduler) ScheduleBasedTheNumberOfCollector(currentTo
 		currentTopicsState = util.GetAllTopicBySort(kafkaAddr.GetAllTopics())
 		fmt.Println(fmt.Sprintf("##### %s : %s #####", "All topics from kafka", currentTopicsState))
 		beforeMaxHostCount = currentMaxHostCount
-		currentMaxHostCount, _ = strconv.Atoi(cbstore.GetInstance().StoreGet(types.MoNConfig + "/" + "max_host_count"))
+		currentMaxHostCount, _ = strconv.Atoi(cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "max_host_count"))
 
 		topicListChanged = !cmp.Equal(beforeTopicsState, currentTopicsState)
 		maxHostCountChanged = !(beforeMaxHostCount == currentMaxHostCount)
@@ -146,7 +146,7 @@ func (cScheduler CollectorScheduler) ScheduleBasedCollectorCSPType(currentTopics
 	cScheduler.SendTopicsToCollectors()
 
 	for {
-		aggreTime, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MoNConfig + "/" + "collector_interval"))
+		aggreTime, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "collector_interval"))
 		time.Sleep(time.Duration(aggreTime) * time.Second)
 		switch {
 		case topicListChanged:
