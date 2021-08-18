@@ -13,8 +13,8 @@ import (
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/v1"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 )
@@ -234,11 +234,17 @@ func mappingOnDemandMetric(isPush bool, metric types.Metric, metricVal map[strin
 		metricCols["kb_written"] = metricVal["write_bytes"]
 		metricCols["ops_read"] = metricVal["iops_read"]
 		metricCols["ops_write"] = metricVal["iops_write"]
+		metricCols["read_time"] = metricVal["read_time"]
+		metricCols["write_time"] = metricVal["write_time"]
 	case types.Network:
 		metricCols["bytes_in"] = metricVal["bytes_recv"]
 		metricCols["bytes_out"] = metricVal["bytes_sent"]
 		metricCols["pkts_in"] = metricVal["packets_recv"]
 		metricCols["pkts_out"] = metricVal["packets_sent"]
+		metricCols["err_in"] = metricVal["err_in"]
+		metricCols["err_out"] = metricVal["err_out"]
+		metricCols["drop_in"] = metricVal["drop_in"]
+		metricCols["drop_out"] = metricVal["drop_out"]
 	case types.None:
 	default:
 		if isPush {

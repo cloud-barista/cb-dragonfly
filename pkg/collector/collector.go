@@ -13,8 +13,8 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/google/go-cmp/cmp"
-	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
 )
 
 type MetricCollector struct {

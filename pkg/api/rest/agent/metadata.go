@@ -11,6 +11,24 @@ import (
 
 var agentListManager agent.AgentListManager
 
+type MetaDataListType struct {
+	Id agent.AgentInfo `json:"id(ns_id/mcis_id/vm_id/csp_type)"`
+}
+
+// ListAgentMetadata 에이전트 메타데이터 조회
+// @Summary List agent metadata
+// @Description 에이전트 메타데이터 조회
+// @Tags [Agent] Monitoring Agent
+// @Accept  json
+// @Produce  json
+// @Param ns query string false "네임스페이스 아이디" Enums(test_ns)
+// @Param mcisId query string false "MCIS 아이디" Enums(test_mcis)
+// @Param vmId query string false "VM 아이디" Enums(test_vm)
+// @Param cspType query string false "VM의 CSP 정보" Enums(aws)
+// @Success 200 {object}  rest.JSONResult{[DEFAULT]=[]MetaDataListType,[ID]=AgentInfo} "Different return structures by the given param"
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /agent/metadata [get]
 func ListAgentMetadata(c echo.Context) error {
 	// 에이전트 UUID 파라미터 값 추출
 	nsId := c.QueryParam("ns")

@@ -24,6 +24,57 @@ func BuildQuery(isPush bool, vmId string, metric string, period string, aggregat
 	// InfluXDB 쿼리 생성
 	var query influxBuilder.Query
 
+	switch metric {
+
+	case "cpu":
+		query = influxBuilder.NewQuery().On(metric).
+			Field("cpu_utilization", aggregateType).
+			Field("cpu_system", aggregateType).
+			Field("cpu_idle", aggregateType).
+			Field("cpu_iowait", aggregateType).
+			Field("cpu_hintr", aggregateType).
+			Field("cpu_sintr", aggregateType).
+			Field("cpu_user", aggregateType).
+			Field("cpu_nice", aggregateType).
+			Field("cpu_steal", aggregateType).
+			Field("cpu_guest", aggregateType).
+			Field("cpu_guest_nice", aggregateType)
+
+	case "cpufreq":
+		query = influxBuilder.NewQuery().On(metric).
+			Field("cpu_speed", aggregateType)
+
+	case "mem":
+		query = influxBuilder.NewQuery().On(metric).
+			Field("mem_utilization", aggregateType).
+			Field("mem_total", aggregateType).
+			Field("mem_used", aggregateType).
+			Field("mem_free", aggregateType).
+			Field("mem_shared", aggregateType).
+			Field("mem_buffers", aggregateType).
+			Field("mem_cached", aggregateType)
+
+	case "disk":
+		query = influxBuilder.NewQuery().On(metric).
+			Field("disk_utilization", aggregateType).
+			Field("disk_total", aggregateType).
+			Field("disk_used", aggregateType).
+			Field("disk_free", aggregateType)
+
+	case "diskio":
+		fieldArr := []string{"kb_read", "kb_written", "ops_read", "ops_write", "read_time", "write_time"}
+		query := getPerSecMetric(isPush, vmId, metric, period, fieldArr, duration)
+		return query, nil
+
+	case "net":
+		fieldArr := []string{"bytes_in", "bytes_out", "pkts_in", "pkts_out", "err_in", "err_out", "drop_in", "drop_out"}
+		query := getPerSecMetric(isPush, vmId, metric, period, fieldArr, duration)
+		return query, nil
+
+	default:
+		return "", errors.New("not found metric")
+	}
+
 	if isPush {
 		switch period {
 		case "m":
@@ -33,61 +84,6 @@ func BuildQuery(isPush bool, vmId string, metric string, period string, aggregat
 		case "d":
 			timeCriteria = time.Hour * 24
 		}
-		switch metric {
-
-		case "cpu":
-
-			query = influxBuilder.NewQuery().On(metric).
-				Field("usage_utilization", aggregateType).
-				Field("usage_system", aggregateType).
-				Field("usage_idle", aggregateType).
-				Field("usage_iowait", aggregateType).
-				Field("usage_irq", aggregateType).
-				Field("usage_softirq", aggregateType).
-				Field("usage_user", aggregateType).
-				Field("usage_nice", aggregateType).
-				Field("usage_steal", aggregateType).
-				Field("usage_guest", aggregateType).
-				Field("usage_guest_nice", aggregateType)
-
-		case "cpufreq":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("cur_freq", aggregateType)
-
-		case "net":
-
-			fieldArr := []string{"bytes_recv", "bytes_sent", "packets_recv", "packets_sent", "err_in", "err_out", "drop_in", "drop_out"}
-			query := getPerSecMetric(isPush, vmId, metric, period, fieldArr, duration)
-			return query, nil
-
-		case "mem":
-
-			query = influxBuilder.NewQuery().On(metric).
-				Field("used_percent", aggregateType).
-				Field("total", aggregateType).
-				Field("used", aggregateType).
-				Field("free", aggregateType).
-				Field("shared", aggregateType).
-				Field("buffered", aggregateType).
-				Field("cached", aggregateType)
-
-		case "disk":
-
-			query = influxBuilder.NewQuery().On(metric).
-				Field("used_percent", aggregateType).
-				Field("total", aggregateType).
-				Field("used", aggregateType).
-				Field("free", aggregateType)
-
-		case "diskio":
-
-			fieldArr := []string{"read_bytes", "write_bytes", "reads", "writes", "read_time", "write_time"}
-			query := getPerSecMetric(isPush, vmId, metric, period, fieldArr, duration)
-			return query, nil
-
-		default:
-			return "", errors.New("not found metric")
-		}
 		query = query.Where("time", influxBuilder.MoreThan, timeDuration).
 			And("\"vmId\"", influxBuilder.Equal, "'"+vmId+"'").
 			GroupByTime(timeCriteria).
@@ -95,55 +91,6 @@ func BuildQuery(isPush bool, vmId string, metric string, period string, aggregat
 			Fill("0").
 			OrderByTime("ASC")
 	} else {
-		switch metric {
-		case "cpu":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("cpu_guest", aggregateType).
-				Field("cpu_guest_nice", aggregateType).
-				Field("cpu_hintr", aggregateType).
-				Field("cpu_idle", aggregateType).
-				Field("cpu_iowait", aggregateType).
-				Field("cpu_nice", aggregateType).
-				Field("cpu_sintr", aggregateType).
-				Field("cpu_steal", aggregateType).
-				Field("cpu_system", aggregateType).
-				Field("cpu_user", aggregateType).
-				Field("cpu_utilization", aggregateType)
-		case "cpufreq":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("cpu_speed", aggregateType)
-		case "net":
-			fieldArr := []string{"bytes_in", "bytes_out", "pkts_in", "pkts_out"}
-			query := getPerSecMetric(isPush, vmId, metric, period, fieldArr, duration)
-			return query, nil
-		case "mem":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("mem_buffers", aggregateType).
-				Field("mem_cached", aggregateType).
-				Field("mem_free", aggregateType).
-				Field("mem_shared", aggregateType).
-				Field("mem_total", aggregateType).
-				Field("mem_used", aggregateType).
-				Field("mem_utilization", aggregateType)
-		case "disk":
-			query = influxBuilder.NewQuery().On(metric).
-				Field("disk_free", aggregateType).
-				Field("disk_total", aggregateType).
-				Field("disk_used", aggregateType).
-				Field("disk_utilization", aggregateType).
-				Field("kb_read", aggregateType).
-				Field("kb_written", aggregateType).
-				Field("ops_read", aggregateType).
-				Field("ops_write", aggregateType)
-
-		case "diskio":
-			fieldArr := []string{"kb_read", "kb_write", "ops_read", "ops_write"}
-			query := getPerSecMetric(isPush, vmId, metric, period, fieldArr, duration)
-			return query, nil
-		default:
-			return "", errors.New("not found metric")
-		}
-
 		query = query.Where("time", influxBuilder.MoreThan, timeDuration).
 			And("\"vmId\"", influxBuilder.Equal, "'"+vmId+"'").
 			GroupByTag("\"vmId\"").
