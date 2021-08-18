@@ -11,10 +11,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-const (
-	MonConfigKey = "/mon/config"
-)
-
 // 모니터링 정책 설정
 func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, error) {
 	config.GetInstance().SetMonConfig(newMonConfig)
@@ -34,17 +30,17 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 		if val == nil || val == 0 || val == "" {
 			val = defaultMonConfigMap[key]
 		}
-		err := cbstore.GetInstance().StorePut(types.MoNConfig+"/"+key, fmt.Sprintf("%v", val))
+		err := cbstore.GetInstance().StorePut(types.MonConfig+"/"+key, fmt.Sprintf("%v", val))
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
 	}
 
 	monConfig := config.Monitoring{
-		AgentInterval:     cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MoNConfig, "agent_interval")),
-		CollectorInterval: cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MoNConfig, "collector_interval")),
-		MaxHostCount:      cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MoNConfig, "max_host_count")),
-		MonitoringPolicy:  cbstore.GetInstance().StoreGetToString(fmt.Sprintf("%s/%s", types.MoNConfig, "monitoring_policy")),
+		AgentInterval:     cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "agent_interval")),
+		CollectorInterval: cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "collector_interval")),
+		MaxHostCount:      cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "max_host_count")),
+		MonitoringPolicy:  cbstore.GetInstance().StoreGetToString(fmt.Sprintf("%s/%s", types.MonConfig, "monitoring_policy")),
 	}
 
 	return &monConfig, http.StatusOK, nil
@@ -52,12 +48,11 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 
 // 모니터링 정책 조회
 func GetMonConfig() (*config.Monitoring, int, error) {
-
 	monConfig := config.Monitoring{
-		AgentInterval:     cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MoNConfig, "agent_interval")),
-		CollectorInterval: cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MoNConfig, "collector_interval")),
-		MaxHostCount:      cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MoNConfig, "max_host_count")),
-		MonitoringPolicy:  cbstore.GetInstance().StoreGetToString(fmt.Sprintf("%s/%s", types.MoNConfig, "monitoring_policy")),
+		AgentInterval:     cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "agent_interval")),
+		CollectorInterval: cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "collector_interval")),
+		MaxHostCount:      cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "max_host_count")),
+		MonitoringPolicy:  cbstore.GetInstance().StoreGetToString(fmt.Sprintf("%s/%s", types.MonConfig, "monitoring_policy")),
 	}
 
 	if monConfig.AgentInterval == -1 || monConfig.CollectorInterval == -1 || monConfig.MaxHostCount == -1 || monConfig.MonitoringPolicy == "" {
@@ -77,7 +72,7 @@ func ResetMonConfig() (*config.Monitoring, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 	for key, val := range monConfigMap {
-		err := cbstore.GetInstance().StorePut(types.MoNConfig+"/"+key, fmt.Sprintf("%v", val))
+		err := cbstore.GetInstance().StorePut(types.MonConfig+"/"+key, fmt.Sprintf("%v", val))
 		if err != nil {
 			return nil, http.StatusInternalServerError, err
 		}
