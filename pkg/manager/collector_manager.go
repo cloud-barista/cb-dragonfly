@@ -71,7 +71,7 @@ func (manager *CollectManager) SetConfigurationToMemoryDB() {
 		util.GetLogger().Error(fmt.Sprintf("failed to decode monConfigMap, error=%s", err))
 	}
 	for key, val := range monConfigMap {
-		err := cbstore.GetInstance().StorePut(types.MoNConfig+"/"+key, fmt.Sprintf("%v", val))
+		err := cbstore.GetInstance().StorePut(types.MonConfig+"/"+key, fmt.Sprintf("%v", val))
 		if err != nil {
 			util.GetLogger().Error(fmt.Sprintf("failed to put monitoring configuration info, error=%s", err))
 		}

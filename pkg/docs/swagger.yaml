@@ -21,7 +21,10 @@ definitions:
       vm_id:
         type: string
     type: object
-  agent.JSONResult:
+  agent.MetaDataListType:
+    properties:
+      id(ns_id/mcis_id/vm_id/csp_type):
+        $ref: '#/definitions/agent.AgentInfo'
     type: object
   config.Monitoring:
     properties:
@@ -63,19 +66,12 @@ definitions:
       unit:
         type: string
     type: object
-  metric.JSONResult:
-    type: object
   metric.MCBMCISMetric:
     properties:
       resultarray:
         items:
           $ref: '#/definitions/metric.CBMCISMetric'
         type: array
-    type: object
-  rest.AgentMetaDataListType:
-    properties:
-      id(ns_id/mcis_id/vm_id/csp_type):
-        $ref: '#/definitions/agent.AgentInfo'
     type: object
   rest.AgentType:
     properties:
@@ -95,6 +91,8 @@ definitions:
         type: string
       vm_id:
         type: string
+    type: object
+  rest.JSONResult:
     type: object
   rest.SimpleMsg:
     properties:
@@ -368,11 +366,11 @@ paths:
           description: Different return structures by the given param
           schema:
             allOf:
-            - $ref: '#/definitions/agent.JSONResult'
+            - $ref: '#/definitions/rest.JSONResult'
             - properties:
                 '[DEFAULT]':
                   items:
-                    $ref: '#/definitions/rest.AgentMetaDataListType'
+                    $ref: '#/definitions/agent.MetaDataListType'
                   type: array
                 '[ID]':
                   $ref: '#/definitions/agent.AgentInfo'
@@ -868,7 +866,7 @@ paths:
           description: Different return structures by the given param
           schema:
             allOf:
-            - $ref: '#/definitions/metric.JSONResult'
+            - $ref: '#/definitions/rest.JSONResult'
             - properties:
                 '[DEFAULT]':
                   $ref: '#/definitions/metric.CBMCISMetric'

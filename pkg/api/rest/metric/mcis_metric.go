@@ -9,13 +9,6 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/metric"
 )
 
-// JSONResult's data field will be overridden by the specific type
-type JSONResult struct {
-	//Code    int          `json:"code" `
-	//Message string       `json:"message"`
-	//Data    interface{}  `json:"data"`
-}
-
 // GetMCISMetric 멀티 클라우드 인트라 서비스 모니터링 메트릭 수집
 // @Summary Get MCIS on-demand monitoring metric info
 // @Description 멀티 클라우드 인프라 VM 온디맨드 모니터링 정보 조회
@@ -27,7 +20,7 @@ type JSONResult struct {
 // @Param vm_id path string true "VM 아이디"
 // @Param agent_ip path string true "에이전트 아이피"
 // @Param metric_name path string true "메트릭 정보"
-// @Success 200 {object} JSONResult{[DEFAULT]=CBMCISMetric,[Mrtt]=MCBMCISMetric} "Different return structures by the given param"
+// @Success 200 {object} rest.JSONResult{[DEFAULT]=CBMCISMetric,[Mrtt]=MCBMCISMetric} "Different return structures by the given param"
 // @Failure 404 {object} rest.SimpleMsg
 // @Failure 500 {object} rest.SimpleMsg
 // @Router /ns/{ns_id}/mcis/{mcis_id}/vm/{vm_id}/agent_ip/{agent_ip}/mcis_metric/{metric_name}/mcis-monitoring-info [get]
