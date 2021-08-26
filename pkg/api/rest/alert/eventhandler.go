@@ -2,11 +2,12 @@ package alert
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/eventhandler"
 	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/types"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 // ListEventHandler 알람 이벤트 핸들러 목록 조회
@@ -92,6 +93,8 @@ func UpdateEventHandler(c echo.Context) error {
 	eventType := c.Param("type")
 	eventHandlerName := c.Param("name")
 	params := &types.AlertEventHandlerReq{}
+	params.Type = eventType
+	params.Name = eventHandlerName
 	if err := c.Bind(params); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 	}

@@ -2,9 +2,10 @@ package manager
 
 import (
 	"fmt"
-	echoSwagger "github.com/swaggo/echo-swagger"
 	"net/http"
 	"sync"
+
+	echoSwagger "github.com/swaggo/echo-swagger"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/healthcheck"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/eventhandler"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
@@ -41,8 +41,6 @@ func (apiServer *APIServer) StartAPIServer(wg *sync.WaitGroup) error {
 
 	// 모니터링 API 라우팅 룰 설정
 	apiServer.SetRoutingRule(apiServer.echo)
-
-	eventhandler.InitializeEventTypes()
 
 	// 모니터링 API 서버 실행
 	return apiServer.echo.Start(fmt.Sprintf(":%d", config.GetInstance().APIServer.Port))

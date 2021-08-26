@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	EventTypes = make(map[string]EventHandler)
+	EventTypes = map[string]EventHandler{SlackType: slack.SlackHandler{}, SMTPType: smtp.SmtpHandler{}}
 )
 
 type EventHandler interface {
@@ -26,15 +26,7 @@ type EventHandler interface {
 	DeleteEventHandler(name string) error
 }
 
-func InitializeEventTypes() {
-	EventTypes[SlackType] = slack.SlackHandler{}
-	EventTypes[SMTPType] = smtp.SmtpHandler{}
-}
-
 func ListEventHandlers(eventType string) ([]types.AlertEventHandler, error) {
-	if len(EventTypes) == 0 {
-		InitializeEventTypes()
-	}
 	// get specific event type handlers
 	if eventType != "" {
 		if _, ok := EventTypes[eventType]; !ok {

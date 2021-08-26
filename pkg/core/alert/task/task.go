@@ -2,6 +2,7 @@ package task
 
 import (
 	"fmt"
+	v1 "github.com/cloud-barista/cb-dragonfly/pkg/metricstore/influxdb/v1"
 	"regexp"
 	"strings"
 
@@ -19,9 +20,9 @@ const (
 	KapacitorTaskPattern = "dragonfly-*"
 	KapacitorTaskFormat  = "dragonfly-%s"
 	KapacitorTemplateID  = "default"
-	InfluxDefaultDB      = "cbmon"
-	InfluxDefaultRP      = "autogen"
-	AlertMessageFormat   = "[{{.Level}}] {{.ID}} {{.TaskName}} Alert \n%s"
+	//InfluxDefaultDB      = "cbmon"
+	//InfluxDefaultRP      = "autogen"
+	AlertMessageFormat = "[{{.Level}}] {{.ID}} {{.TaskName}} Alert \n%s"
 )
 
 func ListTasks() ([]types.AlertTask, error) {
@@ -64,8 +65,8 @@ func CreateTask(alertTaskReq types.AlertTaskReq) (*types.AlertTask, error) {
 		TemplateID: fmt.Sprintf(KapacitorTaskFormat, KapacitorTemplateID),
 		DBRPs: []kapacitorclient.DBRP{
 			{
-				Database:        InfluxDefaultDB,
-				RetentionPolicy: InfluxDefaultRP,
+				Database:        v1.DefaultDatabase,
+				RetentionPolicy: v1.CBRetentionPolicyName,
 			},
 		},
 		Status: kapacitorclient.Enabled,
