@@ -117,7 +117,7 @@ func (a AgentListManager) GetAgentList() (map[string]AgentInfo, error) {
 
 func (a AgentListManager) GetAgentInfo(uuid string) (AgentInfo, error) {
 	agentInfo := AgentInfo{}
-	agentInfoStr := cbstore.GetInstance().StoreGet(uuid)
+	agentInfoStr := cbstore.GetInstance().StoreGet(fmt.Sprintf(uuid))
 
 	if agentInfoStr == "" {
 		return AgentInfo{}, errors.New(fmt.Sprintf("failed to get agent with UUID %s", uuid))
@@ -135,7 +135,7 @@ func PutAgentMetadataToStore(agentUUID string, agentInfo AgentInfo) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to convert metadata format to json, error=%s", err))
 	}
-	err = cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.Agent, agentUUID), string(agentInfoBytes))
+	err = cbstore.GetInstance().StorePut(agentUUID, string(agentInfoBytes))
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to put metadata, error=%s", err))
 	}
@@ -192,6 +192,6 @@ func SetMetadataByAgentUninstall(nsId string, mcisId string, vmId string, cspTyp
 }
 
 func MakeAgentUUID(nsId string, mcisId string, vmId string, cspType string) string {
-	UUID := nsId + "/" + mcisId + "/" + vmId + "/" + cspType
+	UUID := types.Agent + "/" + nsId + "/" + mcisId + "/" + vmId + "/" + cspType
 	return UUID
 }
