@@ -117,7 +117,7 @@ func (a AgentListManager) GetAgentList() (map[string]AgentInfo, error) {
 
 func (a AgentListManager) GetAgentInfo(uuid string) (AgentInfo, error) {
 	agentInfo := AgentInfo{}
-	agentInfoStr := cbstore.GetInstance().StoreGet(uuid)
+	agentInfoStr := cbstore.GetInstance().StoreGet(fmt.Sprintf(uuid))
 
 	if agentInfoStr == "" {
 		return AgentInfo{}, errors.New(fmt.Sprintf("failed to get agent with UUID %s", uuid))
@@ -192,6 +192,6 @@ func SetMetadataByAgentUninstall(nsId string, mcisId string, vmId string, cspTyp
 }
 
 func MakeAgentUUID(nsId string, mcisId string, vmId string, cspType string) string {
-	UUID := nsId + "/" + mcisId + "/" + vmId + "/" + cspType
+	UUID := types.Agent + "/" + nsId + "/" + mcisId + "/" + vmId + "/" + cspType
 	return UUID
 }
