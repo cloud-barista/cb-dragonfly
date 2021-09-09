@@ -205,10 +205,10 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 
 	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_%s_%s_%s", nsId, mcisId, vmId, cspType))
 	var kafkaPort int
-	if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "compose") {
-		kafkaPort = config.GetInstance().GetKafkaConfig().ComposeExternalPort
-	} else {
+	if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "helm") {
 		kafkaPort = config.GetInstance().GetKafkaConfig().HelmExternalPort
+	} else {
+		kafkaPort = config.GetInstance().GetKafkaConfig().ComposeExternalPort
 	}
 	kafkaAddr := fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), kafkaPort)
 	strConf = strings.ReplaceAll(strConf, "{{broker_server}}", kafkaAddr)

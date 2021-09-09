@@ -35,7 +35,7 @@ func NewCollectorManager() (*CollectManager, error) {
 	retryCnt := KafkaConnectionRetryCnt
 	waitInterval := KafkaConnectionRetryInterval * time.Second
 	for i := 0; i <= retryCnt; i++ {
-		_, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().InternalPort), waitInterval)
+		_, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().ComposeExternalPort), waitInterval)
 		if err != nil {
 			if i == retryCnt {
 				util.GetLogger().Error("kafka is not responding %s", "kafka is not responding ", err.Error())

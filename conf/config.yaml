@@ -11,12 +11,13 @@ influxdb:
   rpDuration: 4w                                   # retention Policy for DB (h, d, w), min: 1h max: 0s
 
 kapacitor:
-  endpoint_url: http://cb-dragonfly-kapacitor:9092  # endpoint to kapacitor
+  endpoint_url: http://cb-dragonfly-kapacitor  # endpoint to kapacitor
+  internal_port: 9092
+  external_port: 29092
 
 kafka:
   endpoint_url: cb-dragonfly-kafka
   external_ip: 127.0.0.1                            # Cloud-Barista를 설치 및 실행하는 VM/물리머신의 Public IP 주소를 기재
-  internal_port: 9092
   compose_external_port: 9092
   helm_external_port: 32000
 
@@ -39,4 +40,4 @@ monitoring:
   puller_interval: 10
   puller_aggregate_interval: 30
   aggregate_type: "avg"                             # min, max, avg, last
-  deploy_type: "compose"                            # deploy environment "compose" => docker-compose or others , "helm" => helm chart on k8s
+  deploy_type: "compose"                            # deploy environment => 1. docker-compose: "compose" 2. k8s: "helm" 3. local: "local"
