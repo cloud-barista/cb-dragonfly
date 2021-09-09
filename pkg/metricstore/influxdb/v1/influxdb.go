@@ -46,13 +46,12 @@ func (s Storage) Initialize() error {
 	if s.Config == (Config{}) {
 		influxDBConfig := config.GetInstance().GetInfluxDBConfig()
 		var influxDBPort int
-		if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "compose") {
-			influxDBPort = config.GetInstance().GetInfluxDBConfig().InternalPort
+		if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "local") {
+			influxDBPort = config.GetInstance().GetInfluxDBConfig().ExternalPort // 28086
 		} else {
-			influxDBPort = config.GetInstance().GetInfluxDBConfig().ExternalPort
+			influxDBPort = config.GetInstance().GetInfluxDBConfig().InternalPort // 8086
 		}
 		influxDBAddr := fmt.Sprintf("%s:%d", influxDBConfig.EndpointUrl, influxDBPort)
-		fmt.Println("port=====" + influxDBAddr)
 		s.Config.Addr = influxDBAddr
 		s.Config.Username = influxDBConfig.UserName
 		s.Config.Password = influxDBConfig.Password
