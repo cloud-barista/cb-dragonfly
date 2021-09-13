@@ -18,7 +18,9 @@ type Config struct {
 }
 
 type Kapacitor struct {
-	EndpointUrl string `json:"endpoint_url" mapstructure:"endpoint_url"`
+	EndpointUrl  string `json:"endpoint_url" mapstructure:"endpoint_url"`
+	InternalPort int    `json:"internal_port" mapstructure:"internal_port"`
+	ExternalPort int    `json:"external_port" mapstructure:"external_port"`
 }
 
 type Kafka struct {

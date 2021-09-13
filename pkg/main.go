@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -88,20 +87,7 @@ func main() {
 	template.RegisterTemplate()
 
 	// InfluxDB 클라이언트 설정
-	influxDBConfig := config.GetDefaultConfig().GetInfluxDBConfig()
-	var influxDBPort int
-	if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "compose") {
-		influxDBPort = config.GetInstance().GetInfluxDBConfig().InternalPort
-	} else {
-		influxDBPort = config.GetInstance().GetInfluxDBConfig().ExternalPort
-	}
-	influxDBAddr := fmt.Sprintf("%s:%d", influxDBConfig.EndpointUrl, influxDBPort)
-	influxDBClientConfig := v1.Config{
-		Addr:     influxDBAddr,
-		Username: influxDBConfig.UserName,
-		Password: influxDBConfig.Password,
-	}
-	err := influxdb.NewStorage(influxdb.V1, influxDBClientConfig)
+	err := influxdb.NewStorage(influxdb.V1, v1.Config{})
 	if err != nil {
 		util.GetLogger().Error(fmt.Sprintf("failed to initialize influxDB, error=%s", err))
 		panic(err)
