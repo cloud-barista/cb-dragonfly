@@ -3,6 +3,7 @@ package v1
 import (
 	"errors"
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"strings"
 	"sync"
 	"time"
@@ -46,10 +47,10 @@ func (s Storage) Initialize() error {
 	if s.Config == (Config{}) {
 		influxDBConfig := config.GetInstance().GetInfluxDBConfig()
 		var influxDBPort int
-		if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "local") {
-			influxDBPort = config.GetInstance().GetInfluxDBConfig().ExternalPort // 28086
+		if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "dev") {
+			influxDBPort = config.GetInstance().GetInfluxDBConfig().CustomPort // 28086
 		} else {
-			influxDBPort = config.GetInstance().GetInfluxDBConfig().InternalPort // 8086
+			influxDBPort = types.InfluxDefaultPort // 8086
 		}
 		influxDBAddr := fmt.Sprintf("%s:%d", influxDBConfig.EndpointUrl, influxDBPort)
 		s.Config.Addr = influxDBAddr
