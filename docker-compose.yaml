@@ -27,10 +27,6 @@ services:
     restart: always
     security_opt:
       - no-new-privileges
-    networks:
-      cb-dragonfly:
-        aliases:
-          - cb-dragonfly
 
   # zookeeper for CB-Dragonfly
   cb-dragonfly-zookeeper:
@@ -39,10 +35,6 @@ services:
     ports:
       - 2181:2181
     restart: always
-    networks:
-      cb-dragonfly:
-        aliases:
-          - cb-dragonfly-zookeeper
 
   # kafka for CB-Dragonfly
   cb-dragonfly-kafka:
@@ -62,10 +54,6 @@ services:
     ports:
       - 9092:9092
     restart: always
-    networks:
-      cb-dragonfly:
-        aliases:
-          - cb-dragonfly-kafka
 
   # InfluxDB for CB-Dragonfly
   cb-dragonfly-influxdb:
@@ -81,10 +69,6 @@ services:
       - INFLUXDB_ADMIN_PASSWORD=password
       - INFLUXDB_HTTP_AUTH_ENABLED=true
     restart: always
-    networks:
-      cb-dragonfly:
-        aliases:
-          - cb-dragonfly-influxdb
 
   # Kapacitor for CB-Dragonfly
   cb-dragonfly-kapacitor:
@@ -100,10 +84,6 @@ services:
     depends_on:
       - cb-dragonfly-influxdb
     restart: always
-    networks:
-      cb-dragonfly:
-        aliases:
-          - cb-dragonfly-kapacitor
 
   # Chronograf for CB-Dragonfly
   cb-dragonfly-chronograf:
@@ -124,10 +104,6 @@ services:
       - cb-dragonfly-influxdb
       - cb-dragonfly-kapacitor
       - cb-dragonfly
-    networks:
-      cb-dragonfly:
-        aliases:
-          - cb-dragonfly-chronograf
 
 #  cb-dragonfly-zk-web:
 #    image: goodguide/zk-web
@@ -141,6 +117,3 @@ services:
 #      cb-dragonfly:
 #        aliases:
 #          - cb-dragonfly-zk-web
-
-networks:
-  cb-dragonfly:

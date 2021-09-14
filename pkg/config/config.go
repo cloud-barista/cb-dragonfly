@@ -18,23 +18,19 @@ type Config struct {
 }
 
 type Kapacitor struct {
-	EndpointUrl  string `json:"endpoint_url" mapstructure:"endpoint_url"`
-	InternalPort int    `json:"internal_port" mapstructure:"internal_port"`
-	ExternalPort int    `json:"external_port" mapstructure:"external_port"`
+	EndpointUrl string `json:"endpoint_url" mapstructure:"endpoint_url"`
+	CustomPort  int    `json:"custom_port" mapstructure:"custom_port"`
 }
 
 type Kafka struct {
-	EndpointUrl         string `json:"endpoint_url" mapstructure:"endpoint_url"`
-	ExternalIP          string `json:"external_ip" mapstructure:"external_ip"`
-	HelmExternalPort    int    `json:"helm_external_port" mapstructure:"helm_external_port"`
-	ComposeExternalPort int    `json:"compose_external_port" mapstructure:"compose_external_port"`
-	InternalPort        int    `json:"internal_port" mapstructure:"internal_port"`
+	EndpointUrl string `json:"endpoint_url" mapstructure:"endpoint_url"`
+	KafkaIP     string `json:"kafka_ip" mapstructure:"kafka_ip"`
+	HelmPort    int    `json:"helm_port" mapstructure:"helm_port"`
 }
 
 type InfluxDB struct {
 	EndpointUrl             string `json:"endpoint_url" mapstructure:"endpoint_url"`
-	InternalPort            int    `json:"internal_port" mapstructure:"internal_port"`
-	ExternalPort            int    `json:"external_port" mapstructure:"external_port"`
+	CustomPort              int    `json:"custom_port" mapstructure:"custom_port"`
 	Database                string
 	UserName                string `json:"user_name" mapstructure:"user_name"`
 	Password                string
@@ -42,8 +38,7 @@ type InfluxDB struct {
 }
 
 type CollectManager struct {
-	CollectorIP       string `json:"collector_ip" mapstructure:"collector_ip"`
-	CollectorGroupCnt int    `json:"collectorGroup_count" mapstructure:"collector_group_count"`
+	CollectorIP string `json:"collector_ip" mapstructure:"collector_ip"`
 }
 
 type APIServer struct {
@@ -60,14 +55,6 @@ type Monitoring struct {
 	PullerAggregateInterval int    `json:"puller_aggregate_interval" mapstructure:"puller_aggregate_interval"`
 	AggregateType           string `json:"aggregate_type" mapstructure:"aggregate_type"`
 	DeployType              string `json:"deploy_type" mapstructure:"deploy_type"`
-}
-
-func (kapacitor Kapacitor) GetKapacitorEndpointUrl() string {
-	return kapacitor.EndpointUrl
-}
-
-func (kafka Kafka) GetKafkaEndpointUrl() string {
-	return kafka.EndpointUrl
 }
 
 var once sync.Once
