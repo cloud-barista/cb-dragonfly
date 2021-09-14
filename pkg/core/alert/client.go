@@ -24,7 +24,7 @@ func newClient() (*kclient.Client, error) {
 	if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "dev") {
 		kapacitorPort = config.GetInstance().GetKapacitorConfig().CustomPort // 29092
 	} else {
-		kapacitorPort = types.KafkaDefaultPort // 9092
+		kapacitorPort = types.KapacitorDefaultPort // 9092
 	}
 	kapacitorConfig := kclient.Config{
 		URL:                fmt.Sprintf("%s:%d", config.GetDefaultConfig().GetKapacitorConfig().EndpointUrl, kapacitorPort),
