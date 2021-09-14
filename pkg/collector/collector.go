@@ -38,7 +38,7 @@ var KafkaConfig *kafka.ConfigMap
 func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (MetricCollector, error) {
 
 	KafkaConfig = &kafka.ConfigMap{
-		"bootstrap.servers":  fmt.Sprintf("%s", config.GetDefaultConfig().GetKafkaConfig().GetKafkaEndpointUrl()),
+		"bootstrap.servers":  fmt.Sprintf("%s", config.GetDefaultConfig().GetKafkaConfig().EndpointUrl),
 		"group.id":           fmt.Sprintf("%d", createOrder),
 		"enable.auto.commit": true,
 		"auto.offset.reset":  "earliest",

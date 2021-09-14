@@ -27,7 +27,7 @@ var adminKafka KafkaStruct
 //}()
 func Initialize() error {
 	admin, err := kafka.NewAdminClient(&kafka.ConfigMap{
-		"bootstrap.servers": fmt.Sprintf("%s", config.GetDefaultConfig().GetKafkaConfig().GetKafkaEndpointUrl()),
+		"bootstrap.servers": fmt.Sprintf("%s", config.GetDefaultConfig().GetKafkaConfig().EndpointUrl),
 		//"bootstrap.servers":  "192.168.130.7",
 		"group.id":          "myGroup",
 		"auto.offset.reset": "earliest",

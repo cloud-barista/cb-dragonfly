@@ -2,6 +2,7 @@ package alert
 
 import (
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"strings"
 	"time"
@@ -20,13 +21,13 @@ const (
 
 func newClient() (*kclient.Client, error) {
 	var kapacitorPort int
-	if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "local") {
-		kapacitorPort = config.GetInstance().GetKapacitorConfig().ExternalPort // 29092
+	if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "dev") {
+		kapacitorPort = config.GetInstance().GetKapacitorConfig().CustomPort // 29092
 	} else {
-		kapacitorPort = config.GetInstance().GetKapacitorConfig().InternalPort // 9092
+		kapacitorPort = types.KafkaDefaultPort // 9092
 	}
 	kapacitorConfig := kclient.Config{
-		URL:                fmt.Sprintf("%s:%d", config.GetDefaultConfig().GetKapacitorConfig().GetKapacitorEndpointUrl(), kapacitorPort),
+		URL:                fmt.Sprintf("%s:%d", config.GetDefaultConfig().GetKapacitorConfig().EndpointUrl, kapacitorPort),
 		Timeout:            time.Duration(kapacitorTimeout),
 		InsecureSkipVerify: true,
 	}

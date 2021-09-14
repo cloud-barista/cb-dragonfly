@@ -35,7 +35,7 @@ func NewCollectorManager() (*CollectManager, error) {
 	retryCnt := KafkaConnectionRetryCnt
 	waitInterval := KafkaConnectionRetryInterval * time.Second
 	for i := 0; i <= retryCnt; i++ {
-		_, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), config.GetInstance().GetKafkaConfig().ComposeExternalPort), waitInterval)
+		_, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().EndpointUrl, types.KafkaDefaultPort), waitInterval)
 		if err != nil {
 			if i == retryCnt {
 				util.GetLogger().Error("kafka is not responding %s", "kafka is not responding ", err.Error())
@@ -81,7 +81,7 @@ func (manager *CollectManager) SetConfigurationToMemoryDB() {
 func (manager *CollectManager) StartCollectorGroup(wg *sync.WaitGroup) error {
 	manager.WaitGroup = wg
 	if manager.collectorPolicy == types.AgentCnt {
-		startCollectorGroupCnt := config.GetInstance().CollectManager.CollectorGroupCnt
+		startCollectorGroupCnt := 1
 		for i := 0; i < startCollectorGroupCnt; i++ {
 			err := manager.CreateCollectorGroup()
 			if err != nil {

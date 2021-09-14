@@ -39,3 +39,9 @@ const (
 	OPENSTACK   = "OPENSTACK"
 	TotalCspCnt = 8
 )
+
+const (
+	KafkaDefaultPort     = 9092
+	InfluxDefaultPort    = 8086
+	KapacitorDefaultPort = 9092
+)

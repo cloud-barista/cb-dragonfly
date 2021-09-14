@@ -3,6 +3,7 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -110,7 +111,7 @@ func InstallAgent(nsId string, mcisId string, vmId string, publicIp string, user
 	}
 
 	// 카프카 도메인 정보 기입 /etc/hosts => agent에서 도메인 등록하도록 기능 변경
-	inputKafkaServerDomain := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", config.GetInstance().GetKafkaConfig().ExternalIP, "cb-dragonfly-kafka")
+	inputKafkaServerDomain := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", config.GetInstance().GetKafkaConfig().KafkaIP, "cb-dragonfly-kafka")
 	_, err = sshrun.SSHRun(sshInfo, inputKafkaServerDomain)
 	if err != nil {
 		cleanAgentInstall(sshInfo, osType)
@@ -206,11 +207,11 @@ func createTelegrafConfigFile(nsId string, mcisId string, vmId string, cspType s
 	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_%s_%s_%s", nsId, mcisId, vmId, cspType))
 	var kafkaPort int
 	if strings.EqualFold(config.GetDefaultConfig().GetMonConfig().DeployType, "helm") {
-		kafkaPort = config.GetInstance().GetKafkaConfig().HelmExternalPort
+		kafkaPort = config.GetInstance().GetKafkaConfig().HelmPort
 	} else {
-		kafkaPort = config.GetInstance().GetKafkaConfig().ComposeExternalPort
+		kafkaPort = types.KafkaDefaultPort
 	}
-	kafkaAddr := fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().GetKafkaEndpointUrl(), kafkaPort)
+	kafkaAddr := fmt.Sprintf("%s:%d", config.GetInstance().GetKafkaConfig().EndpointUrl, kafkaPort)
 	strConf = strings.ReplaceAll(strConf, "{{broker_server}}", kafkaAddr)
 
 	// telegraf.conf 파일 생성
@@ -318,7 +319,7 @@ func UninstallAgent(
 	}
 	// sudo perl -pi -e "s,^192.168.130.14.*tml\n$,," /etc/hosts
 
-	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", config.GetInstance().GetKafkaConfig().ExternalIP, "cb-dragonfly-kafka")
+	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", config.GetInstance().GetKafkaConfig().KafkaIP, "cb-dragonfly-kafka")
 	if _, err := sshrun.SSHRun(sshInfo, Cmd); err != nil {
 		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete domain list, error=%s", err))
