@@ -6,8 +6,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/metric"
 )
 
 // GetVMOnDemandMetric 멀티클라우드 인프라 VM 온디멘드 모니터링

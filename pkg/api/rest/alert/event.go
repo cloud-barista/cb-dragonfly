@@ -7,9 +7,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/event"
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/task"
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/types"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/alert/event"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/alert/task"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/alert/types"
 )
 
 func CreateEventLog(c echo.Context) error {

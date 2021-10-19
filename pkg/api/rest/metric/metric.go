@@ -8,7 +8,7 @@ import (
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/metric"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
 )
 
 // GetVMMonInfo 멀티 클라우드 인프라 서비스 개별 VM 모니터링 정보 조회

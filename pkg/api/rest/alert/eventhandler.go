@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/alert/eventhandler"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/alert/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/eventhandler"
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/alert/types"
 	"github.com/labstack/echo/v4"
 )
 

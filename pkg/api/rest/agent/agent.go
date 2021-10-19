@@ -10,7 +10,7 @@ import (
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/agent"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
 )
 
 // InstallTelegraf 에이전트 설치
@@ -26,7 +26,7 @@ import (
 // @Router /agent [post]
 func InstallTelegraf(c echo.Context) error {
 	params := &rest.AgentType{}
-	if err:= c.Bind(params); err != nil {
+	if err := c.Bind(params); err != nil {
 		return err
 	}
 
