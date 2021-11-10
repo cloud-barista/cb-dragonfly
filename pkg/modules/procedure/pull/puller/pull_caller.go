@@ -52,7 +52,7 @@ func (pc PullCaller) healthcheck(uuid string, agent agentmetadata.AgentInfo) err
 	if resp != nil {
 		if resp.StatusCode == http.StatusNoContent {
 			agent.AgentHealth = string(agentmetadata.Healthy)
-			_, _, err := agentmetadata.PutAgent(agent.NsId, agent.McisId, agent.VmId, agent.CspType, agent.PublicIp, true)
+			_, _, err := agentmetadata.PutAgent(agent.NsId, agent.McisId, agent.VmId, agent.CspType, agent.PublicIp, true, agent.ServiceType)
 			if err != nil {
 				return err
 			}
@@ -80,7 +80,7 @@ func (pc PullCaller) pullMetric(uuid string, agent agentmetadata.AgentInfo) {
 		// Update Agent Health
 		if statusCode == http.StatusOK && agent.AgentHealth == string(agentmetadata.Unhealthy) {
 			agent.AgentHealth = string(agentmetadata.Healthy)
-			_, _, err := agentmetadata.PutAgent(agent.NsId, agent.McisId, agent.VmId, agent.CspType, agent.PublicIp, true)
+			_, _, err := agentmetadata.PutAgent(agent.NsId, agent.McisId, agent.VmId, agent.CspType, agent.PublicIp, true, agent.ServiceType)
 			if err != nil {
 				continue
 			}
@@ -89,7 +89,7 @@ func (pc PullCaller) pullMetric(uuid string, agent agentmetadata.AgentInfo) {
 			agent.AgentUnhealthyRespCnt += 1
 			if agent.AgentUnhealthyRespCnt > AgentUnhealthyCnt {
 				agent.AgentHealth = string(agentmetadata.Unhealthy)
-				_, _, err := agentmetadata.PutAgent(agent.NsId, agent.McisId, agent.VmId, agent.CspType, agent.PublicIp, false)
+				_, _, err := agentmetadata.PutAgent(agent.NsId, agent.McisId, agent.VmId, agent.CspType, agent.PublicIp, false, agent.ServiceType)
 				if err != nil {
 					continue
 				}

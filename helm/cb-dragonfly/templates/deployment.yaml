@@ -38,7 +38,7 @@ spec:
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
 #          image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
-          image: "hojun121/dftest:latest"
+          image: "docker.io/hojun121/dftest:latest"
           #ports:
           #  - name: http
           #    containerPort: 80

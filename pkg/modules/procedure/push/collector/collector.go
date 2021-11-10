@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
@@ -29,7 +30,10 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 		"bootstrap.servers":  fmt.Sprintf("%s", config.GetDefaultConfig().Kafka.EndpointUrl),
 		"group.id":           fmt.Sprintf("%d", createOrder),
 		"enable.auto.commit": true,
-		"session.timeout.ms": 15000,
+		//"max.poll.interval.ms": 300000,
+		//"session.timeout.ms": 15000,
+		//"max.poll.records": 1000,
+		//"max.poll.interval": 6,
 		"auto.offset.reset":  "earliest",
 	}
 
@@ -54,13 +58,13 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 
 func (mc *MetricCollector) Collector(wg *sync.WaitGroup) error {
 
+	deadOrAliveCnt := map[string] int{}
+
 	defer wg.Done()
-	aliveTopics := []string{}
 	for {
 		select {
 		case processDecision := <-mc.Ch:
 			if len(processDecision) != 0 {
-
 				if processDecision[0] == "close" {
 					close(mc.Ch)
 					_ = mc.ConsumerKafkaConn.Unsubscribe()
@@ -71,26 +75,38 @@ func (mc *MetricCollector) Collector(wg *sync.WaitGroup) error {
 					fmt.Println(fmt.Sprintf("#### Group_%d collector Delete ####", mc.CreateOrder))
 					return nil
 				}
-
 				DeliveredTopicList := processDecision
+				sort.Strings(DeliveredTopicList)
 				fmt.Println(fmt.Sprintf("Group_%d collector Delivered : %s", mc.CreateOrder, DeliveredTopicList))
 
+				err := mc.ConsumerKafkaConn.SubscribeTopics(DeliveredTopicList, nil)
+				if err != nil {
+					fmt.Println(err)
+				}
+				start := time.Now()
+				aliveTopics, _ := mc.Aggregator.AggregateMetric(mc.ConsumerKafkaConn, DeliveredTopicList)
+				elapsed := time.Since(start)
 				sort.Strings(aliveTopics)
-				topicList := util.ReturnDiffTopicList(DeliveredTopicList, aliveTopics)
-				if len(topicList) != 0 {
-					err := mc.ConsumerKafkaConn.SubscribeTopics(DeliveredTopicList, nil)
-					if err != nil {
-						fmt.Println(err)
+				fmt.Println("Aggregate Time: ", elapsed)
+				for _, aliveTopic := range aliveTopics {
+					if _, ok := deadOrAliveCnt[aliveTopic]; ok {
+						delete(deadOrAliveCnt, aliveTopic)
 					}
 				}
-
-				aliveTopics, _ = mc.Aggregator.AggregateMetric(mc.ConsumerKafkaConn, DeliveredTopicList)
 				if !cmp.Equal(DeliveredTopicList, aliveTopics) {
 					_ = mc.ConsumerKafkaConn.Unsubscribe()
 					deadTopics := util.ReturnDiffTopicList(DeliveredTopicList, aliveTopics)
 					for _, delTopic := range deadTopics {
-						if err := util.RingQueuePut(types.TopicDel, delTopic); err != nil {
-							logrus.Debug(fmt.Sprintf("failed to put topics to ring queue, error=%s", err))
+						if _, ok := deadOrAliveCnt[delTopic]; !ok {
+							deadOrAliveCnt[delTopic] = 0
+						} else if ok {
+							if deadOrAliveCnt[delTopic] == 2 {
+								if err := util.RingQueuePut(types.TopicDel, delTopic); err != nil {
+									logrus.Debug(fmt.Sprintf("failed to put topics to ring queue, error=%s", err))
+								}
+								delete(deadOrAliveCnt, delTopic)
+							}
+							deadOrAliveCnt[delTopic] += 1
 						}
 					}
 				}

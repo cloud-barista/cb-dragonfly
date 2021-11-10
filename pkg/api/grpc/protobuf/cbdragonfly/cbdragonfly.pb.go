@@ -2285,6 +2285,7 @@ type InstallAgentRequest struct {
 	SshKey               string   `protobuf:"bytes,6,opt,name=ssh_key,proto3" json:"ssh_key" yaml:"ssh_key"`
 	CspType              string   `protobuf:"bytes,7,opt,name=csp_type,proto3" json:"csp_type" yaml:"csp_type"`
 	Port                 string   `protobuf:"bytes,8,opt,name=port,proto3" json:"port" yaml:"port"`
+	ServiceType                 string   `protobuf:"bytes,8,opt,name=port,proto3" json:"service_type" yaml:"service_type"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

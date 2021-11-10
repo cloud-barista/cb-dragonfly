@@ -91,7 +91,7 @@ func (manager *CollectManager) CreateCollector() error {
 			{Name: "collect_interval", Value: strconv.Itoa(config.GetInstance().Monitoring.CollectorInterval)},
 			{Name: "collect_uuid", Value: collectorUUID},
 		}
-		deploymentTemplate := util.DeploymentTemplate(collectorUUID, env)
+		deploymentTemplate := util.DeploymentTemplate(collectorCreateOrder, collectorUUID, env)
 		fmt.Println("Creating deployment...")
 		result, err := manager.K8sClientSet.AppsV1().Deployments(types.Namespace).Create(context.TODO(), deploymentTemplate, metav1.CreateOptions{})
 		if err != nil {

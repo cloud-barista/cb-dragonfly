@@ -34,6 +34,19 @@ func PrintPanicError(err error) {
 	}
 }
 
+func DeleteDeployment(clientSet *kubernetes.Clientset, collectorUUID string, namespace string) {
+	fmt.Println("Deleting deployment...")
+	deploymentName := "cb-dragonfly-collector-" + collectorUUID
+	deploymentsClient := clientSet.AppsV1().Deployments(namespace)
+	deletePolicy := metav1.DeletePropagationForeground
+	if err := deploymentsClient.Delete(context.TODO(), deploymentName, metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	}); err != nil {
+		fmt.Println("Fail to delete deployment.")
+		fmt.Println(err)
+	}
+}
+
 func main() {
 	/** Get Env Val Start */
 	kafkaEndpointUrl := os.Getenv("kafka_endpoint_url")
@@ -61,7 +74,7 @@ func main() {
 		"bootstrap.servers":  kafkaEndpointUrl,
 		"group.id":           fmt.Sprintf("%d", createOrder),
 		"enable.auto.commit": true,
-		"session.timeout.ms": 15000,
+		//"session.timeout.ms": 15000,
 		"auto.offset.reset":  "earliest",
 	}
 	consumerKafkaConn, err := kafka.NewConsumer(KafkaConfig)
@@ -81,7 +94,9 @@ func main() {
 		},
 	}
 	fmt.Println(fmt.Sprintf("#### Group_%d collector Create ####", createOrder))
-	aliveTopics := []string{}
+	deadOrAliveCnt := map[string] int{}
+
+	configMapFailCnt := 0
 	for {
 		time.Sleep(time.Duration(collectInterval)*time.Second)
 		fmt.Println(fmt.Sprintf("#### Group_%d collector ####", createOrder))
@@ -89,6 +104,10 @@ func main() {
 		/** Get ConfigMap<Data: Collector UUID Map, BinaryData: Collector Topics> Start */
 		configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(context.TODO(), "cb-dragonfly-collector-configmap", metav1.GetOptions{})
 		if err != nil {
+			if configMapFailCnt == 5 {
+				DeleteDeployment(clientSet, collectorUUID, namespace)
+			}
+			configMapFailCnt += 1
 			fmt.Println("Fail to Get ConfigMap")
 			fmt.Println(err)
 			continue
@@ -106,16 +125,7 @@ func main() {
 		/** Check My Collector UUID Start */
 		_, alive := configMap.Data[collectorUUID]
 		if !alive {
-			fmt.Println("Deleting deployment...")
-			deploymentName := "cb-dragonfly-collector-" + collectorUUID
-			deploymentsClient := clientSet.AppsV1().Deployments(namespace)
-			deletePolicy := metav1.DeletePropagationForeground
-			if err := deploymentsClient.Delete(context.TODO(), deploymentName, metav1.DeleteOptions{
-				PropagationPolicy: &deletePolicy,
-			}); err != nil {
-				fmt.Println("Fail to delete deployment.")
-				fmt.Println(err)
-			}
+			DeleteDeployment(clientSet, collectorUUID, namespace)
 		}
 		/** Check My Collector UUID End */
 
@@ -131,27 +141,40 @@ func main() {
 			continue
 		}
 		fmt.Println(fmt.Sprintf("Group_%d collector Delivered : %s", mc.CreateOrder, DeliveredTopicList))
-		sort.Strings(aliveTopics)
-		topicList := util.ReturnDiffTopicList(DeliveredTopicList, aliveTopics)
-		if len(topicList) != 0 {
-			err := mc.ConsumerKafkaConn.SubscribeTopics(DeliveredTopicList, nil)
-			if err != nil {
-				fmt.Println(err)
-			}
+		err = mc.ConsumerKafkaConn.SubscribeTopics(DeliveredTopicList, nil)
+		if err != nil {
+			fmt.Println(err)
 		}
 		/** Get My Allocated Topics End */
 
 		/** Processing Topics to TSDB & Transmit Dead Topics To DF Start */
-		aliveTopics, _ = mc.Aggregator.AggregateMetric(mc.ConsumerKafkaConn, DeliveredTopicList)
+		start := time.Now()
+		aliveTopics, _ := mc.Aggregator.AggregateMetric(mc.ConsumerKafkaConn, DeliveredTopicList)
+		elapsed := time.Since(start)
+		sort.Strings(aliveTopics)
+		fmt.Println("Aggregate Time: ", elapsed)
+		for _, aliveTopic := range aliveTopics {
+			if _, ok := deadOrAliveCnt[aliveTopic]; ok {
+				delete(deadOrAliveCnt, aliveTopic)
+			}
+		}
 		if !cmp.Equal(DeliveredTopicList, aliveTopics) {
 			_ = mc.ConsumerKafkaConn.Unsubscribe()
 			deadTopics := util.ReturnDiffTopicList(DeliveredTopicList, aliveTopics)
 			var err error
 			for _, delTopic := range deadTopics {
-				getUrl := fmt.Sprintf("http://%s/dragonfly/topic/delete/%s", dfAddr, delTopic)
-				_, err = http.Get(getUrl)
-				if err != nil {
-					fmt.Println(err)
+				if _, ok := deadOrAliveCnt[delTopic]; !ok {
+					deadOrAliveCnt[delTopic] = 0
+				} else if ok {
+					if deadOrAliveCnt[delTopic] == 2 {
+						getUrl := fmt.Sprintf("http://%s/dragonfly/topic/delete/%s", dfAddr, delTopic)
+						_, err = http.Get(getUrl)
+						if err != nil {
+							fmt.Println(err)
+						}
+						delete(deadOrAliveCnt, delTopic)
+					}
+					deadOrAliveCnt[delTopic] += 1
 				}
 			}
 			if err != nil {

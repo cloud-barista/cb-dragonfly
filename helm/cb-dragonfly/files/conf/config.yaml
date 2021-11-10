@@ -19,7 +19,7 @@ kafka:
 
 # collect manager configuration info
 dragonfly:
-  dragonfly_ip: 118.130.73.124                           # Cloud-Barista를 설치 및 실행하는 VM/물리머신의 Public IP 주소를 기재
+  dragonfly_ip: 210.207.104.196                           # Cloud-Barista를 설치 및 실행하는 VM/물리머신의 Public IP 주소를 기재
   port: 9090
   helm_port: 30090
 

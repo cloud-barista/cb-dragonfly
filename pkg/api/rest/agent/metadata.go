@@ -70,7 +70,12 @@ func PutAgentMetadata(c echo.Context) error {
 	if nsId == "" || mcisId == "" || vmId == "" || cspType == "" {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage("failed to update metadata. Check the Params"))
 	} else {
-		agentUUID, agentMetadata, err := agent.PutAgent(nsId, mcisId, vmId, cspType, agentIp, true)
+		serviceType := "mcis"
+		existAgentMetadata, err := agent.GetAgent(nsId, mcisId, vmId, cspType)
+		if err != nil {
+			serviceType = existAgentMetadata.ServiceType
+		}
+		agentUUID, agentMetadata, err := agent.PutAgent(nsId, mcisId, vmId, cspType, agentIp, true, serviceType)
 		errQue := util.RingQueuePut(types.TopicAdd, agentUUID)
 		if err != nil || errQue != nil {
 			return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("failed to update metadata, error=%s", err)))

@@ -23,6 +23,7 @@ type AgentType struct {
 	SshKey   string `json:"ssh_key"`
 	CspType  string `json:"cspType"`
 	Port     string `json:"port"`
+	ServiceType string `json:"serviceType"`
 }
 
 type VMOnDemandMetricTags struct {

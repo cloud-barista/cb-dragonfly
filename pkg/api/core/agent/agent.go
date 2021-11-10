@@ -25,7 +25,7 @@ const (
 	CENTOS = "CENTOS"
 )
 
-func InstallAgent(nsId string, mcisId string, vmId string, publicIp string, userName string, sshKey string, cspType string, port string) (int, error) {
+func InstallAgent(nsId string, mcisId string, vmId string, publicIp string, userName string, sshKey string, cspType string, port string, serviceType string) (int, error) {
 	sshInfo := sshrun.SSHInfo{
 		ServerPort: publicIp + ":" + port,
 		UserName:   userName,
@@ -173,7 +173,7 @@ func InstallAgent(nsId string, mcisId string, vmId string, publicIp string, user
 	}
 
 	// 메타데이터 저장
-	_, _, err = PutAgent(nsId, mcisId, vmId, cspType, publicIp, false)
+	_, _, err = PutAgent(nsId, mcisId, vmId, cspType, publicIp, false, serviceType)
 	if err != nil {
 		cleanAgentInstall(sshInfo, osType)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))

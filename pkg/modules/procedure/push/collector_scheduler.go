@@ -182,6 +182,7 @@ func (cScheduler CollectorScheduler) AddTopicsToCollector(addTopicList []string,
 			}
 			if needToScaleOut {
 				cMap.TopicMap[len(cMap.CollectorPerAgentCnt)] = []string{topic}
+				_ = c.StorePut(fmt.Sprintf("%s/%s", types.Topic, topic), strconv.Itoa(len(cMap.CollectorPerAgentCnt)))
 				cMap.CollectorPerAgentCnt = append(cMap.CollectorPerAgentCnt, 1)
 			}
 		}

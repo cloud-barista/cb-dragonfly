@@ -44,9 +44,10 @@ type AgentInfo struct {
 	AgentHealth           string `json:"agent_health"`
 	AgentUnhealthyRespCnt int    `json:"agent_unhealthy_resp_cnt"`
 	PublicIp              string `json:"public_ip"`
+	ServiceType           string `json:"serviceType"`
 }
 
-func NewAgentInfo(nsId string, mcisId string, vmId string, cspType string, publicIp string, isHealth bool) AgentInfo {
+func NewAgentInfo(nsId string, mcisId string, vmId string, cspType string, publicIp string, isHealth bool, serviceType string) AgentInfo {
 	state := string(Disable)
 	health := string(Unhealthy)
 	if isHealth {
@@ -63,6 +64,7 @@ func NewAgentInfo(nsId string, mcisId string, vmId string, cspType string, publi
 		AgentHealth:           health,
 		AgentUnhealthyRespCnt: 0,
 		PublicIp:              publicIp,
+		ServiceType:           serviceType,
 	}
 }
 
@@ -115,9 +117,9 @@ func GetAgent(nsId string, mcisId string, vmId string, cspType string) (AgentInf
 
 //func PutAgent(agentUUID string, agentInfo AgentInfo) error {
 //nsId string, mcisId string, vmId string, cspType string, publicIp string
-func PutAgent(nsId string, mcisId string, vmId string, cspType string, publicIp string, isHealth bool) (string, AgentInfo, error) {
+func PutAgent(nsId string, mcisId string, vmId string, cspType string, publicIp string, isHealth bool, serviceType string) (string, AgentInfo, error) {
 	agentUUID := MakeAgentUUID(nsId, mcisId, vmId, cspType)
-	agentInfo := NewAgentInfo(nsId, mcisId, vmId, cspType, publicIp, isHealth)
+	agentInfo := NewAgentInfo(nsId, mcisId, vmId, cspType, publicIp, isHealth, serviceType)
 	agentInfoBytes, err := json.Marshal(agentInfo)
 	if err != nil {
 		return "", AgentInfo{}, errors.New(fmt.Sprintf("failed to convert metadata format to json, error=%s", err))

@@ -194,10 +194,11 @@ func Int32Ptr(i int32) *int32 { return &i }
 
 func Int64Ptr(i int64) *int64 { return &i }
 
-func DeploymentTemplate(collectorUUID string, env []apiv1.EnvVar) *appsv1.Deployment {
+func DeploymentTemplate(collectorCreateOrder int, collectorUUID string, env []apiv1.EnvVar) *appsv1.Deployment {
+	createOrder := strconv.Itoa(collectorCreateOrder)
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   types.DeploymentName + collectorUUID,
+			Name:   fmt.Sprintf("%s%s-%s", types.DeploymentName, createOrder, collectorUUID),
 			Labels: map[string]string{types.LabelKey: collectorUUID},
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -216,7 +217,7 @@ func DeploymentTemplate(collectorUUID string, env []apiv1.EnvVar) *appsv1.Deploy
 				Spec: apiv1.PodSpec{
 					Containers: []apiv1.Container{
 						{
-							Name:  types.DeploymentName + collectorUUID,
+							Name:  fmt.Sprintf("%s%s-%s", types.DeploymentName, createOrder, collectorUUID),
 							Image: types.CollectorImage,
 							Ports: []apiv1.ContainerPort{},
 							Env:   env,

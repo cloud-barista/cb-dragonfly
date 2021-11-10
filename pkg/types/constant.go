@@ -65,5 +65,9 @@ const (
 const (
 	LabelKey       = "name"
 	Namespace      = "dragonfly"
-	CollectorImage = "hojun121/collector"
+	CollectorImage = "docker.io/hojun121/collector:latest"
+)
+
+const (
+	TBRestAPIURL = "http://localhost:1323/tumblebug"
 )

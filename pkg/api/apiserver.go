@@ -72,6 +72,11 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.GET("/ns/:ns_id/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/mcis_metric/:metric_name/mcis-monitoring-info", metric.GetMCISMetric)
 	// 멀티클라우드 인프라 VM 온디멘드 모니터링
 	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/agent_ip/:agent_ip/metric/:metric_name/ondemand-monitoring-info", metric.GetVMOnDemandMetric)
+	// 멀티클라우드 인프라 네트워크 패킷 모니터링
+	dragonfly.GET("/ns/:ns/mcis/:mcis_id/vm/:vm_id/watchtime/:watch_time/mcis-networkpacket-info", metric.GetMCISOnDemandPacket)
+	// 멀티클라우드 인프라 VM Process 모니터링
+	dragonfly.GET("/agentip/:agent_ip/mcis-process-info", metric.GetMCISOnDemandProcess)
+	dragonfly.GET("/ns/:ns/mcis/:mcis_id/mcis-process-info", metric.GetMCISSpec)
 	// 멀티 클라우드 인프라 VM 모니터링/실시간 모니터링 정보 조회
 	dragonfly.GET("/ns/:ns_id/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/info", metric.GetVMMonInfo)
 
@@ -104,7 +109,9 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.GET("/alert/tasks", alert.ListAlertTask)
 	dragonfly.GET("/alert/task/:task_id", alert.GetAlertTask)
 	dragonfly.POST("/alert/task", alert.CreateAlertTask)
-	dragonfly.PUT("/alert/task/:task_id", alert.UpdateAlertTask)
+	dragonfly.PUT("/alert/task/:task" +
+		"" +
+		"_id", alert.UpdateAlertTask)
 	dragonfly.DELETE("/alert/task/:task_id", alert.DeleteAlertTask)
 
 	// 알람 이벤트 로그 조회, 생성
