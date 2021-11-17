@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,7 +18,7 @@ import (
 
 const (
 	AgentPort    = 8888
-	AgentTimeout = 10
+	AgentTimeout = 30
 )
 
 func GetVMOnDemandMonInfo(metricName string, publicIP string) (interface{}, int, error) {
@@ -83,15 +85,15 @@ func getVMOnDemandMonInfo(metric types.Metric, publicIP string) (map[string]inte
 }
 
 type PacketsInfo struct {
-	DestinationIp string
-	PacketCnt int
+	DestinationIp    string
+	PacketCnt        int
 	TotalPacketBytes int
-	Msg string
+	Msg              string
 }
 
 type NetworkPacketsResult struct {
-	WatchTime string
-	PacketsInfos map[int] PacketsInfo
+	WatchTime    string
+	PacketsInfos map[int]PacketsInfo
 }
 
 func GetMCISOnDemandPacketInfo(nsId string, mcisId string, vmId string, watchTime string) (NetworkPacketsResult, int, error) {
@@ -104,7 +106,7 @@ func GetMCISOnDemandPacketInfo(nsId string, mcisId string, vmId string, watchTim
 	var targetAgentInfo []agent.AgentInfo
 
 	for _, agentMetadata := range agentList {
-		if agentMetadata.McisId == mcisId  && agentMetadata.NsId == nsId {
+		if agentMetadata.McisId == mcisId && agentMetadata.NsId == nsId {
 			if agentMetadata.VmId == vmId {
 				sourceAgentIP = agentMetadata.PublicIp
 			} else {
@@ -125,8 +127,8 @@ func GetMCISOnDemandPacketInfo(nsId string, mcisId string, vmId string, watchTim
 	wg.Add(len(targetAgentInfo))
 
 	result := NetworkPacketsResult{
-		WatchTime: watchTime,
-		PacketsInfos: map[int] PacketsInfo{},
+		WatchTime:    watchTime,
+		PacketsInfos: map[int]PacketsInfo{},
 	}
 
 	for idx, targetAgent := range targetAgentInfo {
@@ -138,43 +140,44 @@ func GetMCISOnDemandPacketInfo(nsId string, mcisId string, vmId string, watchTim
 			packetsInfo := PacketsInfo{}
 			resp, err := client.Get(agentUrl)
 			if err != nil {
-				fmt.Println("err: " + targetAgent.PublicIp+", msg: ", err)
+				fmt.Println("err: "+targetAgent.PublicIp+", msg: ", err)
 				return
 			}
 			body, err2 := ioutil.ReadAll(resp.Body)
+			defer resp.Body.Close()
 			if err2 != nil {
-				fmt.Println("err: " + targetAgent.PublicIp+", msg: ", err2)
+				fmt.Println("err: "+targetAgent.PublicIp+", msg: ", err2)
 				return
 			}
 			_ = json.Unmarshal(body, &packetsInfo)
 			result.PacketsInfos[idx] = packetsInfo
 		}()
 	}
-
+	wg.Wait()
 	return result, http.StatusOK, err
 }
 
 type ProcessUsage struct {
-	Pid string
+	Pid      string
 	CpuUsage string
 	MemUsage string
-	Command string
+	Command  string
 }
 
-func GetMCISOnDemandProcessInfo(publicIp string) (map[string] []ProcessUsage, int, error) {
+func GetMCISOnDemandProcessInfo(publicIp string) (map[string][]ProcessUsage, int, error) {
 
-	userProcess := map[string] []ProcessUsage{}
+	userProcess := map[string][]ProcessUsage{}
 	client := http.Client{
 		Timeout: AgentTimeout * time.Second,
 	}
 	agentUrl := fmt.Sprintf("http://%s:%d/cb-dragonfly/mcis/process", publicIp, AgentPort)
 	resp, err := client.Get(agentUrl)
 	if err != nil {
-		return map[string] []ProcessUsage{}, http.StatusInternalServerError, err
+		return map[string][]ProcessUsage{}, http.StatusInternalServerError, err
 	}
 	body, err2 := ioutil.ReadAll(resp.Body)
 	if err2 != nil {
-		return map[string] []ProcessUsage{}, http.StatusInternalServerError, err
+		return map[string][]ProcessUsage{}, http.StatusInternalServerError, err
 	}
 	_ = json.Unmarshal(body, &userProcess)
 
@@ -182,27 +185,58 @@ func GetMCISOnDemandProcessInfo(publicIp string) (map[string] []ProcessUsage, in
 
 }
 
-type MCISGroupSpecs struct {
-	NetBwGbps int
-	NumCore int
-	NumGpu int
-	NumStorage int
-	NumvCPU int
-	StorageGiB int
+type vmSpec struct {
+	Namespace      string
+	Id             string
+	Name           string
+	ConnectionName string
+	CspSpecName    string
+	NumvCPU        int
+	MemGiB         int
+	CostPerHour    float64
 }
 
-func GetMCISSpecInfo(nsId string, mcisId string) (MCISGroupSpecs, int, error) {
+type McisVMSpecs struct {
+	AvgNumvCpu     float64
+	AvgMemGiB      float64
+	AvgCostPerHour float64
+	VmSpec         []vmSpec
+}
 
-	mcisGroupSpecs := MCISGroupSpecs{}
-	//agentMetadataList, err := agent.ListAgent()
-	//if err != nil {
-	//	return mcisGroupSpecs, http.StatusInternalServerError, err
-	//}
+func GetMCISSpecInfo(nsId string, mcisId string, auth string) (McisVMSpecs, int, error) {
+	mcisVMSpecs := McisVMSpecs{}
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/ns/%s/mcis/%s", types.TBRestAPIURL, nsId, mcisId), nil)
+	req.Header.Add("Authorization", auth)
+	client := &http.Client{}
+	resp, _ := client.Do(req)
+	defer resp.Body.Close()
+	bytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := strings.Split(string(bytes), `"specId":`)[1:]
+	if len(respStr) == 0 {
+		return mcisVMSpecs, http.StatusOK, nil
+	}
+	//nsId = "common"
+	for _, specIdStr := range respStr {
+		specId := strings.ReplaceAll(strings.Split(specIdStr, ",")[0], `"`, "")
+		req, err = http.NewRequest("GET", fmt.Sprintf("%s/ns/%s/resources/spec/%s", types.TBRestAPIURL, nsId, specId), nil)
+		req.Header.Add("Authorization", auth)
+		resp, _ = client.Do(req)
+		bytes, _ = ioutil.ReadAll(resp.Body)
+		vmSpec := vmSpec{}
+		err = json.Unmarshal(bytes, &vmSpec)
+		if err != nil {
+			fmt.Println(err)
+		}
+		mcisVMSpecs.AvgNumvCpu += float64(vmSpec.NumvCPU)
+		mcisVMSpecs.AvgMemGiB += float64(vmSpec.MemGiB)
+		mcisVMSpecs.AvgCostPerHour += vmSpec.CostPerHour
+		mcisVMSpecs.VmSpec = append(mcisVMSpecs.VmSpec, vmSpec)
+	}
+	vmSpecCnt := float64(len(mcisVMSpecs.VmSpec))
+	mcisVMSpecs.AvgNumvCpu /= vmSpecCnt
+	mcisVMSpecs.AvgMemGiB /= vmSpecCnt
+	mcisVMSpecs.AvgCostPerHour /= vmSpecCnt
+	mcisVMSpecs.AvgCostPerHour = util.ToFixed(mcisVMSpecs.AvgCostPerHour, 5)
 
-	//for _, agentMetadata := range agentMetadataList {
-		//getVmSpecIdUrl := fmt.Sprintf("")
-		//agentMetadata.VmId
-	//}
-
-	return mcisGroupSpecs, http.StatusOK, nil
+	return mcisVMSpecs, http.StatusOK, nil
 }

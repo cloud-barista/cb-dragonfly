@@ -8,6 +8,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"math"
 	"net/url"
 	"reflect"
 	"sort"
@@ -249,6 +250,15 @@ func DeploymentTemplate(collectorCreateOrder int, collectorUUID string, env []ap
 			},
 		},
 	}
+}
+
+func round(num float64) int {
+	return int(num + math.Copysign(0.5, num))
+}
+
+func ToFixed(num float64, precision int) float64 {
+	output := math.Pow(10, float64(precision))
+	return float64(round(num*output)) / output
 }
 
 //func SliceContainsItem(slice []string, item string) bool {

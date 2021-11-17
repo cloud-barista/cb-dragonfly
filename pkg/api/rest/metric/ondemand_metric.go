@@ -54,7 +54,7 @@ func GetMCISOnDemandPacket(c echo.Context) error {
 
 	// 파라미터 값 체크
 	if nsId == "" || mcisId == "" || vmId == "" {
-		return c.JSON(http.StatusInternalServerError, errors.New("source or destination IP parameter is missing"))
+		return c.JSON(http.StatusInternalServerError, errors.New("parameter is missing"))
 	}
 
 	result, errCode, err := metric.GetMCISOnDemandPacketInfo(nsId, mcisId, vmId, watchTime)
@@ -84,15 +84,18 @@ func GetMCISSpec(c echo.Context) error {
 	// 온디멘드 모니터링 Path 파라미터 가져오기
 	nsId := c.Param("ns")
 	mcisId := c.Param("mcis_id")
-
+	auth := c.Request().Header.Get("Authorization")
 	// 파라미터 값 체크
 	if nsId == "" || mcisId == "" {
 		return c.JSON(http.StatusInternalServerError, errors.New("parameter is missing"))
 	}
+	if auth == "" {
+		return c.JSON(http.StatusInternalServerError, errors.New("basic auth is missing"))
+	}
 
-	result, errCode, err := metric.GetMCISSpecInfo(nsId, mcisId)
+	result, errCode, err2 := metric.GetMCISSpecInfo(nsId, mcisId, auth)
 	if errCode != http.StatusOK {
-		return echo.NewHTTPError(errCode, rest.SetMessage(err.Error()))
+		return echo.NewHTTPError(errCode, rest.SetMessage(err2.Error()))
 	}
 	return c.JSON(http.StatusOK, result)
 }
