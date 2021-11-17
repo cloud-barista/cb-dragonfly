@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"time"
 
+	coreagent "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
+	coreconfig "github.com/cloud-barista/cb-dragonfly/pkg/api/core/config"
+	coremetric "github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/grpc/common"
 	pb "github.com/cloud-barista/cb-dragonfly/pkg/api/grpc/protobuf/cbdragonfly"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	coreagent "github.com/cloud-barista/cb-dragonfly/pkg/core/agent"
-	coreconfig "github.com/cloud-barista/cb-dragonfly/pkg/core/config"
-	coremetric "github.com/cloud-barista/cb-dragonfly/pkg/core/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 )
 
@@ -361,7 +361,7 @@ func (c MonitoringService) ResetMonConfig(ctx context.Context, empty *pb.Empty) 
 }
 
 func (c MonitoringService) InstallAgent(ctx context.Context, request *pb.InstallAgentRequest) (*pb.MessageResponse, error) {
-	statusCode, err := coreagent.InstallAgent(request.NsId, request.McisId, request.VmId, request.PublicIp, request.UserName, request.SshKey, request.CspType, request.Port)
+	statusCode, err := coreagent.InstallAgent(request.NsId, request.McisId, request.VmId, request.PublicIp, request.UserName, request.SshKey, request.CspType, request.Port, request.ServiceType)
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.InstallAgent()")
 	}

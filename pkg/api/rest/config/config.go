@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 	_ "github.com/mitchellh/mapstructure"
 
-	coreconfig "github.com/cloud-barista/cb-dragonfly/pkg/core/config"
+	coreconfig "github.com/cloud-barista/cb-dragonfly/pkg/api/core/config"
 )
 
 // SetMonConfig 모니터링 정책 설정

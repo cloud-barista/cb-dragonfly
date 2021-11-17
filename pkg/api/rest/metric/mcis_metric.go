@@ -5,8 +5,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/metric"
 )
 
 // GetMCISMetric 멀티 클라우드 인트라 서비스 모니터링 메트릭 수집

@@ -2,7 +2,7 @@ apiVersion: v2
 name: cb-dragonfly
 type: application
 version: 0.4.0
-appVersion: 0.4.3
+appVersion: 0.4.4
 description: CB-Dragonfly Helm chart
 dependencies:
   - name: influxdb

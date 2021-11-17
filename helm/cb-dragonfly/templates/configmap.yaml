@@ -22,6 +22,10 @@ data:
     {{ range .Files.Lines "files/conf/setup.env" }}
     {{ . }}
     {{ end }}
+  grpc_conf.yaml: |-
+    {{ range .Files.Lines "files/conf/grpc_conf.yaml" }}
+    {{ . }}
+    {{ end }}
   store_conf.yaml: |-
     {{ range .Files.Lines "files/conf/store_conf.yaml" }}
     {{ . }}
