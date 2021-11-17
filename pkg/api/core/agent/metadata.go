@@ -44,7 +44,7 @@ type AgentInfo struct {
 	AgentHealth           string `json:"agent_health"`
 	AgentUnhealthyRespCnt int    `json:"agent_unhealthy_resp_cnt"`
 	PublicIp              string `json:"public_ip"`
-	ServiceType           string `json:"serviceType"`
+	ServiceType           string `json:"service_type"`
 }
 
 func NewAgentInfo(nsId string, mcisId string, vmId string, cspType string, publicIp string, isHealth bool, serviceType string) AgentInfo {
