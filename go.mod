@@ -8,8 +8,13 @@ replace (
 	google.golang.org/grpc => google.golang.org/grpc v1.26.0
 )
 
+replace k8s.io/client-go => k8s.io/client-go v0.18.9
+
+replace k8s.io/apimachinery => k8s.io/apimachinery v0.18.9
+
 require (
 	github.com/Scalingo/go-utils v7.1.0+incompatible
+	github.com/Workiva/go-datastructures v1.0.53
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/bramvdbogaerde/go-scp v1.0.0
 	github.com/cloud-barista/cb-log v0.4.0
@@ -45,13 +50,11 @@ require (
 	github.com/swaggo/swag v1.7.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20200427203606-3cfed13b9966 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
-	go.uber.org/zap v1.18.1 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
-	golang.org/x/net v0.0.0-20210716203947-853a461950ff // indirect
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
-	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/grpc v1.39.0
 	gopkg.in/yaml.v2 v2.4.0
-	sigs.k8s.io/yaml v1.2.0 // indirect
+	k8s.io/api v0.18.9
+	k8s.io/apimachinery v0.22.2
+	k8s.io/client-go v0.22.2
 )

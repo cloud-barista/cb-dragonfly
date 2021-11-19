@@ -10,7 +10,7 @@ import (
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/core/agent"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
 )
 
 // InstallTelegraf 에이전트 설치
@@ -26,19 +26,19 @@ import (
 // @Router /agent [post]
 func InstallTelegraf(c echo.Context) error {
 	params := &rest.AgentType{}
-	if err:= c.Bind(params); err != nil {
+	if err := c.Bind(params); err != nil {
 		return err
 	}
 
 	// form 파라미터 값 체크
-	if params.NsId == "" || params.McisId == "" || params.VmId == "" || params.PublicIp == "" || params.UserName == "" || params.SshKey == "" || params.CspType == "" {
+	if params.NsId == "" || params.McisId == "" || params.VmId == "" || params.PublicIp == "" || params.UserName == "" || params.SshKey == "" || params.CspType == "" || params.ServiceType == ""{
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage("failed to get package. query parameter is missing"))
 	}
 	if params.Port == "" {
 		params.Port = "22"
 	}
 
-	errCode, err := agent.InstallAgent(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType, params.Port)
+	errCode, err := agent.InstallAgent(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType, params.Port, strings.ToLower(params.ServiceType))
 	if errCode != http.StatusOK {
 		return c.JSON(errCode, rest.SetMessage(err.Error()))
 	}

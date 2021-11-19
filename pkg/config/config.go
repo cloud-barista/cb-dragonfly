@@ -10,39 +10,35 @@ import (
 
 type Config struct {
 	InfluxDB       InfluxDB
-	CollectManager CollectManager
-	APIServer      APIServer
-	Monitoring     Monitoring
 	Kapacitor      Kapacitor
 	Kafka          Kafka
-}
-
-type Kapacitor struct {
-	EndpointUrl string `json:"endpoint_url" mapstructure:"endpoint_url"`
-	CustomPort  int    `json:"custom_port" mapstructure:"custom_port"`
-}
-
-type Kafka struct {
-	EndpointUrl string `json:"endpoint_url" mapstructure:"endpoint_url"`
-	KafkaIP     string `json:"kafka_ip" mapstructure:"kafka_ip"`
-	HelmPort    int    `json:"helm_port" mapstructure:"helm_port"`
+	Dragonfly      Dragonfly
+	Monitoring     Monitoring
 }
 
 type InfluxDB struct {
 	EndpointUrl             string `json:"endpoint_url" mapstructure:"endpoint_url"`
-	CustomPort              int    `json:"custom_port" mapstructure:"custom_port"`
+	HelmPort                int    `json:"helm_port" mapstructure:"helm_port"`
 	Database                string
 	UserName                string `json:"user_name" mapstructure:"user_name"`
 	Password                string
 	RetentionPolicyDuration string `json:"rpDuration" mapstructure:"rpDuration"`
 }
 
-type CollectManager struct {
-	CollectorIP string `json:"collector_ip" mapstructure:"collector_ip"`
+type Kapacitor struct {
+	EndpointUrl string `json:"endpoint_url" mapstructure:"endpoint_url"`
+	HelmPort  int    `json:"helm_port" mapstructure:"helm_port"`
 }
 
-type APIServer struct {
-	Port int
+type Kafka struct {
+	EndpointUrl string `json:"endpoint_url" mapstructure:"endpoint_url"`
+	HelmPort    int    `json:"helm_port" mapstructure:"helm_port"`
+}
+
+type Dragonfly struct {
+	DragonflyIP string `json:"dragonfly_ip" mapstructure:"dragonfly_ip"`
+	Port int `json:"port" mapstructure:"port"`
+	HelmPort int `json:"helm_port" mapstructure:"helm_port"`
 }
 
 type Monitoring struct {
@@ -79,18 +75,6 @@ func (config *Config) SetMonConfig(newMonConfig Monitoring) {
 
 func (config *Config) GetMonConfig() Monitoring {
 	return config.Monitoring
-}
-
-func (config *Config) GetInfluxDBConfig() InfluxDB {
-	return config.InfluxDB
-}
-
-func (config *Config) GetKapacitorConfig() Kapacitor {
-	return config.Kapacitor
-}
-
-func (config *Config) GetKafkaConfig() Kafka {
-	return config.Kafka
 }
 
 func loadConfigFromYAML(config *Config) {

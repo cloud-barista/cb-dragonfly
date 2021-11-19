@@ -7,12 +7,12 @@ const (
 
 // CB-Store key
 const (
-	Agent               = "/monitoring/agents"
-	MonConfig           = "/monitoring/configs"
-	Topic               = "/monitoring/topics"
-	CollectorGroupTopic = "/monitoring/collectorGroupTopics"
-	DeleteTopic         = "/monitoring/delTopics"
-	EventLog            = "/monitoring/eventLogs"
+	Agent             = "/monitoring/agents/"
+	MonConfig         = "/monitoring/configs"
+	EventLog          = "/monitoring/eventLogs"
+	CollectorPolicy   = "/monitoring/collectorPolicy"
+	Topic             = "/push/topic"
+	CollectorTopicMap = "/push/collectorTopicMap"
 )
 
 const (
@@ -24,19 +24,19 @@ const (
 )
 
 const (
-	AgentCnt = "AGENTCOUNT"
-	CSP      = "CSP"
+	AgentCntCollectorPolicy = "AGENTCOUNT"
+	CSPCollectorPolicy      = "CSP"
 )
 
 const (
-	ALIBABA     = "ALIBABA"
-	AWS         = "AWS"
-	AZURE       = "AZURE"
-	CLOUDIT     = "CLOUDIT"
-	CLOUDTWIN   = "CLOUDTWIN"
-	DOCKER      = "DOCKER"
-	GCP         = "GCP"
-	OPENSTACK   = "OPENSTACK"
+	Alibaba     = "ALIBABA"
+	Aws         = "AWS"
+	Azure       = "AZURE"
+	Cloudit     = "CLOUDIT"
+	Cloudtwin   = "CLOUDTWIN"
+	Docker      = "DOCKER"
+	Gcp         = "GCP"
+	Openstack   = "OPENSTACK"
 	TotalCspCnt = 8
 )
 
@@ -44,4 +44,31 @@ const (
 	KafkaDefaultPort     = 9092
 	InfluxDefaultPort    = 8086
 	KapacitorDefaultPort = 9092
+)
+
+const (
+	Dev     = "dev"
+	Helm    = "helm"
+	Compose = "compose"
+)
+
+const (
+	TopicAdd = "TopicAdd"
+	TopicDel = "TopicDel"
+)
+
+const (
+	ConfigMapName  = "cb-dragonfly-collector-configmap"
+	DeploymentName = "cb-dragonfly-collector-"
+)
+
+const (
+	LabelKey  = "name"
+	Namespace = "dragonfly"
+	//CollectorImage = "docker.io/hojun121/collector:latest"
+	CollectorImage = "cloudbaristaorg/cb-dragonfly:0.4.4-collector"
+)
+
+const (
+	TBRestAPIURL = "http://localhost:1323/tumblebug"
 )
