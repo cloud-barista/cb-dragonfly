@@ -29,16 +29,21 @@ func InstallTelegraf(c echo.Context) error {
 	if err := c.Bind(params); err != nil {
 		return err
 	}
-
+	inputServiceType := strings.ToLower(params.ServiceType)
 	// form 파라미터 값 체크
-	if params.NsId == "" || params.McisId == "" || params.VmId == "" || params.PublicIp == "" || params.UserName == "" || params.SshKey == "" || params.CspType == "" || params.ServiceType == ""{
+	if params.NsId == "" || params.McisId == "" || params.VmId == "" || params.PublicIp == "" || params.UserName == "" || params.SshKey == "" || params.CspType == "" {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage("failed to get package. query parameter is missing"))
+	}
+	if inputServiceType == "" || inputServiceType == "default" {
+		inputServiceType = "mcis"
+	} else {
+		inputServiceType = "mcks"
 	}
 	if params.Port == "" {
 		params.Port = "22"
 	}
 
-	errCode, err := agent.InstallAgent(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType, params.Port, strings.ToLower(params.ServiceType))
+	errCode, err := agent.InstallAgent(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType, params.Port, inputServiceType)
 	if errCode != http.StatusOK {
 		return c.JSON(errCode, rest.SetMessage(err.Error()))
 	}
