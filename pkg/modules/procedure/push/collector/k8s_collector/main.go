@@ -34,9 +34,9 @@ func PrintPanicError(err error) {
 	}
 }
 
-func DeleteDeployment(clientSet *kubernetes.Clientset, collectorUUID string, namespace string) {
+func DeleteDeployment(clientSet *kubernetes.Clientset, createOrder int, collectorUUID string, namespace string) {
 	fmt.Println("Deleting deployment...")
-	deploymentName := "cb-dragonfly-collector-" + collectorUUID
+	deploymentName := fmt.Sprintf("%s%d-%s", types.DeploymentName, createOrder, collectorUUID)
 	deploymentsClient := clientSet.AppsV1().Deployments(namespace)
 	deletePolicy := metav1.DeletePropagationForeground
 	if err := deploymentsClient.Delete(context.TODO(), deploymentName, metav1.DeleteOptions{
@@ -75,7 +75,7 @@ func main() {
 		"group.id":           fmt.Sprintf("%d", createOrder),
 		"enable.auto.commit": true,
 		//"session.timeout.ms": 15000,
-		"auto.offset.reset":  "earliest",
+		"auto.offset.reset": "earliest",
 	}
 	consumerKafkaConn, err := kafka.NewConsumer(KafkaConfig)
 	PrintPanicError(err)
@@ -94,38 +94,30 @@ func main() {
 		},
 	}
 	fmt.Println(fmt.Sprintf("#### Group_%d collector Create ####", createOrder))
-	deadOrAliveCnt := map[string] int{}
+	deadOrAliveCnt := map[string]int{}
 
 	configMapFailCnt := 0
 	for {
-		time.Sleep(time.Duration(collectInterval)*time.Second)
+		time.Sleep(time.Duration(collectInterval) * time.Second)
 		fmt.Println(fmt.Sprintf("#### Group_%d collector ####", createOrder))
 		fmt.Println("Get ConfigMap")
 		/** Get ConfigMap<Data: Collector UUID Map, BinaryData: Collector Topics> Start */
 		configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(context.TODO(), "cb-dragonfly-collector-configmap", metav1.GetOptions{})
 		if err != nil {
 			if configMapFailCnt == 5 {
-				DeleteDeployment(clientSet, collectorUUID, namespace)
+				DeleteDeployment(clientSet, createOrder, collectorUUID, namespace)
 			}
 			configMapFailCnt += 1
 			fmt.Println("Fail to Get ConfigMap")
 			fmt.Println(err)
 			continue
 		}
-		//configMap := apiv1.ConfigMap{}
-		//var byteData []byte
-		//if byteData, err = json.Marshal(configByteMap); err != nil {
-		//	fmt.Println("Fail to Marshal ConfigMap Object Data")
-		//}
-		//if err := json.Unmarshal(byteData, &configMap); err != nil {
-		//	fmt.Println("Fail to unMarshal ConfigMap Object Data")
-		//}
 		/** Get ConfigMap<Data: Collector UUID Map, BinaryData: Collector Topics> End */
 
 		/** Check My Collector UUID Start */
 		_, alive := configMap.Data[collectorUUID]
 		if !alive {
-			DeleteDeployment(clientSet, collectorUUID, namespace)
+			DeleteDeployment(clientSet, createOrder, collectorUUID, namespace)
 		}
 		/** Check My Collector UUID End */
 
