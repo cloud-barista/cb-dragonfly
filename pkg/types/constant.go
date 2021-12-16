@@ -66,7 +66,7 @@ const (
 	LabelKey  = "name"
 	Namespace = "dragonfly"
 	//CollectorImage = "docker.io/hojun121/collector:latest"
-	CollectorImage = "cloudbaristaorg/cb-dragonfly:0.4.4-collector"
+	CollectorImage = "cloudbaristaorg/cb-dragonfly:0.5.0-collector"
 )
 
 const (
