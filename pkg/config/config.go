@@ -9,11 +9,11 @@ import (
 )
 
 type Config struct {
-	InfluxDB       InfluxDB
-	Kapacitor      Kapacitor
-	Kafka          Kafka
-	Dragonfly      Dragonfly
-	Monitoring     Monitoring
+	InfluxDB   InfluxDB
+	Kapacitor  Kapacitor
+	Kafka      Kafka
+	Dragonfly  Dragonfly
+	Monitoring Monitoring
 }
 
 type InfluxDB struct {
@@ -27,7 +27,7 @@ type InfluxDB struct {
 
 type Kapacitor struct {
 	EndpointUrl string `json:"endpoint_url" mapstructure:"endpoint_url"`
-	HelmPort  int    `json:"helm_port" mapstructure:"helm_port"`
+	HelmPort    int    `json:"helm_port" mapstructure:"helm_port"`
 }
 
 type Kafka struct {
@@ -36,9 +36,10 @@ type Kafka struct {
 }
 
 type Dragonfly struct {
-	DragonflyIP string `json:"dragonfly_ip" mapstructure:"dragonfly_ip"`
-	Port int `json:"port" mapstructure:"port"`
-	HelmPort int `json:"helm_port" mapstructure:"helm_port"`
+	DragonflyIP   string `json:"dragonfly_ip" mapstructure:"dragonfly_ip"`
+	Port          int    `json:"port" mapstructure:"port"`
+	HelmPort      int    `json:"helm_port" mapstructure:"helm_port"`
+	HelmNamespace string `json:"helm_namespace" mapstructure:"helm_namespace"`
 }
 
 type Monitoring struct {

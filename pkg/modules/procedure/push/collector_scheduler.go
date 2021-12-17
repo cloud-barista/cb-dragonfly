@@ -57,7 +57,7 @@ func NewCollectorScheduler(wg *sync.WaitGroup, manager *CollectManager) (*Collec
 		CollectorPerAgentCnt: []int{},
 	}
 	if config.GetInstance().Monitoring.DeployType == types.Helm {
-		configMap, err := manager.K8sClientSet.CoreV1().ConfigMaps(types.Namespace).Get(context.TODO(), "cb-dragonfly-collector-configmap", metav1.GetOptions{})
+		configMap, err := manager.K8sClientSet.CoreV1().ConfigMaps(config.GetInstance().Dragonfly.HelmNamespace).Get(context.TODO(), "cb-dragonfly-collector-configmap", metav1.GetOptions{})
 		if err != nil {
 			fmt.Println("Fail to Get ConfigMap")
 			fmt.Println(err)
@@ -292,12 +292,12 @@ func (cScheduler CollectorScheduler) DistributeTopicsToCollector() {
 			}
 		}
 		configMap := &apiv1.ConfigMap{
-			Data: collectorUUIDMapData,
+			Data:       collectorUUIDMapData,
 			BinaryData: topicMapData,
 			ObjectMeta: metav1.ObjectMeta{
 				Name: types.ConfigMapName,
 			}}
-		configMapsClient := cScheduler.cm.K8sClientSet.CoreV1().ConfigMaps(types.Namespace)
+		configMapsClient := cScheduler.cm.K8sClientSet.CoreV1().ConfigMaps(config.GetInstance().Dragonfly.HelmNamespace)
 		result, err := configMapsClient.Update(context.TODO(), configMap, metav1.UpdateOptions{})
 		if err != nil {
 			fmt.Println(err)
@@ -319,6 +319,7 @@ func (cScheduler CollectorScheduler) WriteCollectorMapToInMemoryDB() {
 	cMapBytes, _ := json.Marshal(inMemoryTopic)
 	_ = cbstore.GetInstance().StorePut(fmt.Sprintf("%s", types.CollectorTopicMap), string(cMapBytes))
 }
+
 /** ### AgentCnt Policy End ### */
 
 /** ### CSP Policy Start ### */
@@ -407,4 +408,5 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCSPCollector(delTopicList []s
 	}
 	*(cScheduler.inMemoryTopicMap) = cMap
 }
+
 /** ### CSP Policy End ### */

@@ -51,7 +51,7 @@ func (manager *CollectManager) InitDFK8sEnv() (err error) {
 	manager.K8sClientSet = clientSet
 
 	// Deploy ConfigMap
-	configMapsClient := manager.K8sClientSet.CoreV1().ConfigMaps(types.Namespace)
+	configMapsClient := manager.K8sClientSet.CoreV1().ConfigMaps(config.GetInstance().Dragonfly.HelmNamespace)
 	configMap := &apiv1.ConfigMap{Data: map[string]string{}, ObjectMeta: metav1.ObjectMeta{
 		Name: types.ConfigMapName,
 	}}
@@ -86,14 +86,14 @@ func (manager *CollectManager) CreateCollector() error {
 		env := []apiv1.EnvVar{
 			{Name: "kafka_endpoint_url", Value: config.GetInstance().Kafka.EndpointUrl},
 			{Name: "create_order", Value: strconv.Itoa(collectorCreateOrder)},
-			{Name: "namespace", Value: types.Namespace},
+			{Name: "namespace", Value: config.GetInstance().Dragonfly.HelmNamespace},
 			{Name: "df_addr", Value: fmt.Sprintf("%s:%d", config.GetInstance().Dragonfly.DragonflyIP, config.GetInstance().Dragonfly.HelmPort)},
 			{Name: "collect_interval", Value: strconv.Itoa(config.GetInstance().Monitoring.CollectorInterval)},
 			{Name: "collect_uuid", Value: collectorUUID},
 		}
 		deploymentTemplate := util.DeploymentTemplate(collectorCreateOrder, collectorUUID, env)
 		fmt.Println("Creating deployment...")
-		result, err := manager.K8sClientSet.AppsV1().Deployments(types.Namespace).Create(context.TODO(), deploymentTemplate, metav1.CreateOptions{})
+		result, err := manager.K8sClientSet.AppsV1().Deployments(config.GetInstance().Dragonfly.HelmNamespace).Create(context.TODO(), deploymentTemplate, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
