@@ -139,6 +139,31 @@ func (s Storage) checkDBRetionPolicy(client influxdbClient.Client, dbName string
 }
 
 func (s Storage) WriteMetric(dbName string, metrics map[string]interface{}) error {
+	// cbmon rp 조회 후 없을 시 rp 생성
+	if isRPonCBMonExist := s.checkDBRetionPolicy(s.Client, DefaultDatabase); !isRPonCBMonExist {
+		createRPq1 := influxdbClient.Query{
+			Command: fmt.Sprintf("create retention policy %s on %s duration %s replication 1 default", CBRetentionPolicyName, DefaultDatabase, config.GetInstance().InfluxDB.RetentionPolicyDuration),
+		}
+		// influxdb rpDuration, shardGroupDuration 특성으로 인한 에러 검출
+		_, err := s.Client.Query(createRPq1)
+		if err != nil {
+			return err
+		}
+	}
+
+	// cbmonpull rp 조회 후 없을 시 rp 생성
+	if isRPonCBMonPullExist := s.checkDBRetionPolicy(s.Client, PullDatabase); !isRPonCBMonPullExist {
+		createRPq2 := influxdbClient.Query{
+			Command: fmt.Sprintf("create retention policy %s on %s duration %s replication 1 default", CBRetentionPolicyName, PullDatabase, config.GetInstance().InfluxDB.RetentionPolicyDuration),
+		}
+
+		// influxdb rpDuration, shardGroupDuration 특성으로 인한 에러 검출
+		_, err := s.Client.Query(createRPq2)
+		if err != nil {
+			return err
+		}
+	}
+
 	bp, err := influxdbClient.NewBatchPoints(influxdbClient.BatchPointsConfig{
 		Database: dbName,
 	})
