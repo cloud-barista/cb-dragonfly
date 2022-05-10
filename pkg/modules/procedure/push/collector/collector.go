@@ -24,6 +24,9 @@ type MetricCollector struct {
 
 var KafkaConfig *kafka.ConfigMap
 
+// NewMetricCollector
+//   - Go-routine 기반 collector 입니다.
+//   - go channel 및 Kafka 기반으로 topic 분배받기 & topic 구독 및 가져오기를 수행합니다.
 func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (MetricCollector, error) {
 
 	KafkaConfig = &kafka.ConfigMap{
@@ -56,6 +59,10 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 	return mc, nil
 }
 
+// Collector
+//   - 콜렉터 매니저로부터 "close" 채널 값을 받으면 종료합니다. (고루틴 채널 중지 => 삭제)
+//   - 콜렉터 매니저로부터 topic 리스트 값을 받으면 kafka 에 해당 topic 을 기준으로 데이터를 가져옵니다.
+//   - kafka 에 요청한 topic 리스트 들 중 데이터가 3회 이상 넘어오지 않는 topic 의 경우 < 스케줄러가 활용하는 topic Queue > 에 삭제할 topic 으로 등록합니다.
 func (mc *MetricCollector) Collector(wg *sync.WaitGroup) error {
 
 	deadOrAliveCnt := map[string]int{}
@@ -79,11 +86,14 @@ func (mc *MetricCollector) Collector(wg *sync.WaitGroup) error {
 				sort.Strings(DeliveredTopicList)
 				fmt.Println(fmt.Sprintf("Group_%d collector Delivered : %s", mc.CreateOrder, DeliveredTopicList))
 
+				// 분배받은 kafka topic 구독
 				err := mc.ConsumerKafkaConn.SubscribeTopics(DeliveredTopicList, nil)
 				if err != nil {
 					fmt.Println(err)
 				}
 				start := time.Now()
+				// 분배 받은 topic 들을 기준으로 데이터 수집, 가공, DB 저장
+				// 이 후에 실제로 데이터를 가져와 위 로직을 수행한 topic 리스트 추출 => aliveTopics
 				aliveTopics, _ := mc.Aggregator.AggregateMetric(mc.ConsumerKafkaConn, DeliveredTopicList)
 				elapsed := time.Since(start)
 				sort.Strings(aliveTopics)
@@ -93,6 +103,8 @@ func (mc *MetricCollector) Collector(wg *sync.WaitGroup) error {
 						delete(deadOrAliveCnt, aliveTopic)
 					}
 				}
+				// 분배받은 topic 리스트와 aliveTopics 를 비교하여 deadTopics 추출
+				// 3회 이상 데이터를 주지 않는 topic의 경우 topic 삭제 queue 에 등록
 				if !cmp.Equal(DeliveredTopicList, aliveTopics) {
 					_ = mc.ConsumerKafkaConn.Unsubscribe()
 					deadTopics := util.ReturnDiffTopicList(DeliveredTopicList, aliveTopics)

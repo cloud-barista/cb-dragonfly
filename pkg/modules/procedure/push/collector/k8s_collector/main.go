@@ -47,6 +47,10 @@ func DeleteDeployment(clientSet *kubernetes.Clientset, createOrder int, collecto
 	}
 }
 
+// deployment 로 배포된 collector
+// 일정 주기( aggreTime )를 가지고 configmap 을 조회
+// configmap 의 데이터( topicMaps ) 파싱하여, 자신의 collector idx 값을 가진 topics 들을 구독
+// 만약 자신의 collector idx 값이 없다면 스스로 deployment 삭제 요청
 func main() {
 	/** Get Env Val Start */
 	kafkaEndpointUrl := os.Getenv("kafka_endpoint_url")
