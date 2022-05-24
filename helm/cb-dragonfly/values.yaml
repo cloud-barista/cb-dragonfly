@@ -122,7 +122,7 @@ fullnameOverride: "cb-dragonfly"
 serviceAccount:
   create: true
   annotations: {}
-  name: dragonfly-sa
+  name: cb-dragonfly
 
 clusterRole:
   create: true
