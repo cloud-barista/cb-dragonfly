@@ -6,11 +6,9 @@ replace (
 	github.com/coreos/bbolt => go.etcd.io/bbolt v1.3.3
 	github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
 	google.golang.org/grpc => google.golang.org/grpc v1.26.0
+	k8s.io/apimachinery => k8s.io/apimachinery v0.19.10
+	k8s.io/client-go => k8s.io/client-go v0.19.10
 )
-
-replace k8s.io/client-go => k8s.io/client-go v0.18.9
-
-replace k8s.io/apimachinery => k8s.io/apimachinery v0.18.9
 
 require (
 	github.com/Scalingo/go-utils v7.1.0+incompatible
@@ -54,7 +52,7 @@ require (
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
 	google.golang.org/grpc v1.39.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.18.9
+	k8s.io/api v0.19.10
 	k8s.io/apimachinery v0.22.2
 	k8s.io/client-go v0.22.2
 )

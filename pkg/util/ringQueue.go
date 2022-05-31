@@ -9,7 +9,7 @@ import (
 
 type TopicStructure struct {
 	Policy string
-	Topic string
+	Topic  string
 }
 
 var ringQueueOnce sync.Once
@@ -27,7 +27,7 @@ func RingQueuePut(topicManagePolicy string, topic string) error {
 	var err error
 	topicStructure := TopicStructure{
 		Policy: topicManagePolicy,
-		Topic: topic,
+		Topic:  topic,
 	}
 	if topicBytes, err = json.Marshal(topicStructure); err != nil {
 		fmt.Println("error?")

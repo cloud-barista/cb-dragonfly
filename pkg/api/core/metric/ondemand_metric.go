@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"io/ioutil"
 	"net/http"
@@ -97,13 +97,13 @@ type NetworkPacketsResult struct {
 }
 
 func GetMCISOnDemandPacketInfo(nsId string, mcisId string, vmId string, watchTime string) (NetworkPacketsResult, int, error) {
-	agentList, err := agent.ListAgent()
+	agentList, err := common.ListAgent()
 	if err != nil {
 		fmt.Println("Fail to Get AgentList From CB-Store")
 		return NetworkPacketsResult{}, http.StatusInternalServerError, err
 	}
 	var sourceAgentIP string
-	var targetAgentInfo []agent.AgentInfo
+	var targetAgentInfo []common.AgentInfo
 
 	for _, agentMetadata := range agentList {
 		if agentMetadata.McisId == mcisId && agentMetadata.NsId == nsId {

@@ -34,7 +34,7 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 		//"session.timeout.ms": 15000,
 		//"max.poll.records": 1000,
 		//"max.poll.interval": 6,
-		"auto.offset.reset":  "earliest",
+		"auto.offset.reset": "earliest",
 	}
 
 	consumerKafkaConn, err := kafka.NewConsumer(KafkaConfig)
@@ -58,7 +58,7 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 
 func (mc *MetricCollector) Collector(wg *sync.WaitGroup) error {
 
-	deadOrAliveCnt := map[string] int{}
+	deadOrAliveCnt := map[string]int{}
 
 	defer wg.Done()
 	for {

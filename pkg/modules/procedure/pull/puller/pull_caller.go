@@ -2,10 +2,10 @@ package puller
 
 import (
 	"fmt"
+	agentmetadata "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"net/http"
 	"time"
 
-	agentmetadata "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/metricstore/influxdb/v1"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
@@ -52,7 +52,14 @@ func (pc PullCaller) healthcheck(uuid string, agent agentmetadata.AgentInfo) err
 	if resp != nil {
 		if resp.StatusCode == http.StatusNoContent {
 			agent.AgentHealth = string(agentmetadata.Healthy)
-			_, _, err := agentmetadata.PutAgent(agent.NsId, agent.McisId, agent.VmId, agent.CspType, agent.PublicIp, true, agent.ServiceType)
+			_, _, err := agentmetadata.PutAgent(agentmetadata.AgentInstallInfo{
+				NsId:        agent.NsId,
+				McisId:      agent.McisId,
+				VmId:        agent.VmId,
+				CspType:     agent.CspType,
+				PublicIp:    agent.PublicIp,
+				ServiceType: agent.ServiceType,
+			})
 			if err != nil {
 				return err
 			}
@@ -80,7 +87,14 @@ func (pc PullCaller) pullMetric(uuid string, agent agentmetadata.AgentInfo) {
 		// Update Agent Health
 		if statusCode == http.StatusOK && agent.AgentHealth == string(agentmetadata.Unhealthy) {
 			agent.AgentHealth = string(agentmetadata.Healthy)
-			_, _, err := agentmetadata.PutAgent(agent.NsId, agent.McisId, agent.VmId, agent.CspType, agent.PublicIp, true, agent.ServiceType)
+			_, _, err := agentmetadata.PutAgent(agentmetadata.AgentInstallInfo{
+				NsId:        agent.NsId,
+				McisId:      agent.McisId,
+				VmId:        agent.VmId,
+				CspType:     agent.CspType,
+				PublicIp:    agent.PublicIp,
+				ServiceType: agent.ServiceType,
+			})
 			if err != nil {
 				continue
 			}
@@ -89,7 +103,14 @@ func (pc PullCaller) pullMetric(uuid string, agent agentmetadata.AgentInfo) {
 			agent.AgentUnhealthyRespCnt += 1
 			if agent.AgentUnhealthyRespCnt > AgentUnhealthyCnt {
 				agent.AgentHealth = string(agentmetadata.Unhealthy)
-				_, _, err := agentmetadata.PutAgent(agent.NsId, agent.McisId, agent.VmId, agent.CspType, agent.PublicIp, false, agent.ServiceType)
+				_, _, err := agentmetadata.PutAgent(agentmetadata.AgentInstallInfo{
+					NsId:        agent.NsId,
+					McisId:      agent.McisId,
+					VmId:        agent.VmId,
+					CspType:     agent.CspType,
+					PublicIp:    agent.PublicIp,
+					ServiceType: agent.ServiceType,
+				})
 				if err != nil {
 					continue
 				}

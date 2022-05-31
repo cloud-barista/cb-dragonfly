@@ -92,9 +92,9 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.DELETE("/agent", agent.UninstallAgent)
 
 	// 에이전트 메타데이터
-	dragonfly.GET("/agent/metadata", agent.ListAgentMetadata)
-	dragonfly.GET("/agent/metadata/ns/:ns/mcis/:mcis_id/vm/:vm_id/csp/:csp_type", agent.GetAgentMetadata)
-	dragonfly.GET("/agent/metadata/ns/:ns/mcis/:mcis_id/vm/:vm_id/csp/:csp_type/agent_ip/:agent_ip", agent.PutAgentMetadata)
+	dragonfly.GET("/agents/metadata", agent.ListAgentMetadata)
+	dragonfly.GET("/agent/metadata", agent.GetAgentMetadata)
+	dragonfly.PUT("/agent/metadata", agent.PutAgentMetadata)
 
 	// 삭제할 토픽 큐 등록
 	dragonfly.GET("/topic/delete/:topic", topic.AddDeleteTopicToQueue)

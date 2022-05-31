@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	que "github.com/Workiva/go-datastructures/queue"
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
@@ -204,12 +204,12 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCollector(delTopicList []stri
 		collectorIdx, _ := strconv.Atoi(collectorIdxStr)
 		_ = c.StoreDelete(fmt.Sprintf("%s/%s", types.Topic, delTopic))
 
-		agentInfo := agent.AgentInfo{}
+		agentInfo := common.AgentInfo{}
 		agentInfoBytes := c.StoreGet(types.Agent + delTopic)
 		if agentInfoBytes != "" {
 			_ = json.Unmarshal([]byte(agentInfoBytes), &agentInfo)
-			agentInfo.AgentHealth = string(agent.Unhealthy)
-			agentInfo.AgentState = string(agent.Disable)
+			agentInfo.AgentHealth = string(common.Unhealthy)
+			agentInfo.AgentState = string(common.Disable)
 			recentAgentInfoBytes, _ := json.Marshal(agentInfo)
 			_ = c.StorePut(types.Agent+delTopic, string(recentAgentInfoBytes))
 		}
@@ -387,11 +387,11 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCSPCollector(delTopicList []s
 		delTopic := delTopicList[i]
 		collectorIdx := util.GetCspCollectorIdx(delTopic)
 
-		agentInfo := agent.AgentInfo{}
+		agentInfo := common.AgentInfo{}
 		agentInfoBytes := c.StoreGet(types.Agent + delTopic)
 		_ = json.Unmarshal([]byte(agentInfoBytes), &agentInfo)
-		agentInfo.AgentHealth = string(agent.Unhealthy)
-		agentInfo.AgentState = string(agent.Disable)
+		agentInfo.AgentHealth = string(common.Unhealthy)
+		agentInfo.AgentState = string(common.Disable)
 		recentAgentInfoBytes, _ := json.Marshal(agentInfo)
 		_ = c.StorePut(types.Agent+delTopic, string(recentAgentInfoBytes))
 

@@ -11,6 +11,8 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
+
+	agentcommon "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 )
 
 // InstallTelegraf 에이전트 설치
@@ -24,26 +26,62 @@ import (
 // @Failure 404 {object} rest.SimpleMsg
 // @Failure 500 {object} rest.SimpleMsg
 // @Router /agent [post]
+
 func InstallTelegraf(c echo.Context) error {
 	params := &rest.AgentType{}
 	if err := c.Bind(params); err != nil {
 		return err
 	}
-	inputServiceType := strings.ToLower(params.ServiceType)
-	// form 파라미터 값 체크
-	if params.NsId == "" || params.McisId == "" || params.VmId == "" || params.PublicIp == "" || params.UserName == "" || params.SshKey == "" || params.CspType == "" {
-		return c.JSON(http.StatusInternalServerError, rest.SetMessage("failed to get package. query parameter is missing"))
-	}
-	if inputServiceType == "" || inputServiceType == "default" {
-		inputServiceType = "mcis"
-	} else {
-		inputServiceType = "mcks"
-	}
-	if params.Port == "" {
-		params.Port = "22"
+
+	if !checkEmptyFormParam(params.ServiceType) {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage("empty agent type parameter"))
 	}
 
-	errCode, err := agent.InstallAgent(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType, params.Port, inputServiceType)
+	if strings.EqualFold(params.ServiceType, agentcommon.MCKS) || strings.EqualFold(params.ServiceType, agentcommon.MCKSAGENT_TYPE) || strings.EqualFold(params.ServiceType, agentcommon.MCKSAGENT_SHORTHAND_TYPE) {
+		// 토큰 값이 비어있을 경우
+		if !checkEmptyFormParam(params.ClientToken) {
+			// 키 기반 연동일 때 데이터 확인
+			//if !checkEmptyFormParam(params.NsId, params.McksId, params.APIServerURL, params.ServerCA, params.ClientCA, params.ClientKey) {
+			if !checkEmptyFormParam(params.NsId, params.McksId, params.APIServerURL, params.ServerCA, params.ClientCA) {
+				return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcks agent installation by key"))
+			} else {
+				// 토큰 기반 연동일 때 데이터 확인
+				if !checkEmptyFormParam(params.NsId, params.McksId, params.APIServerURL) {
+					return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcks agent installation by token"))
+				}
+			}
+		}
+	}
+	// MCIS 에이전트 form 파라미터 값 체크
+	if strings.EqualFold(params.ServiceType, agentcommon.MCIS) || strings.EqualFold(params.ServiceType, agentcommon.MCISAGENT_TYPE) {
+		// MCIS 에이전트 form 파라미터 값 체크
+		if !checkEmptyFormParam(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType) {
+			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcis agent installation"))
+		}
+		if params.Port == "" {
+			params.Port = "22"
+		}
+	}
+
+	requestInfo := &agentcommon.AgentInstallInfo{
+		NsId:         params.NsId,
+		McisId:       params.McisId,
+		VmId:         params.VmId,
+		PublicIp:     params.PublicIp,
+		UserName:     params.UserName,
+		SshKey:       params.SshKey,
+		CspType:      params.CspType,
+		Port:         params.Port,
+		ServiceType:  params.ServiceType,
+		McksID:       params.McksId,
+		APIServerURL: params.APIServerURL,
+		ServerCA:     params.ServerCA,
+		ClientCA:     params.ClientCA,
+		ClientKey:    params.ClientKey,
+		ClientToken:  params.ClientToken,
+	}
+
+	errCode, err := agent.InstallAgent(*requestInfo)
 	if errCode != http.StatusOK {
 		return c.JSON(errCode, rest.SetMessage(err.Error()))
 	}
@@ -117,7 +155,7 @@ func GetTelegrafPkgFile(c echo.Context) error {
 	// 제공 설치 파일 탐색
 	rootPath := os.Getenv("CBMON_ROOT")
 	filepath := rootPath + fmt.Sprintf("/file/pkg/%s/%s/", osType, arch)
-	filename, err := agent.GetPackageName(filepath)
+	filename, err := agentcommon.GetPackageName(filepath)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("failed to get package. osType %s not supported", osType)))
 	}
@@ -142,19 +180,64 @@ func UninstallAgent(c echo.Context) error {
 		return err
 	}
 
-	// form 파라미터 값 체크
-	if params.NsId == "" || params.McisId == "" || params.VmId == "" || params.PublicIp == "" || params.UserName == "" || params.SshKey == "" || params.CspType == "" {
-		return c.JSON(http.StatusInternalServerError, rest.SetMessage("failed to get package. query parameter is missing"))
+	if !checkEmptyFormParam(params.ServiceType) {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage("empty agent type parameter"))
 	}
 
-	if params.Port == "" {
-		params.Port = "22"
+	if strings.EqualFold(params.ServiceType, agentcommon.MCKS) || strings.EqualFold(params.ServiceType, agentcommon.MCKSAGENT_TYPE) || strings.EqualFold(params.ServiceType, agentcommon.MCKSAGENT_SHORTHAND_TYPE) {
+		// 토큰 값이 비어있을 경우
+		if !checkEmptyFormParam(params.ClientToken) {
+			// 키 기반 연동일 때 데이터 확인
+			if !checkEmptyFormParam(params.NsId, params.McksId, params.APIServerURL, params.ServerCA, params.ClientCA, params.ClientKey) {
+				return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcks agent uninstallation by key"))
+			} else {
+				// 토큰 기반 연동일 때 데이터 확인
+				if !checkEmptyFormParam(params.NsId, params.McksId, params.APIServerURL) {
+					return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcks agent uninstallation by token"))
+				}
+			}
+		}
 	}
 
-	errCode, err := agent.UninstallAgent(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType, params.Port)
+	// MCIS 에이전트 form 파라미터 값 체크
+	if strings.EqualFold(params.ServiceType, agentcommon.MCIS) || strings.EqualFold(params.ServiceType, agentcommon.MCISAGENT_TYPE) {
+		if !checkEmptyFormParam(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType) {
+			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcis agent uninstallation"))
+		}
+		if params.Port == "" {
+			params.Port = "22"
+		}
+	}
+
+	requestInfo := agentcommon.AgentInstallInfo{
+		NsId:         params.NsId,
+		McisId:       params.McisId,
+		VmId:         params.VmId,
+		PublicIp:     params.PublicIp,
+		UserName:     params.UserName,
+		SshKey:       params.SshKey,
+		CspType:      params.CspType,
+		Port:         params.Port,
+		ServiceType:  params.ServiceType,
+		McksID:       params.McksId,
+		APIServerURL: params.APIServerURL,
+		ServerCA:     params.ServerCA,
+		ClientCA:     params.ClientCA,
+		ClientKey:    params.ClientKey,
+		ClientToken:  params.ClientToken,
+	}
+	errCode, err := agent.UninstallAgent(requestInfo)
 	if errCode != http.StatusOK {
-		fmt.Println(errCode)
 		return c.JSON(errCode, rest.SetMessage(err.Error()))
 	}
 	return c.JSON(http.StatusOK, rest.SetMessage("Agent Uninstallation is finished"))
+}
+
+func checkEmptyFormParam(datas ...string) bool {
+	for _, data := range datas {
+		if len(strings.TrimSpace(data)) == 0 {
+			return false
+		}
+	}
+	return true
 }

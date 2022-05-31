@@ -2,16 +2,16 @@ package pull
 
 import (
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"sync"
 	"time"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/pull/puller"
 )
 
 type PullManager struct {
-	AgentList map[string]agent.AgentInfo
+	AgentList map[string]common.AgentInfo
 	WaitGroup *sync.WaitGroup
 }
 
@@ -56,7 +56,7 @@ func (pm *PullManager) StopPullCaller() error {
 }
 
 func (pm *PullManager) syncAgentList() error {
-	syncedAgentList, err := agent.ListAgent()
+	syncedAgentList, err := common.ListAgent()
 	if err != nil {
 		fmt.Println(err)
 		return err

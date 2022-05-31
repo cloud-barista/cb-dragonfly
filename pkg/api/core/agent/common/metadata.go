@@ -1,4 +1,4 @@
-package agent
+package common
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
+	"strings"
 )
 
 // AgentType 에이전트 동작 메커니즘 유형 (Push, Pull)
@@ -45,39 +46,25 @@ type AgentInfo struct {
 	AgentUnhealthyRespCnt int    `json:"agent_unhealthy_resp_cnt"`
 	PublicIp              string `json:"public_ip"`
 	ServiceType           string `json:"service_type"`
+	McksID                string `json:"mcks_id"`
+	APIServerURL          string `json:"apiserver_url"`
+	ServerCA              string `json:"server_ca"`
+	ClientCA              string `json:"client_ca"`
+	ClientKey             string `json:"client_key"`
+	ClientToken           string `json:"client_token"`
 }
 
-func NewAgentInfo(nsId string, mcisId string, vmId string, cspType string, publicIp string, isHealth bool, serviceType string) AgentInfo {
-	state := string(Disable)
-	health := string(Unhealthy)
-	if isHealth {
-		state = string(Enable)
-		health = string(Healthy)
+func MakeAgentUUID(info AgentInstallInfo) string {
+	mcksType := strings.EqualFold(info.ServiceType, MCKS) || strings.EqualFold(info.ServiceType, MCKSAGENT_TYPE) || strings.EqualFold(info.ServiceType, MCKSAGENT_SHORTHAND_TYPE)
+	if mcksType {
+		return fmt.Sprintf("%s_%s_%s", info.NsId, info.ServiceType, info.McksID)
 	}
-	return AgentInfo{
-		NsId:                  nsId,
-		McisId:                mcisId,
-		VmId:                  vmId,
-		CspType:               cspType,
-		AgentType:             config.GetInstance().Monitoring.DefaultPolicy,
-		AgentState:            state,
-		AgentHealth:           health,
-		AgentUnhealthyRespCnt: 0,
-		PublicIp:              publicIp,
-		ServiceType:           serviceType,
-	}
-}
-
-func MakeAgentUUID(nsId string, mcisId string, vmId string, cspType string) string {
-	//UUID := types.Agent + "/" + nsId + "/" + mcisId + "/" + vmId + "/" + cspType
-	UUID := nsId + "_" + mcisId + "_" + vmId + "_" + cspType
-	return UUID
+	return fmt.Sprintf("%s_%s_%s_%s_%s", info.NsId, info.ServiceType, info.McisId, info.VmId, info.CspType)
 }
 
 // AgentListManager 에이전트 목록 관리
-
-func DeleteAgent(nsId string, mcisId string, vmId string, cspType string) error {
-	agentUUID := MakeAgentUUID(nsId, mcisId, vmId, cspType)
+func DeleteAgent(info AgentInstallInfo) error {
+	agentUUID := MakeAgentUUID(info)
 	if err := cbstore.GetInstance().StoreDelete(types.Agent + agentUUID); err != nil {
 		return err
 	}
@@ -100,26 +87,49 @@ func ListAgent() (map[string]AgentInfo, error) {
 	return agentList, nil
 }
 
-func GetAgent(nsId string, mcisId string, vmId string, cspType string) (AgentInfo, error) {
-	agentUUID := MakeAgentUUID(nsId, mcisId, vmId, cspType)
+func GetAgent(info AgentInstallInfo) (*AgentInfo, error) {
+	agentUUID := MakeAgentUUID(info)
 	agentInfo := AgentInfo{}
 	agentInfoStr := cbstore.GetInstance().StoreGet(fmt.Sprintf(types.Agent + agentUUID))
 
 	if agentInfoStr == "" {
-		return agentInfo, errors.New(fmt.Sprintf("failed to get agent with UUID %s", agentUUID))
+		return nil, errors.New(fmt.Sprintf("failed to get agent with UUID %s", agentUUID))
 	}
 	err := json.Unmarshal([]byte(agentInfoStr), &agentInfo)
 	if err != nil {
-		return agentInfo, errors.New(fmt.Sprintf("failed to convert agent info, error=%s", err))
+		return nil, errors.New(fmt.Sprintf("failed to convert agent info, error=%s", err))
 	}
-	return agentInfo, nil
+	return &agentInfo, nil
 }
 
-//func PutAgent(agentUUID string, agentInfo AgentInfo) error {
-//nsId string, mcisId string, vmId string, cspType string, publicIp string
-func PutAgent(nsId string, mcisId string, vmId string, cspType string, publicIp string, isHealth bool, serviceType string) (string, AgentInfo, error) {
-	agentUUID := MakeAgentUUID(nsId, mcisId, vmId, cspType)
-	agentInfo := NewAgentInfo(nsId, mcisId, vmId, cspType, publicIp, isHealth, serviceType)
+func PutAgent(info AgentInstallInfo) (string, AgentInfo, error) {
+	agentUUID := MakeAgentUUID(info)
+	agentInfo := AgentInfo{}
+	if strings.EqualFold(info.ServiceType, MCKS) || strings.EqualFold(info.ServiceType, MCKSAGENT_TYPE) || strings.EqualFold(info.ServiceType, MCKSAGENT_SHORTHAND_TYPE) {
+		agentInfo = AgentInfo{
+			NsId:                  info.NsId,
+			McksID:                info.McksID,
+			AgentType:             config.GetInstance().Monitoring.DefaultPolicy,
+			AgentState:            string(Enable),
+			AgentHealth:           string(Healthy),
+			AgentUnhealthyRespCnt: 0,
+			ServiceType:           info.ServiceType,
+		}
+	} else {
+		agentInfo = AgentInfo{
+			NsId:                  info.NsId,
+			McisId:                info.McisId,
+			VmId:                  info.VmId,
+			CspType:               info.CspType,
+			AgentType:             config.GetInstance().Monitoring.DefaultPolicy,
+			AgentState:            string(Enable),
+			AgentHealth:           string(Healthy),
+			AgentUnhealthyRespCnt: 0,
+			PublicIp:              info.PublicIp,
+			ServiceType:           info.ServiceType,
+		}
+	}
+
 	agentInfoBytes, err := json.Marshal(agentInfo)
 	if err != nil {
 		return "", AgentInfo{}, errors.New(fmt.Sprintf("failed to convert metadata format to json, error=%s", err))

@@ -3,9 +3,9 @@ package puller
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"time"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/metricstore/influxdb/metric"
@@ -17,7 +17,7 @@ import (
 type PullAggregator struct {
 	Storage   v1.Storage
 	CBStore   cbstore.CBStore
-	AgentList map[string]agent.AgentInfo
+	AgentList map[string]common.AgentInfo
 }
 
 func NewPullAggregator() (*PullAggregator, error) {
@@ -50,7 +50,7 @@ func (pa *PullAggregator) StartAggregate() error {
 	}
 }
 
-func (pa *PullAggregator) AggregateMetric(agentList map[string]agent.AgentInfo, metricArr []types.Metric, aggregateType string) {
+func (pa *PullAggregator) AggregateMetric(agentList map[string]common.AgentInfo, metricArr []types.Metric, aggregateType string) {
 	for _, targetAgent := range agentList {
 		if targetAgent.AgentType == types.PushPolicy {
 			continue
@@ -152,7 +152,7 @@ func (pa *PullAggregator) CalculateMetric() (map[string]interface{}, error) {
 }
 
 func (pa *PullAggregator) syncAgentList() error {
-	syncedAgentList, err := agent.ListAgent()
+	syncedAgentList, err := common.ListAgent()
 	if err != nil {
 		fmt.Println(err)
 		return err
