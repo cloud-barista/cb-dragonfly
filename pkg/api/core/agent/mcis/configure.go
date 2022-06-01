@@ -33,12 +33,18 @@ func CreateTelegrafConfigFile(installInfo common.AgentInstallInfo) (string, erro
 	// 파일 내의 변수 값 설정 (hostId, collectorServer)
 	strConf := string(read)
 
+	serverPort := config.GetInstance().Dragonfly.Port
+	if config.GetInstance().GetMonConfig().DeployType == types.Helm {
+		serverPort = config.GetInstance().Dragonfly.HelmPort
+	}
+
 	// 파일 MCIS 에이전트 변수 값 설정
 	strConf = strings.ReplaceAll(strConf, "{{ns_id}}", installInfo.NsId)
 	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", installInfo.McisId)
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", installInfo.VmId)
 	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", installInfo.CspType)
 	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", mechanism)
+	strConf = strings.ReplaceAll(strConf, "{{server_port}}", fmt.Sprintf("%d", serverPort))
 
 	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_mcis_%s_%s_%s", installInfo.NsId, installInfo.McisId, installInfo.VmId, installInfo.CspType))
 

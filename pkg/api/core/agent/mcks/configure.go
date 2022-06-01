@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +46,10 @@ func CreateTelegrafConfigConfigmap(info common.AgentInstallInfo, yamlData unstru
 		return corev1.ConfigMap{}, err
 	}
 
+	serverPort := config.GetInstance().Dragonfly.Port
+	if config.GetInstance().GetMonConfig().DeployType == types.Helm {
+		serverPort = config.GetInstance().Dragonfly.HelmPort
+	}
 	// 파일 내의 변수 값 설정 (hostId, collectorServer)
 	strConf := string(read)
 
@@ -52,6 +57,7 @@ func CreateTelegrafConfigConfigmap(info common.AgentInstallInfo, yamlData unstru
 	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_mcks_%s", info.NsId, info.McksID))
 	strConf = strings.ReplaceAll(strConf, "{{ns_id}}", info.NsId)
 	strConf = strings.ReplaceAll(strConf, "{{mcks_id}}", info.McksID)
+	strConf = strings.ReplaceAll(strConf, "{{server_port}}", fmt.Sprintf("%d", serverPort))
 	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", mechanism)
 
 	var kafkaPort int
@@ -80,27 +86,69 @@ func CreateTelegrafConfigConfigmap(info common.AgentInstallInfo, yamlData unstru
 	return agentConfInfo, nil
 }
 
-func ConfigAgentDaemonSetHostAlias(yamlData unstructured.Unstructured, labels map[string]string) (map[string]interface{}, error) {
-	agentDaemonSetInfo := appsv1.DaemonSet{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(yamlData.Object, &agentDaemonSetInfo); err != nil {
-		return yamlData.Object, err
+func ConfigAgentConfig(yamlData unstructured.Unstructured, labels map[string]string) (map[string]interface{}, error) {
+	var obj map[string]interface{}
+	var err error
+
+	if strings.EqualFold(yamlData.GetKind(), rbacv1.ServiceAccountKind) {
+		agentServiceAccount := corev1.ServiceAccount{}
+		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(yamlData.Object, &agentServiceAccount); err != nil {
+			return yamlData.Object, err
+		}
+
+		agentServiceAccount.ObjectMeta.Name = config.GetInstance().Agent.ServiceAccount
+
+		obj, err = runtime.DefaultUnstructuredConverter.ToUnstructured(&agentServiceAccount)
+		if err != nil {
+			return yamlData.Object, err
+		}
+		return obj, nil
 	}
 
-	agentDaemonSetInfo.Spec.Template.Spec.HostAliases = []corev1.HostAlias{
-		{
-			IP:        config.GetInstance().Dragonfly.DragonflyIP,
-			Hostnames: []string{config.GetInstance().Kafka.EndpointUrl},
-		},
-	}
-	// 라벨 설정
-	agentDaemonSetInfo.Spec.Selector.MatchLabels = labels
-	agentDaemonSetInfo.Spec.Template.ObjectMeta.SetLabels(labels)
+	if strings.EqualFold(yamlData.GetKind(), "clusterrolebinding") {
+		agentClusterRolebinding := rbacv1.ClusterRoleBinding{}
+		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(yamlData.Object, &agentClusterRolebinding); err != nil {
+			return yamlData.Object, err
+		}
+		agentClusterRolebinding.Subjects = append(agentClusterRolebinding.Subjects, rbacv1.Subject{
+			Kind:      rbacv1.ServiceAccountKind,
+			Namespace: config.GetInstance().Agent.Namespace,
+			Name:      config.GetInstance().Agent.ServiceAccount,
+		})
+		agentClusterRolebinding.Subjects[0].Namespace = config.GetInstance().Agent.Namespace
 
-	obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&agentDaemonSetInfo)
-	if err != nil {
-		return yamlData.Object, err
+		obj, err = runtime.DefaultUnstructuredConverter.ToUnstructured(&agentClusterRolebinding)
+		if err != nil {
+			return yamlData.Object, err
+		}
+		return obj, nil
 	}
-	return obj, nil
+	if strings.EqualFold(yamlData.GetKind(), "daemonset") {
+		agentDaemonSetInfo := appsv1.DaemonSet{}
+		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(yamlData.Object, &agentDaemonSetInfo); err != nil {
+			return yamlData.Object, err
+		}
+		agentDaemonSetInfo.Spec.Template.Spec.Containers[0].Image = config.GetInstance().Agent.Image
+		agentDaemonSetInfo.Spec.Template.Spec.HostAliases = []corev1.HostAlias{
+			{
+				IP:        config.GetInstance().Dragonfly.DragonflyIP,
+				Hostnames: []string{config.GetInstance().Kafka.EndpointUrl, "cb-dragonfly"},
+			},
+		}
+		// 라벨 설정
+		agentDaemonSetInfo.Spec.Selector.MatchLabels = labels
+		agentDaemonSetInfo.Spec.Template.ObjectMeta.SetLabels(labels)
+
+		// 서비스 어카운트 설정
+		agentDaemonSetInfo.Spec.Template.Spec.ServiceAccountName = config.GetInstance().Agent.ServiceAccount
+
+		obj, err = runtime.DefaultUnstructuredConverter.ToUnstructured(&agentDaemonSetInfo)
+		if err != nil {
+			return yamlData.Object, err
+		}
+		return obj, nil
+	}
+	return yamlData.Object, nil
 }
 
 func InstallAgent(info common.AgentInstallInfo) (int, error) {
@@ -128,13 +176,20 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to create kubeclient, error=%s", err))
 	}
 
-	namespaceInfo, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), common.AGENT_NAMESPACE, metav1.GetOptions{})
+	agentLabel := map[string]string{
+		"controller": "cb-dragonfly",
+		"app":        "telegraf",
+	}
+
+	namespace := config.GetInstance().Agent.Namespace
+	namespaceInfo, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
 	if err != nil {
 		// 네임스페이스가 없을 경우 생성
 		if apierrors.IsNotFound(err) {
 			ns := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: common.AGENT_NAMESPACE,
+					Name:   namespace,
+					Labels: agentLabel,
 				},
 			}
 			namespaceInfo, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{})
@@ -176,10 +231,6 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 
 			u := unstructured.Unstructured{}
 			_, gvr, err := kubeserialize.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(ext.Raw, nil, &u)
-			agentLabel := map[string]string{
-				"controller": "cb-dragonfly",
-				"app":        "telegraf",
-			}
 
 			// 전체 리소스 라벨 생성
 			u.SetLabels(agentLabel)
@@ -192,6 +243,7 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 				}
 
 				if _, err = kubeClient.CoreV1().ConfigMaps(namespaceInfo.Name).Create(context.TODO(), &configmap, metav1.CreateOptions{DryRun: []string{metav1.DryRunAll}}); err != nil {
+					common.CleanAgentInstall(info, nil, nil, kubeClient)
 					return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to create agent configuration configmap, err=%s", err))
 				}
 				if _, err = kubeClient.CoreV1().ConfigMaps(namespaceInfo.Name).Create(context.TODO(), &configmap, metav1.CreateOptions{}); err != nil {
@@ -201,12 +253,11 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 				continue
 			}
 
-			if strings.EqualFold(u.GetKind(), "daemonset") {
-				if u.Object, err = ConfigAgentDaemonSetHostAlias(u, agentLabel); err != nil {
-					common.CleanAgentInstall(info, nil, nil, kubeClient)
-					return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to config hostalias for agent daemonset, err=%s", err))
-				}
+			if u.Object, err = ConfigAgentConfig(u, agentLabel); err != nil {
+				common.CleanAgentInstall(info, nil, nil, kubeClient)
+				return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to config hostalias for agent daemonset, err=%s", err))
 			}
+
 			mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(kubeClient.DiscoveryClient))
 			mapping, err := mapper.RESTMapping(gvr.GroupKind(), gvr.Version)
 
@@ -220,9 +271,6 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 				dynamicResource = dynamicClient.Resource(mapping.Resource)
 			}
 
-			if _, err := dynamicResource.List(context.TODO(), metav1.ListOptions{}); err != nil {
-				return http.StatusInternalServerError, errors.New(fmt.Sprintf("error with %s, '%s', err=%s", u.GetKind(), u.GetName(), err))
-			}
 			// 그 외의 데이터 생성
 			if resource, _ := dynamicResource.Get(context.TODO(), u.GetName(), metav1.GetOptions{}); resource != nil {
 				common.CleanAgentInstall(info, nil, nil, kubeClient)
@@ -230,6 +278,7 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 			}
 			_, err = dynamicResource.Create(context.TODO(), &u, metav1.CreateOptions{DryRun: []string{metav1.DryRunAll}})
 			if err != nil {
+				common.CleanAgentInstall(info, nil, nil, kubeClient)
 				return http.StatusInternalServerError, errors.New(fmt.Sprintf("error with %s, '%s', err=%s", u.GetKind(), u.GetName(), err))
 			}
 			if _, err = dynamicResource.Create(context.TODO(), &u, metav1.CreateOptions{}); err != nil {

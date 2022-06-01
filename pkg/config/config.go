@@ -9,11 +9,12 @@ import (
 )
 
 type Config struct {
-	InfluxDB   InfluxDB
-	Kapacitor  Kapacitor
-	Kafka      Kafka
-	Dragonfly  Dragonfly
-	Monitoring Monitoring
+	InfluxDB
+	Kapacitor
+	Kafka
+	Agent
+	Dragonfly
+	Monitoring
 }
 
 type InfluxDB struct {
@@ -40,6 +41,12 @@ type Dragonfly struct {
 	Port          int    `json:"port" mapstructure:"port"`
 	HelmPort      int    `json:"helm_port" mapstructure:"helm_port"`
 	HelmNamespace string `json:"helm_namespace" mapstructure:"helm_namespace"`
+}
+
+type Agent struct {
+	ServiceAccount string `json:"mcks_serviceaccount" mapstructure:"mcks_serviceaccount"` // MCKS 에이전트 클러스터 시스템 계정
+	Namespace      string `json:"mcks_namespace" mapstructure:"mcks_namespace"`           // MCKS 에이전트 클러스터 네임스페이스
+	Image          string `json:"image" mapstructure:"image"`
 }
 
 type Monitoring struct {

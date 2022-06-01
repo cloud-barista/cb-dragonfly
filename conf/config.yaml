@@ -24,6 +24,11 @@ dragonfly:
   helm_port: 30090
   helm_namespace: "cloud-barista"
 
+agent:
+  mcks_serviceaccount: cb-dragonfly
+  mcks_namespace: cb-dragonfly
+  image: "cloudbaristaorg/cb-dragonfly:agent-1.15.4"
+
 # monitoring interval configuration info
 monitoring:
   agent_interval: 2                                 # agent interval (s)
