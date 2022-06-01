@@ -2,11 +2,12 @@ package collector
 
 import (
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/sirupsen/logrus"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	"github.com/sirupsen/logrus"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"

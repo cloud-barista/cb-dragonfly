@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
-	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/collector"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
+	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mcis/collector"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
+
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 )
 

@@ -5,12 +5,16 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"strings"
+
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
-	"io"
-	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,9 +29,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	k8sRestClient "k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
-	"net/http"
-	"os"
-	"strings"
 )
 
 func CreateTelegrafConfigConfigmap(info common.AgentInstallInfo, yamlData unstructured.Unstructured) (corev1.ConfigMap, error) {
@@ -240,10 +241,19 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 
 	// 메타데이터 저장
-	if _, _, err = common.PutAgent(info); err != nil {
-		common.CleanAgentInstall(info, nil, nil, kubeClient)
+	agentUUID, _, err := common.PutAgent(info)
+	if err != nil {
+		//common.CleanAgentInstall(info, nil, nil, kubeClient)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))
 	}
+
+	// 토픽 큐에 신규 에이전트 정보를 등록
+	err = util.PutMCKSRingQueue(types.TopicAdd, agentUUID)
+	if err != nil {
+		//common.CleanAgentInstall(info, nil, nil, kubeClient)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to add agent metadata to queue, error=%s", err))
+	}
+
 	return http.StatusOK, nil
 }
 

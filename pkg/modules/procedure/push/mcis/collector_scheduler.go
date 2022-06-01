@@ -1,9 +1,13 @@
-package push
+package mcis
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"sync"
+	"time"
+
 	que "github.com/Workiva/go-datastructures/queue"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
@@ -12,9 +16,6 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strconv"
-	"sync"
-	"time"
 )
 
 // InMemoryTopic Struct
@@ -144,7 +145,7 @@ func (cScheduler CollectorScheduler) Scheduler() error {
 			addTopicList = util.GetAllTopicBySort(util.Unique(addTopicList))
 			delTopicList = util.GetAllTopicBySort(util.Unique(util.ReturnDiffTopicList(delTopicList, addTopicList)))
 		}
-		fmt.Println("### Now Scheduling ###")
+		fmt.Println("### Now Scheduling - MCIS collector scheduler ###")
 		fmt.Println("## Add Topics Queue ##", addTopicList)
 		fmt.Println("## Del Topics Queue ##", delTopicList)
 		// collector 운용 정책에 따라 addTopicList 와 delTopicList 를 아래 메소드를 통해 수행합니다.

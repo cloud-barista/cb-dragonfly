@@ -4,7 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/collector"
+	"net/http"
+	"os"
+	"sort"
+	"strconv"
+	"time"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mcis/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -12,11 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"net/http"
-	"os"
-	"sort"
-	"strconv"
-	"time"
 )
 
 type MetricCollector struct {
