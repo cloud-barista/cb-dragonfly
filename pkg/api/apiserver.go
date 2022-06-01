@@ -96,7 +96,7 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.GET("/agent/metadata", agent.GetAgentMetadata)
 	dragonfly.PUT("/agent/metadata", agent.PutAgentMetadata)
 
-	// 삭제할 토픽 큐 등록
+	// 삭제할 토픽 큐 등록 ( deployment collector 로 부터 삭제가 필요한 topic 들을 받기 위한 api )
 	dragonfly.GET("/topic/delete/:topic", topic.AddDeleteTopicToQueue)
 
 	// 알람 이벤트 핸들러 조회, 생성, 삭제

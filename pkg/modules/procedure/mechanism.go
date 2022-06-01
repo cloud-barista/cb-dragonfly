@@ -39,14 +39,18 @@ func SetConfigurationToMemoryDB() {
 func startPushModule(wg *sync.WaitGroup) error {
 
 	//deployType := config.GetInstance().GetMonConfig().DeployType
-	// 콜렉터 매니저 생성
+	// 콜렉터 매니저를 생성합니다.
+	// 콜렉터 매니저는 collector 생성, 삭제 기능을 제공합니다.
+	// 배포방식이 helm 일 경우, k8s와의 conn 및 configmap 을 생성합니다.
 	cm, err := push.NewCollectorManager()
 	if err != nil {
 		util.GetLogger().Error("failed to initialize collector manager")
 		return err
 	}
 
-	// 모니터링 콜렉터 스케일 인/아웃 스케줄러 실행
+	// 콜렉터 스케줄러를 생성합니다.
+	// 콜렉터에게 분배할 topic 들을 관리하며 콜렉터의 배포 정책이 MaxAgentHost 일 경우,
+	// 콜렉터 매니저의 콜렉터 생성 및 삭제 기능을 활용하여 콜렉터 스케일 인/아웃을 수행합니다.
 	wg.Add(1)
 	err = push.StartScheduler(wg, cm)
 	if err != nil {
@@ -79,10 +83,11 @@ func startPullModule(wg *sync.WaitGroup) error {
 
 func NewMechanism(wg *sync.WaitGroup) error {
 
-	// Set Conf to InMemoryDB
+	// Set Conf to InMemoryDB => Dragonfly의 config파일을 cb-store에 저장
+	// cb-store의 기록 정보는 dragonfly의 모듈이 restart해도 지워지지 않습니다.
 	SetConfigurationToMemoryDB()
 
-	// CB-Dragonfly config 정보 설정
+	// Monitoring Policy => Push or Pull
 	switch config.GetDefaultConfig().GetMonConfig().DefaultPolicy {
 	case types.PushPolicy:
 		if err := startPushModule(wg); err != nil {
