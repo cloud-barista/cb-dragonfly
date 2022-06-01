@@ -1,12 +1,15 @@
 package mcis
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mcks/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 )
 
 type CollectManager struct {
@@ -24,19 +27,18 @@ func NewCollectorManager(wg *sync.WaitGroup) (CollectManager, error) {
 	return manager, nil
 }
 
+// CreateCollector 콜렉터 생성
 func (manager *CollectManager) CreateCollector(topic string) error {
-	// collector 생성 요청이 들어왔을 경우
 	manager.WaitGroup.Add(1)
 	collectorCreateOrder := len(manager.CollectorAddrMap)
-	// 생성 순서 idx 값을 collector 객체에 넣고, 생성합니다.
 	newCollector, err := collector.NewMetricCollector(
-		types.AVG,
+		types.AggregateType(config.GetInstance().Monitoring.DefaultPolicy),
 		collectorCreateOrder,
 	)
 	if err != nil {
 		return err
 	}
-	// 생성한 DoCollect 의 주소 값을 CollectorAddrSlice 배열에 추가합니다.
+
 	manager.CollectorAddrMap[topic] = &newCollector
 
 	deployType := config.GetInstance().Monitoring.DeployType
@@ -44,7 +46,8 @@ func (manager *CollectManager) CreateCollector(topic string) error {
 		go func() {
 			err := newCollector.DoCollect(manager.WaitGroup)
 			if err != nil {
-				//util.GetLogger().Error("failed to DoCollect")
+				errMsg := fmt.Sprintf("failed to create collector, error=%s", err.Error())
+				util.GetLogger().Error(errMsg)
 			}
 		}()
 	}
@@ -52,6 +55,21 @@ func (manager *CollectManager) CreateCollector(topic string) error {
 	return nil
 }
 
+// DeleteCollector 콜렉터 삭제
 func (manager *CollectManager) DeleteCollector(topic string) error {
+	if _, ok := manager.CollectorAddrMap[topic]; !ok {
+		return errors.New(fmt.Sprint("failed to find collector with topic", topic))
+	}
+
+	targetCollector := manager.CollectorAddrMap[topic]
+	deployType := config.GetInstance().Monitoring.DeployType
+	if deployType == types.Dev || deployType == types.Compose {
+		// 콜렉터 채널에 종료 요청
+		targetCollector.Ch <- "close"
+	}
+
+	// 콜렉터 목록에서 콜렉터 삭제
+	delete(manager.CollectorAddrMap, topic)
+
 	return nil
 }

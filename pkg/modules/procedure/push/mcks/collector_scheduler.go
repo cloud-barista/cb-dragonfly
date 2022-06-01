@@ -154,6 +154,7 @@ func (cScheduler CollectorScheduler) DoSchedule() error {
 // SchedulePolicyBasedCollector 쿠버네티스 서비스(MCKS) 에이전트와 콜렉터를 1:1로 스케줄링
 func (cScheduler CollectorScheduler) SchedulePolicyBasedCollector(addTopicList []string, delTopicList []string) {
 	provisioningOnce.Do(cScheduler.ProvisioningCollector)
+
 	if len(addTopicList) != 0 {
 		cScheduler.AddTopicsToCollector(addTopicList)
 	}
@@ -161,6 +162,8 @@ func (cScheduler CollectorScheduler) SchedulePolicyBasedCollector(addTopicList [
 		cScheduler.DeleteTopicsToCollector(delTopicList)
 	}
 	cScheduler.WriteCollectorMapToInMemoryDB()
+
+	cScheduler.TriggerCollector()
 }
 
 // ProvisioningCollector 기존 토픽 맵에 등록된 콜렉터 로드
@@ -176,6 +179,12 @@ func (cScheduler CollectorScheduler) ProvisioningCollector() {
 			util.GetLogger().Error(errMsg)
 			continue
 		}
+	}
+}
+
+func (cScheduler CollectorScheduler) TriggerCollector() {
+	for key, _ := range cScheduler.cm.CollectorAddrMap {
+		cScheduler.cm.CollectorAddrMap[key].Ch <- key
 	}
 }
 
