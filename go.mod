@@ -20,6 +20,7 @@ require (
 	github.com/cloud-barista/cb-store v0.4.1
 	github.com/confluentinc/confluent-kafka-go v1.7.0
 	github.com/coreos/bbolt v1.3.4 // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/deepmap/oapi-codegen v1.8.1 // indirect
 	github.com/go-openapi/jsonreference v0.19.6 // indirect
 	github.com/go-openapi/spec v0.20.3 // indirect

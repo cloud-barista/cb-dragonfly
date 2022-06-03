@@ -88,10 +88,11 @@ func NewCollectorScheduler(wg *sync.WaitGroup, manager *CollectManager) (*Collec
 	} else {
 		// docker-compose 일 경우, cb-store 를 통하여 데이터를 로드합니다. (To InMemoryTopic)
 		_ = c.StoreDelList(types.Topic)
-		cPolicy := c.StoreGet(types.CollectorPolicy)
-		if cPolicy == manager.CollectorPolicy {
-			if getCMapFromStore := c.StoreGet(fmt.Sprintf("%s", types.CollectorTopicMap)); getCMapFromStore != "" {
-				_ = json.Unmarshal([]byte(getCMapFromStore), &inMemoryTopic)
+		cPolicy, _ := c.StoreGet(types.CollectorPolicy)
+		if *cPolicy == manager.CollectorPolicy {
+			getCMapFromStore, _ := c.StoreGet(fmt.Sprintf("%s", types.CollectorTopicMap))
+			if getCMapFromStore != nil {
+				_ = json.Unmarshal([]byte(*getCMapFromStore), &inMemoryTopic)
 				for collectorIdx, topicSlice := range inMemoryTopic.TopicMap {
 					for i := 0; i < len(topicSlice); i++ {
 						_ = c.StorePut(fmt.Sprintf("%s/%s", types.Topic, topicSlice[i]), strconv.Itoa(collectorIdx))
@@ -115,7 +116,8 @@ func NewCollectorScheduler(wg *sync.WaitGroup, manager *CollectManager) (*Collec
 
 func (cScheduler CollectorScheduler) Scheduler() error {
 
-	aggreTime, _ := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "collector_interval"))
+	interval, _ := cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "collector_interval")
+	aggreTime, _ := strconv.Atoi(*interval)
 	topicQue := cScheduler.topicQue
 	cPolicy := cScheduler.cm.CollectorPolicy
 
@@ -203,7 +205,9 @@ func (cScheduler CollectorScheduler) AddTopicsToCollector(addTopicList []string,
 	for i := 0; i < len(addTopicList); i++ {
 		topic := addTopicList[i]
 		// cb-store 의 types.Topic < /push/topic/{토픽} > 경로 조회했을 때 이미 등록되어 있을 경우 continue
-		if c.StoreGet(fmt.Sprintf("%s/%s", types.Topic, topic)) != "" {
+		topicMessage, _ := c.StoreGet(fmt.Sprintf("%s/%s", types.Topic, topic))
+
+		if topicMessage != nil {
 			continue
 		}
 		// 콜렉터가 아예 생성이 안되어있을때(초기 상태)
@@ -259,16 +263,16 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCollector(delTopicList []stri
 	deleteTopicsMap := map[int][]string{}
 	for i := 0; i < len(delTopicList); i++ {
 		delTopic := delTopicList[i]
-		collectorIdxStr := c.StoreGet(fmt.Sprintf("%s/%s", types.Topic, delTopic))
-		collectorIdx, _ := strconv.Atoi(collectorIdxStr)
+		collectorIdxStr, _ := c.StoreGet(fmt.Sprintf("%s/%s", types.Topic, delTopic))
+		collectorIdx, _ := strconv.Atoi(*collectorIdxStr)
 		// cb-store 경로 /push/topic/{토픽} 삭제
 		_ = c.StoreDelete(fmt.Sprintf("%s/%s", types.Topic, delTopic))
 
 		/* 에이전트 상태 unhealthy 업데이트 처리 요청 Start */
 		agentInfo := common.AgentInfo{}
-		agentInfoBytes := c.StoreGet(types.Agent + delTopic)
-		if agentInfoBytes != "" {
-			_ = json.Unmarshal([]byte(agentInfoBytes), &agentInfo)
+		agentInfoBytes, _ := c.StoreGet(types.Agent + delTopic)
+		if agentInfoBytes != nil {
+			_ = json.Unmarshal([]byte(*agentInfoBytes), &agentInfo)
 			agentInfo.AgentHealth = string(common.Unhealthy)
 			agentInfo.AgentState = string(common.Disable)
 			recentAgentInfoBytes, _ := json.Marshal(agentInfo)
@@ -445,7 +449,8 @@ func (cScheduler CollectorScheduler) AddTopicsToCSPCollector(addTopicList []stri
 
 	for i := 0; i < len(addTopicList); i++ {
 		topic := addTopicList[i]
-		if c.StoreGet(fmt.Sprintf("%s/%s", types.Topic, topic)) != "" {
+		topicMsg, _ := c.StoreGet(fmt.Sprintf("%s/%s", types.Topic, topic))
+		if topicMsg != nil {
 			continue
 		}
 		collectorIdx := util.GetCspCollectorIdx(topic)
@@ -483,8 +488,8 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCSPCollector(delTopicList []s
 		collectorIdx := util.GetCspCollectorIdx(delTopic)
 
 		agentInfo := common.AgentInfo{}
-		agentInfoBytes := c.StoreGet(types.Agent + delTopic)
-		_ = json.Unmarshal([]byte(agentInfoBytes), &agentInfo)
+		agentInfoBytes, _ := c.StoreGet(types.Agent + delTopic)
+		_ = json.Unmarshal([]byte(*agentInfoBytes), &agentInfo)
 		agentInfo.AgentHealth = string(common.Unhealthy)
 		agentInfo.AgentState = string(common.Disable)
 		recentAgentInfoBytes, _ := json.Marshal(agentInfo)

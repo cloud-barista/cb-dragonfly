@@ -72,7 +72,10 @@ func DeleteAgent(info AgentInstallInfo) error {
 
 func ListAgent() (map[string]AgentInfo, error) {
 	agentList := map[string]AgentInfo{}
-	agentListByteMap := cbstore.GetInstance().StoreGetListMap(types.Agent, true)
+	agentListByteMap, err := cbstore.GetInstance().StoreGetListMap(types.Agent, true)
+	if err != nil {
+		return nil, err
+	}
 
 	if len(agentListByteMap) != 0 {
 		for uuid, bytes := range agentListByteMap {
@@ -89,13 +92,15 @@ func ListAgent() (map[string]AgentInfo, error) {
 func GetAgent(info AgentInstallInfo) (*AgentInfo, error) {
 	agentUUID := MakeAgentUUID(info)
 	agentInfo := AgentInfo{}
-	agentInfoStr := cbstore.GetInstance().StoreGet(fmt.Sprintf(types.Agent + agentUUID))
+	agentInfoStr, err := cbstore.GetInstance().StoreGet(fmt.Sprintf(types.Agent + agentUUID))
+	if err != nil {
+		return nil, err
+	}
 
-	if agentInfoStr == "" {
+	if agentInfoStr == nil {
 		return nil, errors.New(fmt.Sprintf("failed to get agent with UUID %s", agentUUID))
 	}
-	err := json.Unmarshal([]byte(agentInfoStr), &agentInfo)
-	if err != nil {
+	if err = json.Unmarshal([]byte(*agentInfoStr), &agentInfo); err != nil {
 		return nil, errors.New(fmt.Sprintf("failed to convert agent info, error=%s", err))
 	}
 	return &agentInfo, nil

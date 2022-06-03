@@ -65,12 +65,12 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 		_ = cbstore.GetInstance().StoreDelList(types.MCKSTopic)
 
 		// 기존에 저장된 토픽 목록 정보가 있을 경우 동기화
-		if topicListData := cbStore.StoreGet(types.MCKSCollectorTopicMap); topicListData != "" {
+		if topicListData, _ := cbStore.StoreGet(types.MCKSCollectorTopicMap); topicListData != nil {
 			// 콜렉터 정책 검사 (기존 구동 정책과 현재 구동 정책이 동일한 지 확인)
-			collectorPolicy := cbstore.GetInstance().StoreGet(types.CollectorPolicy)
-			if collectorPolicy == cm.CollectorPolicy {
+			collectorPolicy, _ := cbstore.GetInstance().StoreGet(types.CollectorPolicy)
+			if *collectorPolicy == cm.CollectorPolicy {
 				// 콜렉터 목록 로드
-				err := json.Unmarshal([]byte(topicListData), &inMemoryTopic)
+				err := json.Unmarshal([]byte(*topicListData), &inMemoryTopic)
 				if err != nil {
 					util.GetLogger().Error("failed to load collector topic map, error=", err.Error())
 					return nil, err
@@ -99,7 +99,8 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 
 // DoSchedule 콜렉터 스케줄러 구동
 func (cScheduler CollectorScheduler) DoSchedule() error {
-	aggregateInterval, err := strconv.Atoi(cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "collector_interval"))
+	interval, _ := cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "collector_interval")
+	aggregateInterval, err := strconv.Atoi(*interval)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to collector_interval configuration data, error=%s", err.Error())
 		util.GetLogger().Error(errMsg)
@@ -132,8 +133,8 @@ func (cScheduler CollectorScheduler) DoSchedule() error {
 					delTopicList = append(delTopicList, topicStructure.Topic)
 				}
 			}
-			addTopicList = util.GetAllTopicBySort(util.Unique(addTopicList))
-			delTopicList = util.GetAllTopicBySort(util.Unique(util.ReturnDiffTopicList(delTopicList, addTopicList)))
+			addTopicList = util.GetAllTopicBySort(util.Unique(addTopicList, true))
+			delTopicList = util.GetAllTopicBySort(util.Unique(util.ReturnDiffTopicList(delTopicList, addTopicList), true))
 		}
 
 		fmt.Println("### Now Scheduling - MCKS collector scheduler ###")
@@ -196,7 +197,8 @@ func (cScheduler CollectorScheduler) AddTopicsToCollector(addTopicList []string)
 	for i := 0; i < len(addTopicList); i++ {
 		topic := addTopicList[i]
 
-		if cbStore.StoreGet(fmt.Sprintf("%s/%s", types.MCKSTopic, topic)) != "" {
+		topicMsg, _ := cbStore.StoreGet(fmt.Sprintf("%s/%s", types.MCKSTopic, topic))
+		if topicMsg != nil {
 			continue
 		}
 
@@ -227,7 +229,8 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCollector(delTopicList []stri
 	for i := 0; i < len(delTopicList); i++ {
 		topic := delTopicList[i]
 
-		if cbStore.StoreGet(fmt.Sprintf("%s/%s", types.MCKSTopic, topic)) != "" {
+		topicMsg, _ := cbStore.StoreGet(fmt.Sprintf("%s/%s", types.MCKSTopic, topic))
+		if topicMsg != nil {
 			continue
 		}
 
