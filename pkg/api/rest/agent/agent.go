@@ -17,7 +17,7 @@ import (
 )
 
 // InstallTelegraf 에이전트 설치
-// @Summary Install agent to vm
+// @Summary Install Agent
 // @Description 모니터링 에이전트 설치
 // @Tags [Agent] Monitoring Agent
 // @Accept  json
@@ -27,7 +27,6 @@ import (
 // @Failure 404 {object} rest.SimpleMsg
 // @Failure 500 {object} rest.SimpleMsg
 // @Router /agent [post]
-
 func InstallTelegraf(c echo.Context) error {
 	params := &rest.AgentType{}
 	if err := c.Bind(params); err != nil {
@@ -165,7 +164,7 @@ func GetTelegrafPkgFile(c echo.Context) error {
 }
 
 // UninstallAgent 에이전트 삭제
-// @Summary Uninstall agent to vm
+// @Summary Uninstall Agent
 // @Description 모니터링 에이전트 제거
 // @Tags [Agent] Monitoring Agent
 // @Accept  json

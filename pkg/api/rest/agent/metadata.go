@@ -15,19 +15,15 @@ type MetaDataListType struct {
 }
 
 // ListAgentMetadata 에이전트 메타데이터 조회
-// @Summary List agent metadata
-// @Description 에이전트 메타데이터 조회
+// @Summary List Agent Metadata
+// @Description 에이전트 메타데이터 목록 조회
 // @Tags [Agent] Monitoring Agent
 // @Accept  json
 // @Produce  json
-// @Param ns query string false "네임스페이스 아이디" Enums(test_ns)
-// @Param mcisId query string false "MCIS 아이디" Enums(test_mcis)
-// @Param vmId query string false "VM 아이디" Enums(test_vm)
-// @Param cspType query string false "VM의 CSP 정보" Enums(aws)
-// @Success 200 {object}  rest.JSONResult{[DEFAULT]=[]MetaDataListType,[ID]=AgentInfo} "Different return structures by the given param"
+// @Success 200 {object}  rest.JSONResult{[DEFAULT]=[]MetaDataListType,[ID]=common.AgentInfo} "Different return structures by the given param"
 // @Failure 404 {object} rest.SimpleMsg
 // @Failure 500 {object} rest.SimpleMsg
-// @Router /agent/metadata [get]
+// @Router /agents/metadata [get]
 func ListAgentMetadata(c echo.Context) error {
 	// 에이전트 UUID 파라미터 값 추출
 
@@ -39,6 +35,19 @@ func ListAgentMetadata(c echo.Context) error {
 	return c.JSON(http.StatusOK, agentMetadataList)
 }
 
+// GetAgentMetadata 에이전트 메타데이터 조회
+// @Summary Get Agent Metadata
+// @Description 에이전트 메타데이터 단일 조회
+// @Tags [Agent] Monitoring Agent
+// @Accept  json
+// @Produce  json
+// @Param ns_id query string false "네임스페이스 아이디" Enums(test_ns)
+// @Param service_type query string false "서비스 타입" Enums(mcis)
+// @Param service_id query string false "서비스 아이디" Enums(mcis_id)
+// @Success 200 {object}  rest.JSONResult{[DEFAULT]=[]MetaDataListType,[ID]=common.AgentInfo} "Different return structures by the given param"
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /agent/metadata [get]
 func GetAgentMetadata(c echo.Context) error {
 	// 에이전트 UUID 파라미터 값 추출
 	nsId := c.QueryParam("ns")
@@ -80,6 +89,21 @@ func GetAgentMetadata(c echo.Context) error {
 	return c.JSON(http.StatusOK, agentMetadata)
 }
 
+// PutAgentMetadata 에이전트 메타데이터 수정
+// @Summary Put Agent Metadata
+// @Description 에이전트 메타데이터 수정
+// @Tags [Agent] Monitoring Agent
+// @Accept  json
+// @Produce  json
+// @Param ns query string false "네임스페이스 아이디" Enums(test_ns)
+// @Param mcisId query string false "MCIS 아이디" Enums(test_mcis)
+// @Param vmId query string false "VM 아이디" Enums(test_vm)
+// @Param cspType query string false "VM의 CSP 정보" Enums(aws)
+// @Param mcksId query string false "MCKS 아이디" Enums(test_mcks)
+// @Success 200 {object}  rest.JSONResult{[DEFAULT]=[]MetaDataListType,[ID]=common.AgentInfo} "Different return structures by the given param"
+// @Failure 404 {object} rest.SimpleMsg
+// @Failure 500 {object} rest.SimpleMsg
+// @Router /agent/metadata [put]
 func PutAgentMetadata(c echo.Context) error {
 	// 에이전트 UUID 파라미터 값 추출
 	params := &rest.AgentType{}
