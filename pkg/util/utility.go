@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/types"
-	appsv1 "k8s.io/api/apps/v1"
-	apiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"math"
 	"net/url"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
+	appsv1 "k8s.io/api/apps/v1"
+	apiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func StructToMap(i interface{}) (values url.Values) {
@@ -259,13 +260,3 @@ func ToFixed(num float64, precision int) float64 {
 	output := math.Pow(10, float64(precision))
 	return float64(round(num*output)) / output
 }
-
-//func SliceContainsItem(slice []string, item string) bool {
-//	set := make(map[string]struct{}, len(slice))
-//	for _, s := range slice {
-//		set[s] = struct{}{}
-//	}
-//
-//	_, ok := set[item]
-//	return ok
-//}

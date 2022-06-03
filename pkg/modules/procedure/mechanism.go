@@ -3,15 +3,17 @@ package procedure
 import (
 	"errors"
 	"fmt"
+	"sync"
+
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	puller2 "github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/pull"
+	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/pull"
 	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/pull/puller"
-	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push"
+	push_mcis "github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mcis"
+	push_mcks "github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mcks"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"github.com/mitchellh/mapstructure"
-	"sync"
 )
 
 func SetConfigurationToMemoryDB() {
@@ -28,21 +30,12 @@ func SetConfigurationToMemoryDB() {
 	}
 }
 
-//func FlushMonitoringData() {
-//	err := os.RemoveAll("./meta_db")
-//	if err != nil {
-//		util.GetLogger().Error(fmt.Sprintf("failed to flush monitoring data error=%s", err.Error()))
-//	}
-//	SetConfigurationToMemoryDB()
-//}
+func startMCISPushModule(wg *sync.WaitGroup) error {
 
-func startPushModule(wg *sync.WaitGroup) error {
-
-	//deployType := config.GetInstance().GetMonConfig().DeployType
 	// 콜렉터 매니저를 생성합니다.
 	// 콜렉터 매니저는 collector 생성, 삭제 기능을 제공합니다.
 	// 배포방식이 helm 일 경우, k8s와의 conn 및 configmap 을 생성합니다.
-	cm, err := push.NewCollectorManager()
+	cm, err := push_mcis.NewCollectorManager()
 	if err != nil {
 		util.GetLogger().Error("failed to initialize collector manager")
 		return err
@@ -52,16 +45,39 @@ func startPushModule(wg *sync.WaitGroup) error {
 	// 콜렉터에게 분배할 topic 들을 관리하며 콜렉터의 배포 정책이 MaxAgentHost 일 경우,
 	// 콜렉터 매니저의 콜렉터 생성 및 삭제 기능을 활용하여 콜렉터 스케일 인/아웃을 수행합니다.
 	wg.Add(1)
-	err = push.StartScheduler(wg, cm)
+	err = push_mcis.StartScheduler(wg, cm)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func startPullModule(wg *sync.WaitGroup) error {
+// startMCKSPushModule MCKS 수집 모듈 구동
+func startMCKSPushModule(wg *sync.WaitGroup) error {
+
+	fmt.Println("start MCKS monitoring module ...")
+
+	// 콜렉터 매니저 생성
+	cm, err := push_mcks.NewCollectorManager(wg)
+	if err != nil {
+		util.GetLogger().Error(err)
+		return err
+	}
+
+	// 콜렉터 스케줄러 실행
+	wg.Add(1)
+	err = push_mcks.StartScheduler(cm)
+	if err != nil {
+		util.GetLogger().Error(err)
+		return err
+	}
+	return nil
+}
+
+func startMCISPullModule(wg *sync.WaitGroup) error {
+
 	// PULL 매니저 생성
-	pm, err := puller2.NewPullManager()
+	pm, err := pull.NewPullManager()
 	if err != nil {
 		util.GetLogger().Error("Failed to initialize collector manager")
 		return err
@@ -81,6 +97,11 @@ func startPullModule(wg *sync.WaitGroup) error {
 	return nil
 }
 
+// TODO: MCKS 환경 PULL 모듈 개발 시 활용
+func startMCKSPullModule(wg *sync.WaitGroup) error {
+	return nil
+}
+
 func NewMechanism(wg *sync.WaitGroup) error {
 
 	// Set Conf to InMemoryDB => Dragonfly의 config파일을 cb-store에 저장
@@ -90,17 +111,24 @@ func NewMechanism(wg *sync.WaitGroup) error {
 	// Monitoring Policy => Push or Pull
 	switch config.GetDefaultConfig().GetMonConfig().DefaultPolicy {
 	case types.PushPolicy:
-		if err := startPushModule(wg); err != nil {
+		// MCIS 수집 모듈 구동
+		if err := startMCISPushModule(wg); err != nil {
+			return err
+		}
+		// MCKS 수집 모듈 구동
+		if err := startMCKSPushModule(wg); err != nil {
 			return err
 		}
 		break
 	case types.PullPolicy:
-		if err := startPullModule(wg); err != nil {
+		// MCIS 수집 모듈 구동
+		if err := startMCISPullModule(wg); err != nil {
 			return err
 		}
 		break
+		// TODO: MCKS 수집 모듈 구동
 	default:
-		errMsg := "wrong monitoring mechanism config detected. change config to 'Push' or 'Pull'."
+		errMsg := "wrong monitoring mechanism config detected. change config to \"push\" or \"pull\""
 		util.GetLogger().Error(errMsg)
 		return errors.New(errMsg)
 	}
