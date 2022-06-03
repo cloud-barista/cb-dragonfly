@@ -49,13 +49,13 @@ func StructToMap(i interface{}) (values url.Values) {
 func ToMap(val interface{}) (map[string]interface{}, error) {
 
 	// Convert struct to bytes
-	bytes := new(bytes.Buffer)
-	if err := json.NewEncoder(bytes).Encode(val); err != nil {
+	byteBuffer := new(bytes.Buffer)
+	if err := json.NewEncoder(byteBuffer).Encode(val); err != nil {
 		return nil, err
 	}
 
 	// Convert bytes to map
-	byteData := bytes.Bytes()
+	byteData := byteBuffer.Bytes()
 	resultMap := map[string]interface{}{}
 	if err := json.Unmarshal(byteData, &resultMap); err != nil {
 		return nil, err
@@ -166,16 +166,18 @@ func GetCspCollectorIdx(topic string) (collectorIdx int) {
 	return
 }
 
-func Unique(intSlice []string) []string {
+func Unique(slice []string, sortOption bool) []string {
 	keys := make(map[string]bool)
 	list := []string{}
-	for _, entry := range intSlice {
+	for _, entry := range slice {
 		if _, value := keys[entry]; !value {
 			keys[entry] = true
 			list = append(list, entry)
 		}
 	}
-	sort.Strings(list)
+	if sortOption {
+		sort.Strings(list)
+	}
 	return list
 }
 
@@ -259,4 +261,12 @@ func round(num float64) int {
 func ToFixed(num float64, precision int) float64 {
 	output := math.Pow(10, float64(precision))
 	return float64(round(num*output)) / output
+}
+
+func CheckMCKSType(serviceType string) bool {
+	return strings.EqualFold(serviceType, types.MCKS) || strings.EqualFold(serviceType, types.KUBERNETES) || strings.EqualFold(serviceType, types.K8S)
+}
+
+func CheckMCISType(serviceType string) bool {
+	return strings.EqualFold(serviceType, types.MCIS) || strings.EqualFold(serviceType, types.VM)
 }

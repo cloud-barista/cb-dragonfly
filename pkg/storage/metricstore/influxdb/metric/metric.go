@@ -92,3 +92,38 @@ func (n Network) GetField() []string {
 	val := reflect.ValueOf(n)
 	return util.GetFields(val)
 }
+
+// MCKSNode 메트릭
+type MCKSNode struct {
+	CpuUsage        int64 `json:"cpu_usage_nanocores"`
+	MemUsage        int64 `json:"memory_usage_bytes"`
+	MemAvaiable     int64 `json:"memory_available_bytes"`
+	NetRXBytes      int64 `json:"network_rx_bytes"`
+	NetRXErrors     int64 `json:"network_rx_errors"`
+	NetTXBytes      int64 `json:"network_tx_bytes"`
+	NetTXErrors     int64 `json:"network_tx_errors"`
+	FSCapacityBytes int64 `json:"fs_capacity_bytes"`
+	FSUsedBytes     int64 `json:"fs_used_bytes"`
+}
+
+func (n MCKSNode) GetField() []string {
+	val := reflect.ValueOf(n)
+	return util.GetFields(val)
+}
+
+// MCKSPod 메트릭
+type MCKSPod struct {
+	CpuUsage       int64 `json:"cpu_usage_nanocores"`
+	MemUsage       int64 `json:"memory_usage_bytes"`
+	RootFSCapacity int64 `json:"rootfs_capacity_bytes"`
+	RootFSUsed     int64 `json:"rootfs_used_bytes"`
+	NetRXBytes     int64 `json:"rx_bytes"`
+	NetRXErrors    int64 `json:"rx_errors"`
+	NetTXBytes     int64 `json:"tx_bytes"`
+	NetTXErrors    int64 `json:"tx_errors"`
+}
+
+func (n MCKSPod) GetField() []string {
+	val := reflect.ValueOf(n)
+	return util.GetFields(val)
+}

@@ -1,14 +1,15 @@
-package metric
+package mcis
 
 import (
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"net/http"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
-
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
 )
 
 // GetVMMonInfo 멀티 클라우드 인프라 서비스 개별 VM 모니터링 정보 조회
@@ -44,7 +45,20 @@ func GetVMMonInfo(c echo.Context) error {
 			return echo.NewHTTPError(404, rest.SetMessage("Error! Mininum duration time is 2m"))
 		}
 	}
-	result, errCode, err := metric.GetVMMonInfo(nsId, mcisId, vmId, metricName, period, aggregateType, duration)
+
+	dbInfo := types.DBMetricRequestInfo{
+		NsID:                nsId,
+		ServiceType:         types.MCIS,
+		ServiceID:           mcisId,
+		VMID:                vmId,
+		MetricName:          metricName,
+		MonitoringMechanism: config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy,
+		Period:              period,
+		AggegateType:        aggregateType,
+		Duration:            duration,
+	}
+
+	result, errCode, err := metric.GetMonInfo(dbInfo)
 	if errCode != http.StatusOK {
 		return echo.NewHTTPError(errCode, rest.SetMessage(err.Error()))
 	}

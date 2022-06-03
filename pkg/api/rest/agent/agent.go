@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"github.com/labstack/echo/v4"
 	"io/ioutil"
 	"net/http"
@@ -37,7 +38,7 @@ func InstallTelegraf(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, rest.SetMessage("empty agent type parameter"))
 	}
 
-	if strings.EqualFold(params.ServiceType, agentcommon.MCKS) || strings.EqualFold(params.ServiceType, agentcommon.MCKSAGENT_TYPE) || strings.EqualFold(params.ServiceType, agentcommon.MCKSAGENT_SHORTHAND_TYPE) {
+	if util.CheckMCKSType(params.ServiceType) {
 		// 토큰 값이 비어있을 경우
 		if !checkEmptyFormParam(params.ClientToken) {
 			// 키 기반 연동일 때 데이터 확인
@@ -53,7 +54,7 @@ func InstallTelegraf(c echo.Context) error {
 		}
 	}
 	// MCIS 에이전트 form 파라미터 값 체크
-	if strings.EqualFold(params.ServiceType, agentcommon.MCIS) || strings.EqualFold(params.ServiceType, agentcommon.MCISAGENT_TYPE) {
+	if util.CheckMCISType(params.ServiceType) {
 		// MCIS 에이전트 form 파라미터 값 체크
 		if !checkEmptyFormParam(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType) {
 			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcis agent installation"))
@@ -184,7 +185,7 @@ func UninstallAgent(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, rest.SetMessage("empty agent type parameter"))
 	}
 
-	if strings.EqualFold(params.ServiceType, agentcommon.MCKS) || strings.EqualFold(params.ServiceType, agentcommon.MCKSAGENT_TYPE) || strings.EqualFold(params.ServiceType, agentcommon.MCKSAGENT_SHORTHAND_TYPE) {
+	if util.CheckMCKSType(params.ServiceType) {
 		// 토큰 값이 비어있을 경우
 		if !checkEmptyFormParam(params.ClientToken) {
 			// 키 기반 연동일 때 데이터 확인
@@ -200,7 +201,7 @@ func UninstallAgent(c echo.Context) error {
 	}
 
 	// MCIS 에이전트 form 파라미터 값 체크
-	if strings.EqualFold(params.ServiceType, agentcommon.MCIS) || strings.EqualFold(params.ServiceType, agentcommon.MCISAGENT_TYPE) {
+	if util.CheckMCISType(params.ServiceType) {
 		if !checkEmptyFormParam(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType) {
 			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcis agent uninstallation"))
 		}

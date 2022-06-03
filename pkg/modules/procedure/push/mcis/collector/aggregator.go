@@ -110,7 +110,7 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string)
 		}
 	}
 
-	currentTopics := util.Unique(msgTopic)
+	currentTopics := util.Unique(msgTopic, true)
 	return currentTopics, nil
 }
 

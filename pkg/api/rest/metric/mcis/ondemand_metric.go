@@ -1,12 +1,12 @@
-package metric
+package mcis
 
 import (
 	"errors"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric/mcis"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 )
 
@@ -38,7 +38,7 @@ func GetVMOnDemandMetric(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errors.New("parameter is missing"))
 	}
 
-	result, errCode, err := metric.GetVMOnDemandMonInfo(metricName, publicIP)
+	result, errCode, err := mcis.GetVMOnDemandMonInfo(metricName, publicIP)
 	if errCode != http.StatusOK {
 		return echo.NewHTTPError(errCode, rest.SetMessage(err.Error()))
 	}
@@ -57,7 +57,7 @@ func GetMCISOnDemandPacket(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errors.New("parameter is missing"))
 	}
 
-	result, errCode, err := metric.GetMCISOnDemandPacketInfo(nsId, mcisId, vmId, watchTime)
+	result, errCode, err := mcis.GetMCISOnDemandPacketInfo(nsId, mcisId, vmId, watchTime)
 	if errCode != http.StatusOK {
 		return echo.NewHTTPError(errCode, rest.SetMessage(err.Error()))
 	}
@@ -73,7 +73,7 @@ func GetMCISOnDemandProcess(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errors.New("parameter is missing"))
 	}
 
-	result, errCode, err := metric.GetMCISOnDemandProcessInfo(publicIP)
+	result, errCode, err := mcis.GetMCISOnDemandProcessInfo(publicIP)
 	if errCode != http.StatusOK {
 		return echo.NewHTTPError(errCode, rest.SetMessage(err.Error()))
 	}
@@ -93,7 +93,7 @@ func GetMCISSpec(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errors.New("basic auth is missing"))
 	}
 
-	result, errCode, err2 := metric.GetMCISSpecInfo(nsId, mcisId, auth)
+	result, errCode, err2 := mcis.GetMCISSpecInfo(nsId, mcisId, auth)
 	if errCode != http.StatusOK {
 		return echo.NewHTTPError(errCode, rest.SetMessage(err2.Error()))
 	}

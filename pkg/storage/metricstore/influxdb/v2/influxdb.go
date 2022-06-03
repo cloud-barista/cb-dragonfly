@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	influxdbClient "github.com/influxdata/influxdb-client-go"
 )
 
@@ -29,7 +30,7 @@ func (s Storage) WriteMetric(database string, metrics map[string]interface{}) er
 	return nil
 }
 
-func (s Storage) ReadMetric(isPush bool, nsId string, mcisId string, vmId string, metric string, period string, function string, duration string) (interface{}, error) {
+func (s Storage) ReadMetric(info types.DBMetricRequestInfo) (interface{}, error) {
 	// TODO: implements
 	return nil, nil
 }

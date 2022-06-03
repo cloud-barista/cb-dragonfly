@@ -3,13 +3,11 @@ package agent
 import (
 	"fmt"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
-	"net/http"
-	"strings"
-
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
 type MetaDataListType struct {
@@ -57,12 +55,14 @@ func GetAgentMetadata(c echo.Context) error {
 		NsId:        nsId,
 	}
 
-	if strings.EqualFold(serviceType, common.MCKS) || strings.EqualFold(serviceType, common.MCKSAGENT_TYPE) || strings.EqualFold(serviceType, common.MCKSAGENT_SHORTHAND_TYPE) {
+	if util.CheckMCKSType(serviceType) {
 		if !checkEmptyFormParam(nsId, serviceId) {
 			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter to get mcks agent metadata"))
 		}
 		requestInfo.McksID = serviceId
-	} else {
+	}
+
+	if util.CheckMCISType(serviceType) {
 		vmId = c.QueryParam("vm_id")
 		cspType = c.QueryParam("csp_type")
 		if !checkEmptyFormParam(nsId, serviceId, vmId, cspType) {
@@ -91,14 +91,14 @@ func PutAgentMetadata(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, rest.SetMessage("empty agent type parameter"))
 	}
 
-	if strings.EqualFold(params.ServiceType, common.MCKS) || strings.EqualFold(params.ServiceType, common.MCKSAGENT_TYPE) || strings.EqualFold(params.ServiceType, common.MCKSAGENT_SHORTHAND_TYPE) {
+	if util.CheckMCKSType(params.ServiceType) {
 		// 토큰 값이 비어있을 경우
 		if !checkEmptyFormParam(params.NsId, params.McksId) {
 			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter to update mcks agent metadata"))
 		}
 	}
 	// MCIS 에이전트 form 파라미터 값 체크
-	if strings.EqualFold(params.ServiceType, common.MCIS) || strings.EqualFold(params.ServiceType, common.MCISAGENT_TYPE) {
+	if util.CheckMCISType(params.ServiceType) {
 		// MCIS 에이전트 form 파라미터 값 체크
 		if !checkEmptyFormParam(params.NsId, params.McisId, params.VmId, params.CspType, params.PublicIp) {
 			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter to update mcis agent metadata"))

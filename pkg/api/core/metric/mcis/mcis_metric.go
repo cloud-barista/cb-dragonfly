@@ -1,11 +1,11 @@
-package metric
+package mcis
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/labstack/echo/v4"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"io/ioutil"
 	"net/http"
 )
@@ -17,11 +17,11 @@ const (
 
 type MCISMetric struct {
 	client    http.Client
-	data      CBMCISMetric
-	mdata     MCBMCISMetric
-	mrequest  Mrequest
-	request   Request
-	parameter Parameter
+	data      types.CBMCISMetric
+	mdata     types.MCBMCISMetric
+	mrequest  types.Mrequest
+	request   types.Request
+	parameter types.Parameter
 }
 
 func GetMCISMonInfo() (interface{}, error) {
@@ -35,7 +35,7 @@ func GetMCISRealtimeMonInfo(nsId string, mcisId string) (interface{}, error) {
 }
 
 // GetMCISCommonMonInfos ...
-func GetMCISCommonMonInfo(nsId string, mcisId string, vmId string, agentIp string, metricName string) (*CBMCISMetric, int, error) {
+func GetMCISCommonMonInfo(nsId string, mcisId string, vmId string, agentIp string, metricName string) (*types.CBMCISMetric, int, error) {
 	// MCIS Get 요청 API 생성
 	resp, err := http.Get(fmt.Sprintf("http://%s:%d/cb-dragonfly/mcis/metric/%s", agentIp, AgentPort, metricName))
 	if err != nil {
@@ -43,7 +43,7 @@ func GetMCISCommonMonInfo(nsId string, mcisId string, vmId string, agentIp strin
 	}
 	defer resp.Body.Close()
 
-	var metricData CBMCISMetric
+	var metricData types.CBMCISMetric
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
@@ -63,7 +63,7 @@ func GetMCISCommonMonInfo(nsId string, mcisId string, vmId string, agentIp strin
 }
 
 // GetMCISMonRTTInfo ...
-func GetMCISMonRTTInfo(nsId string, mcisId string, vmId string, agentIp string, rttParam Request) (*CBMCISMetric, int, error) {
+func GetMCISMonRTTInfo(nsId string, mcisId string, vmId string, agentIp string, rttParam types.Request) (*types.CBMCISMetric, int, error) {
 	// MCIS Get 요청 API 생성
 	payload, err := json.Marshal(rttParam)
 	if err != nil {
@@ -82,7 +82,7 @@ func GetMCISMonRTTInfo(nsId string, mcisId string, vmId string, agentIp string, 
 	}
 	defer resp.Body.Close()
 
-	var metricData CBMCISMetric
+	var metricData types.CBMCISMetric
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
@@ -102,7 +102,7 @@ func GetMCISMonRTTInfo(nsId string, mcisId string, vmId string, agentIp string, 
 }
 
 // GetMCISMonMRTTInfo ...
-func GetMCISMonMRTTInfo(nsId string, mcisId string, vmId string, agentIp string, mrttParam Mrequest) (*MCBMCISMetric, int, error) {
+func GetMCISMonMRTTInfo(nsId string, mcisId string, vmId string, agentIp string, mrttParam types.Mrequest) (*types.MCBMCISMetric, int, error) {
 	// MCIS Get 요청 API 생성
 	payload, err := json.Marshal(mrttParam)
 	if err != nil {
@@ -121,7 +121,7 @@ func GetMCISMonMRTTInfo(nsId string, mcisId string, vmId string, agentIp string,
 	}
 	defer resp.Body.Close()
 
-	var metricData MCBMCISMetric
+	var metricData types.MCBMCISMetric
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -138,58 +138,4 @@ func GetMCISMonMRTTInfo(nsId string, mcisId string, vmId string, agentIp string,
 		return nil, http.StatusInternalServerError, err
 	}
 	return &metricData, http.StatusOK, nil
-}
-
-// GetMCISMonMRTTInfo ...
-func (mc *MCISMetric) GetMCISMonMRTTInfo(c echo.Context) error {
-	// API Body 데이터 추출
-	if err := c.Bind(&mc.mrequest); err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	// API 기반 필요 파라미터 추출
-	_ = mc.CheckParameter(c)
-
-	// MCIS Get 요청 API 생성
-	payload, err := json.Marshal(mc.mrequest)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s:%d/cb-dragonfly/mcis/metric/%s", mc.parameter.agent_ip, AgentPort, mc.parameter.mcis_metric), bytes.NewBuffer(payload))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := mc.client.Do(req)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	err = json.Unmarshal(body, &mc.mdata)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	return c.JSON(http.StatusOK, &mc.mdata)
-}
-
-func (mc *MCISMetric) CheckParameter(c echo.Context) error {
-	mc.parameter.agent_ip = c.Param("agent_ip")
-
-	// Query Agent IP 값 체크
-	if mc.parameter.agent_ip == "" {
-		err := errors.New("No Agent IP in API")
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	// MCIS 모니터링 메트릭 파라미터 추출
-	mc.parameter.mcis_metric = c.Param("mcis_metric_name")
-	if mc.parameter.mcis_metric == "" {
-		err := errors.New("No Metric Type in API")
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	return nil
 }

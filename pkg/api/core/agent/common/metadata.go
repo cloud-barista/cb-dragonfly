@@ -7,7 +7,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
-	"strings"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 )
 
 // AgentType 에이전트 동작 메커니즘 유형 (Push, Pull)
@@ -55,8 +55,7 @@ type AgentInfo struct {
 }
 
 func MakeAgentUUID(info AgentInstallInfo) string {
-	mcksType := strings.EqualFold(info.ServiceType, MCKS) || strings.EqualFold(info.ServiceType, MCKSAGENT_TYPE) || strings.EqualFold(info.ServiceType, MCKSAGENT_SHORTHAND_TYPE)
-	if mcksType {
+	if util.CheckMCKSType(info.ServiceType) {
 		return fmt.Sprintf("%s_%s_%s", info.NsId, info.ServiceType, info.McksID)
 	}
 	return fmt.Sprintf("%s_%s_%s_%s_%s", info.NsId, info.ServiceType, info.McisId, info.VmId, info.CspType)
@@ -105,7 +104,7 @@ func GetAgent(info AgentInstallInfo) (*AgentInfo, error) {
 func PutAgent(info AgentInstallInfo) (string, AgentInfo, error) {
 	agentUUID := MakeAgentUUID(info)
 	agentInfo := AgentInfo{}
-	if strings.EqualFold(info.ServiceType, MCKS) || strings.EqualFold(info.ServiceType, MCKSAGENT_TYPE) || strings.EqualFold(info.ServiceType, MCKSAGENT_SHORTHAND_TYPE) {
+	if util.CheckMCKSType(info.ServiceType) {
 		agentInfo = AgentInfo{
 			NsId:                  info.NsId,
 			McksID:                info.McksID,

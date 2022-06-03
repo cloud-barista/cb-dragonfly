@@ -59,7 +59,18 @@ func (pa *PullAggregator) AggregateMetric(agentList map[string]common.AgentInfo,
 			var receivedMetric interface{}
 			var err error
 			var mappedMetric interface{}
-			receivedMetric, err = pa.Storage.ReadMetric(config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy, targetAgent.NsId, targetAgent.McisId, targetAgent.VmId, metricKind.ToAgentMetricKey(), "m", aggregateType, "5m")
+			monRequestInfo := types.DBMetricRequestInfo{
+				MonitoringMechanism: config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy,
+				NsID:                targetAgent.NsId,
+				ServiceType:         types.MCIS,
+				ServiceID:           targetAgent.McisId,
+				VMID:                targetAgent.VmId,
+				MetricName:          metricKind.ToAgentMetricKey(),
+				Period:              "m",
+				AggegateType:        aggregateType,
+				Duration:            "5m",
+			}
+			receivedMetric, err = pa.Storage.ReadMetric(monRequestInfo)
 			if err != nil {
 				logrus.Println(err)
 			}

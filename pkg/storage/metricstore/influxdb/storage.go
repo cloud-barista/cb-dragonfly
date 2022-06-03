@@ -3,6 +3,7 @@ package influxdb
 import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/metricstore/influxdb/v1"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/metricstore/influxdb/v2"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/pkg/errors"
 )
 
@@ -20,7 +21,7 @@ type Config interface{}
 type Storage interface {
 	Initialize() error
 	WriteMetric(database string, metrics map[string]interface{}) error
-	ReadMetric(isPush bool, nsId string, mcisId string, vmId string, metric string, period string, function string, duration string) (interface{}, error)
+	ReadMetric(info types.DBMetricRequestInfo) (interface{}, error)
 	DeleteMetric(database string, metric string, duration string) error
 }
 

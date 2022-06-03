@@ -2,13 +2,14 @@ package server
 
 import (
 	"context"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric/mcis"
 	"net/http"
 	"time"
 
 	coreagent "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
 	agentcommon "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	coreconfig "github.com/cloud-barista/cb-dragonfly/pkg/api/core/config"
-	coremetric "github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/grpc/common"
 	pb "github.com/cloud-barista/cb-dragonfly/pkg/api/grpc/protobuf/cbdragonfly"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
@@ -18,7 +19,7 @@ import (
 type MonitoringService struct{}
 
 func (c MonitoringService) GetMCISMonInfo(ctx context.Context, request *pb.VMMCISMonQryRequest) (*pb.MCISMonInfoResponse, error) {
-	mcisMetric, statusCode, err := coremetric.GetMCISCommonMonInfo(request.NsId, request.McisId, request.VmId, request.AgentIp, request.MetricName)
+	mcisMetric, statusCode, err := mcis.GetMCISCommonMonInfo(request.NsId, request.McisId, request.VmId, request.AgentIp, request.MetricName)
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.GetMCISMonInfo()")
 	}
@@ -32,7 +33,7 @@ func (c MonitoringService) GetMCISMonInfo(ctx context.Context, request *pb.VMMCI
 }
 
 func (c MonitoringService) GetVMOnDemandMonCpuInfo(ctx context.Context, request *pb.VMOnDemandMonQryRequest) (*pb.CpuOnDemandInfoResponse, error) {
-	cpuMetric, statusCode, err := coremetric.GetVMOnDemandMonInfo(types.Cpu.ToString(), request.AgentIp)
+	cpuMetric, statusCode, err := mcis.GetVMOnDemandMonInfo(types.Cpu.ToString(), request.AgentIp)
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.GetVMMonCpuInfo()")
 	}
@@ -61,7 +62,7 @@ func (c MonitoringService) GetVMOnDemandMonCpuInfo(ctx context.Context, request 
 }
 
 func (c MonitoringService) GetVMOnDemandMonCpuFreqInfo(ctx context.Context, request *pb.VMOnDemandMonQryRequest) (*pb.CpuFreqOnDemandInfoResponse, error) {
-	cpuFreqMetric, statusCode, err := coremetric.GetVMOnDemandMonInfo(types.CpuFrequency.ToString(), request.AgentIp)
+	cpuFreqMetric, statusCode, err := mcis.GetVMOnDemandMonInfo(types.CpuFrequency.ToString(), request.AgentIp)
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.GetVMMonCpuInfo()")
 	}
@@ -90,7 +91,7 @@ func (c MonitoringService) GetVMOnDemandMonCpuFreqInfo(ctx context.Context, requ
 }
 
 func (c MonitoringService) GetVMOnDemandMonMemoryInfo(ctx context.Context, request *pb.VMOnDemandMonQryRequest) (*pb.MemoryOnDemandInfoResponse, error) {
-	memMetric, statusCode, err := coremetric.GetVMOnDemandMonInfo(types.Memory.ToString(), request.AgentIp)
+	memMetric, statusCode, err := mcis.GetVMOnDemandMonInfo(types.Memory.ToString(), request.AgentIp)
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.GetVMMonCpuInfo()")
 	}
@@ -119,7 +120,7 @@ func (c MonitoringService) GetVMOnDemandMonMemoryInfo(ctx context.Context, reque
 }
 
 func (c MonitoringService) GetVMOnDemandMonDiskInfo(ctx context.Context, request *pb.VMOnDemandMonQryRequest) (*pb.DiskOnDemandInfoResponse, error) {
-	diskMetric, statusCode, err := coremetric.GetVMOnDemandMonInfo(types.Disk.ToString(), request.AgentIp)
+	diskMetric, statusCode, err := mcis.GetVMOnDemandMonInfo(types.Disk.ToString(), request.AgentIp)
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.GetVMMonCpuInfo()")
 	}
@@ -148,7 +149,7 @@ func (c MonitoringService) GetVMOnDemandMonDiskInfo(ctx context.Context, request
 }
 
 func (c MonitoringService) GetVMOnDemandMonNetworkInfo(ctx context.Context, request *pb.VMOnDemandMonQryRequest) (*pb.NetworkOnDemandInfoResponse, error) {
-	netMetric, statusCode, err := coremetric.GetVMOnDemandMonInfo(types.Network.ToString(), request.AgentIp)
+	netMetric, statusCode, err := mcis.GetVMOnDemandMonInfo(types.Network.ToString(), request.AgentIp)
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.GetVMMonCpuInfo()")
 	}
@@ -177,7 +178,18 @@ func (c MonitoringService) GetVMOnDemandMonNetworkInfo(ctx context.Context, requ
 }
 
 func (c MonitoringService) GetVMMonCpuInfo(ctx context.Context, request *pb.VMMonQryRequest) (*pb.CpuInfoResponse, error) {
-	cpuMetric, statusCode, err := coremetric.GetVMMonInfo(request.NsId, request.McisId, request.VmId, types.Cpu.ToString(), request.PeriodType, request.StatisticsCriteria, request.Duration)
+	monReqInfo := types.DBMetricRequestInfo{
+		NsID:                request.NsId,
+		ServiceType:         types.MCIS,
+		ServiceID:           request.McisId,
+		VMID:                request.VmId,
+		MetricName:          types.Cpu.ToString(),
+		MonitoringMechanism: config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy,
+		Period:              request.PeriodType,
+		AggegateType:        request.StatisticsCriteria,
+		Duration:            request.Duration,
+	}
+	cpuMetric, statusCode, err := metric.GetMonInfo(monReqInfo)
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.GetVMMonCpuInfo()")
 	}
@@ -205,7 +217,18 @@ func (c MonitoringService) GetVMMonCpuInfo(ctx context.Context, request *pb.VMMo
 }
 
 func (c MonitoringService) GetVMMonCpuFreqInfo(ctx context.Context, request *pb.VMMonQryRequest) (*pb.CpuFreqInfoResponse, error) {
-	cpuFreqMetric, statusCode, err := coremetric.GetVMMonInfo(request.NsId, request.McisId, request.VmId, types.CpuFrequency.ToString(), request.PeriodType, request.StatisticsCriteria, request.Duration)
+	monReqInfo := types.DBMetricRequestInfo{
+		NsID:                request.NsId,
+		ServiceType:         types.MCIS,
+		ServiceID:           request.McisId,
+		VMID:                request.VmId,
+		MetricName:          types.CpuFrequency.ToString(),
+		MonitoringMechanism: config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy,
+		Period:              request.PeriodType,
+		AggegateType:        request.StatisticsCriteria,
+		Duration:            request.Duration,
+	}
+	cpuFreqMetric, statusCode, err := metric.GetMonInfo(monReqInfo)
 	cpuFreqMetricMap := cpuFreqMetric.(map[string]interface{})
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.GetVMMonCpuInfo()")
@@ -232,7 +255,18 @@ func (c MonitoringService) GetVMMonCpuFreqInfo(ctx context.Context, request *pb.
 }
 
 func (c MonitoringService) GetVMMonMemoryInfo(ctx context.Context, request *pb.VMMonQryRequest) (*pb.MemoryInfoResponse, error) {
-	memMetric, statusCode, err := coremetric.GetVMMonInfo(request.NsId, request.McisId, request.VmId, types.Memory.ToString(), request.PeriodType, request.StatisticsCriteria, request.Duration)
+	monReqInfo := types.DBMetricRequestInfo{
+		NsID:                request.NsId,
+		ServiceType:         types.MCIS,
+		ServiceID:           request.McisId,
+		VMID:                request.VmId,
+		MetricName:          types.Memory.ToString(),
+		MonitoringMechanism: config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy,
+		Period:              request.PeriodType,
+		AggegateType:        request.StatisticsCriteria,
+		Duration:            request.Duration,
+	}
+	memMetric, statusCode, err := metric.GetMonInfo(monReqInfo)
 	memMetricMap := memMetric.(map[string]interface{})
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.GetVMMonCpuInfo()")
@@ -259,7 +293,18 @@ func (c MonitoringService) GetVMMonMemoryInfo(ctx context.Context, request *pb.V
 }
 
 func (c MonitoringService) GetVMMonDiskInfo(ctx context.Context, request *pb.VMMonQryRequest) (*pb.DiskInfoResponse, error) {
-	diskMetric, statusCode, err := coremetric.GetVMMonInfo(request.NsId, request.McisId, request.VmId, types.Disk.ToString(), request.PeriodType, request.StatisticsCriteria, request.Duration)
+	monReqInfo := types.DBMetricRequestInfo{
+		NsID:                request.NsId,
+		ServiceType:         types.MCIS,
+		ServiceID:           request.McisId,
+		VMID:                request.VmId,
+		MetricName:          types.Disk.ToString(),
+		MonitoringMechanism: config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy,
+		Period:              request.PeriodType,
+		AggegateType:        request.StatisticsCriteria,
+		Duration:            request.Duration,
+	}
+	diskMetric, statusCode, err := metric.GetMonInfo(monReqInfo)
 	diskMetricMap := diskMetric.(map[string]interface{})
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.GetVMMonCpuInfo()")
@@ -286,7 +331,18 @@ func (c MonitoringService) GetVMMonDiskInfo(ctx context.Context, request *pb.VMM
 }
 
 func (c MonitoringService) GetVMMonNetworkInfo(ctx context.Context, request *pb.VMMonQryRequest) (*pb.NetworkInfoResponse, error) {
-	netMetric, statusCode, err := coremetric.GetVMMonInfo(request.NsId, request.McisId, request.VmId, types.Network.ToString(), request.PeriodType, request.StatisticsCriteria, request.Duration)
+	monReqInfo := types.DBMetricRequestInfo{
+		NsID:                request.NsId,
+		ServiceType:         types.MCIS,
+		ServiceID:           request.McisId,
+		VMID:                request.VmId,
+		MetricName:          types.Network.ToString(),
+		MonitoringMechanism: config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy,
+		Period:              request.PeriodType,
+		AggegateType:        request.StatisticsCriteria,
+		Duration:            request.Duration,
+	}
+	netMetric, statusCode, err := metric.GetMonInfo(monReqInfo)
 	netMetricMap := netMetric.(map[string]interface{})
 	if statusCode != http.StatusOK {
 		return nil, common.ConvGrpcStatusErr(err, "", "MonitoringService.GetVMMonCpuInfo()")

@@ -3,6 +3,8 @@ package common
 import (
 	"context"
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	sshrun "github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
 	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,11 +15,6 @@ import (
 const (
 	UBUNTU                   = "UBUNTU"
 	CENTOS                   = "CENTOS"
-	MCIS                     = "mcis"
-	MCISAGENT_TYPE           = "vm"
-	MCKS                     = "mcks"
-	MCKSAGENT_TYPE           = "kubernetes"
-	MCKSAGENT_SHORTHAND_TYPE = "k8s"
 	AGENT_NAMESPACE          = "cb-dragonfly"
 	AGENT_CLUSTERROLE        = "cb-dragonfly-agent-clusterrole"
 	AGENT_CLUSTERROLEBINDING = "cb-dragonfly-agent-clusterrolebinding"
@@ -43,12 +40,10 @@ type AgentInstallInfo struct {
 }
 
 func CleanAgentInstall(info AgentInstallInfo, sshInfo *sshrun.SSHInfo, osType *string, kubeClient *kubernetes.Clientset) {
-	mcksType := strings.EqualFold(info.ServiceType, MCKS) || strings.EqualFold(info.ServiceType, MCKSAGENT_TYPE) || strings.EqualFold(info.ServiceType, MCKSAGENT_SHORTHAND_TYPE)
-
-	if mcksType {
+	if util.CheckMCKSType(info.ServiceType) {
 		_ = kubeClient.RbacV1().ClusterRoleBindings().Delete(context.TODO(), AGENT_CLUSTERROLEBINDING, metav1.DeleteOptions{})
 		_ = kubeClient.RbacV1().ClusterRoles().Delete(context.TODO(), AGENT_CLUSTERROLE, metav1.DeleteOptions{})
-		_ = kubeClient.CoreV1().Namespaces().Delete(context.TODO(), AGENT_NAMESPACE, metav1.DeleteOptions{})
+		_ = kubeClient.CoreV1().Namespaces().Delete(context.TODO(), config.GetInstance().Agent.Namespace, metav1.DeleteOptions{})
 		return
 	}
 	// Uninstall Telegraf

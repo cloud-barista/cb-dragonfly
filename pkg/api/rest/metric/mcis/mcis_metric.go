@@ -1,11 +1,12 @@
-package metric
+package mcis
 
 import (
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric/mcis"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 )
 
@@ -52,31 +53,30 @@ func GetMCISMetric(c echo.Context) error {
 	// MCIS 모니터링 메트릭 파라미터 기반 동작
 	switch metricName {
 	case "Rtt":
-		rttParam := new(metric.Request)
+		rttParam := new(types.Request)
 		if err := c.Bind(rttParam); err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
-		result, errCode, err := metric.GetMCISMonRTTInfo(nsId, mcisId, vmId, agentIp, *rttParam)
+		result, errCode, err := mcis.GetMCISMonRTTInfo(nsId, mcisId, vmId, agentIp, *rttParam)
 		if errCode != http.StatusOK {
 			return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 		}
 		return c.JSON(http.StatusOK, result)
 	case "Mrtt":
-		mrttParam := new(metric.Mrequest)
+		mrttParam := new(types.Mrequest)
 		if err := c.Bind(mrttParam); err != nil {
 			return c.JSON(http.StatusInternalServerError, err)
 		}
-		result, errCode, err := metric.GetMCISMonMRTTInfo(nsId, mcisId, vmId, agentIp, *mrttParam)
+		result, errCode, err := mcis.GetMCISMonMRTTInfo(nsId, mcisId, vmId, agentIp, *mrttParam)
 		if errCode != http.StatusOK {
 			return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 		}
 		return c.JSON(http.StatusOK, result)
 	default:
-		result, errCode, err := metric.GetMCISCommonMonInfo(nsId, mcisId, vmId, agentIp, metricName)
+		result, errCode, err := mcis.GetMCISCommonMonInfo(nsId, mcisId, vmId, agentIp, metricName)
 		if errCode != http.StatusOK {
 			return echo.NewHTTPError(http.StatusInternalServerError, rest.SetMessage(err.Error()))
 		}
 		return c.JSON(http.StatusOK, result)
 	}
-	return nil
 }

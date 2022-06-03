@@ -142,8 +142,8 @@ func (cScheduler CollectorScheduler) Scheduler() error {
 				}
 			}
 
-			addTopicList = util.GetAllTopicBySort(util.Unique(addTopicList))
-			delTopicList = util.GetAllTopicBySort(util.Unique(util.ReturnDiffTopicList(delTopicList, addTopicList)))
+			addTopicList = util.GetAllTopicBySort(util.Unique(addTopicList, true))
+			delTopicList = util.GetAllTopicBySort(util.Unique(util.ReturnDiffTopicList(delTopicList, addTopicList), true))
 		}
 		fmt.Println("### Now Scheduling - MCIS collector scheduler ###")
 		fmt.Println("## Add Topics Queue ##", addTopicList)
