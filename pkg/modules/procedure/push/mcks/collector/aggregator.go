@@ -31,11 +31,13 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topic string) (b
 
 	// 토픽 메세지 조회
 	for {
-		topicMsg, err := kafkaConn.ReadMessage(60 * time.Second)
+		reconnectTry++
+
+		topicMsg, err := kafkaConn.ReadMessage(5 * time.Second)
 		if err != nil {
 			errMsg := fmt.Sprintf("fail to read topic message with topic %s, error=%s", topic, err)
 			util.GetLogger().Error(errMsg)
-			return false, errors.New(errMsg)
+			continue
 		}
 		if topicMsg != nil {
 			// 토픽 메세지 저장
@@ -49,10 +51,16 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topic string) (b
 			topicMsg = nil
 		}
 
-		// 토픽 타임아웃 체크
+		// 토픽 타임아웃 재시도 횟수 제한 체크
 		if reconnectTry >= types.ReadConnectionTimeout {
+			errMsg := fmt.Sprintf("exceed maximum kafka connection %d", reconnectTry)
+			util.GetLogger().Error(errMsg)
 			break
 		}
+	}
+
+	if len(topicMsgBytes) == 0 {
+		return false, errors.New("failed to get monitoring data from kafka, data bytes is zero")
 	}
 
 	// TODO: 최초 토픽 데이터 처리 시 에이전트 메타데이터 헬스상태 변경
