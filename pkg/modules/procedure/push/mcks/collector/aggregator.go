@@ -10,7 +10,6 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/thoas/go-funk"
 )
 
@@ -68,77 +67,93 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topic string) (b
 		}
 	}
 
-	// 모니터링 데이터 가공 및 저장
-	err := a.Aggregate(metrics)
-	if err != nil {
-		return false, err
-	}
+	// 모니터링 데이터 처리
+	a.Aggregate(metrics)
+
 	return true, nil
 }
 
-func (a *Aggregator) Aggregate(metrics []TelegrafMetric) error {
+// Aggregate 쿠버네티스 노드, 파드 메트릭 처리 및 저장
+func (a *Aggregator) Aggregate(metrics []TelegrafMetric) {
 
-	/* 쿠버네티스 노드 메트릭 처리 및 저장 */
+	// 쿠버네티스 노드 메트릭 처리 및 저장
+	a.aggregateNodeMetric(metrics)
 
-	// 1. 토픽 메세지에서 노드 메트릭 메세지를 필터링
-	metricFilter := funk.Filter(metrics, func(metric TelegrafMetric) bool {
-		return metric.Name == "kubernetes_node"
-	})
-	metricArr := metricFilter.([]TelegrafMetric)
+	// 쿠버네티스 파드 메트릭 처리 및 저장
+	a.aggregatePodMetric(metrics, "kubernetes_pod_container")
 
-	// 2. 클러스터 메트릭 처리
-	// 전체 노드(클러스터)에 대한 노드 메트릭 처리 및 저장
-	clusterMetric := aggregateNodeMetric(metricArr, "", string(a.AggregateType))
-	spew.Dump(clusterMetric)
-	err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, clusterMetric.Name, clusterMetric.Tags, clusterMetric.Fields)
-	if err != nil {
-		util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
-		return err
-	}
-
-	// 3. 노드 별 메트릭 처리
-	// 클러스터 내 노드 목록 조회
-	nodeNameFilter := funk.Uniq(funk.Get(metricArr, "Tags.node_name"))
-	nodeNameArr := nodeNameFilter.([]string)
-
-	// 단일 노드에 대한 노드 메트릭 처리 및 저장
-	for _, nodeName := range nodeNameArr {
-		currentNodeMetricArr := funk.Filter(metricArr, func(metric TelegrafMetric) bool {
-			return metric.Tags["node_name"] == nodeName
-		})
-		nodeMetric := aggregateNodeMetric(currentNodeMetricArr.([]TelegrafMetric), nodeName, string(a.AggregateType))
-		err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, nodeMetric.Name, nodeMetric.Tags, nodeMetric.Fields)
-		if err != nil {
-			util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
-			return err
-		}
-	}
-
-	// TODO:
-	// 4. 파드 별 메트릭 처리
-
-	return nil
+	// 쿠버네티스 파드 네트워크 메트릭 처리 및 저장
+	a.aggregatePodMetric(metrics, "kubernetes_pod_network")
 }
 
 // aggregateNodeMetric 쿠버네티스 노드 메트릭 처리 및 저장
-func aggregateNodeMetric(metrics []TelegrafMetric, nodeName string, criteria string) TelegrafMetric {
+func (a *Aggregator) aggregateNodeMetric(metrics []TelegrafMetric) {
+	metricName := "kubernetes_node"
+
+	// 1. 토픽 메세지에서 노드 메트릭 메세지를 필터링
+	nodeMetricFilter := funk.Filter(metrics, func(metric TelegrafMetric) bool {
+		return metric.Name == "kubernetes_node"
+	})
+	nodeMetricArr := nodeMetricFilter.([]TelegrafMetric)
+
+	// 2. 전체 클러스터에서 노드 목록 추출
+	nodeNameFilter := funk.Uniq(funk.Get(nodeMetricArr, "Tags.node_name"))
+	nodeNameArr := nodeNameFilter.([]string)
+
+	// 개별 노드에 대한 모니터링 메트릭 처리 및 저장
+	for _, nodeName := range nodeNameArr {
+		currentNodeMetricArr := funk.Filter(nodeMetricArr, func(metric TelegrafMetric) bool {
+			return metric.Tags["node_name"] == nodeName
+		})
+		nodeMetric := aggregateMetric(metricName, currentNodeMetricArr.([]TelegrafMetric), string(a.AggregateType))
+		err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, nodeMetric.Name, nodeMetric.Tags, nodeMetric.Fields)
+		if err != nil {
+			util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
+			continue
+		}
+	}
+}
+
+// aggregateMetric 쿠버네티스 파드 메트릭 처리 및 저장
+func (a *Aggregator) aggregatePodMetric(metrics []TelegrafMetric, metricName string) {
+	// 1. 토픽 메세지에서 파드 메트릭 메세지를 필터링
+	podMetricFilter := funk.Filter(metrics, func(metric TelegrafMetric) bool {
+		return metric.Name == metricName
+	})
+	podMetricArr := podMetricFilter.([]TelegrafMetric)
+
+	// 2. 파드 별 메트릭 처리
+	podNameFilter := funk.Uniq(funk.Get(podMetricArr, "Tags.pod_name"))
+	podNameArr := podNameFilter.([]string)
+
+	// 3. 단일 파드에 대한 파드 메트릭 처리 및 저장
+	for _, podName := range podNameArr {
+		currentPodMetricArr := funk.Filter(podMetricArr, func(metric TelegrafMetric) bool {
+			return metric.Tags["pod_name"] == podName
+		})
+		podMetric := aggregateMetric(metricName, currentPodMetricArr.([]TelegrafMetric), string(a.AggregateType))
+		err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, podMetric.Name, podMetric.Tags, podMetric.Fields)
+		if err != nil {
+			util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
+			continue
+		}
+	}
+}
+
+// aggregateMetric 쿠버네티스 메트릭 처리 및 저장
+func aggregateMetric(metricType string, metrics []TelegrafMetric, criteria string) TelegrafMetric {
 	aggregatedMetric := TelegrafMetric{
-		Name:   "kubernetes_node",
+		Name:   metricType,
 		Tags:   map[string]string{},
 		Fields: map[string]interface{}{},
 	}
 
-	// 노드 모니터링 메트릭 태그 정보 설정
-	clusterTags := make(map[string]string)
+	// 모니터링 메트릭 태그 정보 설정
+	metricTags := make(map[string]string)
 	for k, v := range metrics[0].Tags {
-		clusterTags[k] = v
+		metricTags[k] = v
 	}
-	if nodeName == "" {
-		// 클러스터 전체 모니터링 메트릭일 경우 호스트, 노드 태그 삭제 처리
-		delete(clusterTags, "host")
-		delete(clusterTags, "node_name")
-	}
-	aggregatedMetric.Tags = clusterTags
+	aggregatedMetric.Tags = metricTags
 
 	// last
 	if criteria == "last" {
