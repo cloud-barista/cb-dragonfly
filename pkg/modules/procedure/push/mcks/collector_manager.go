@@ -32,7 +32,7 @@ func (manager *CollectManager) CreateCollector(topic string) error {
 	manager.WaitGroup.Add(1)
 	collectorCreateOrder := len(manager.CollectorAddrMap)
 	newCollector, err := collector.NewMetricCollector(
-		types.AggregateType(config.GetInstance().Monitoring.DefaultPolicy),
+		types.AggregateType(config.GetInstance().Monitoring.AggregateType),
 		collectorCreateOrder,
 	)
 	if err != nil {

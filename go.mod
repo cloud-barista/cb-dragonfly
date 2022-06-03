@@ -46,6 +46,7 @@ require (
 	github.com/spf13/viper v1.8.1
 	github.com/swaggo/echo-swagger v1.1.0
 	github.com/swaggo/swag v1.7.0
+	github.com/thoas/go-funk v0.9.2
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20200427203606-3cfed13b9966 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
