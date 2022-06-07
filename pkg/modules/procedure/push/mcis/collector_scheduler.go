@@ -89,13 +89,15 @@ func NewCollectorScheduler(wg *sync.WaitGroup, manager *CollectManager) (*Collec
 		// docker-compose 일 경우, cb-store 를 통하여 데이터를 로드합니다. (To InMemoryTopic)
 		_ = c.StoreDelList(types.Topic)
 		cPolicy, _ := c.StoreGet(types.CollectorPolicy)
-		if *cPolicy == manager.CollectorPolicy {
-			getCMapFromStore, _ := c.StoreGet(fmt.Sprintf("%s", types.CollectorTopicMap))
-			if getCMapFromStore != nil {
-				_ = json.Unmarshal([]byte(*getCMapFromStore), &inMemoryTopic)
-				for collectorIdx, topicSlice := range inMemoryTopic.TopicMap {
-					for i := 0; i < len(topicSlice); i++ {
-						_ = c.StorePut(fmt.Sprintf("%s/%s", types.Topic, topicSlice[i]), strconv.Itoa(collectorIdx))
+		if cPolicy != nil {
+			if *cPolicy == manager.CollectorPolicy {
+				getCMapFromStore, _ := c.StoreGet(fmt.Sprintf("%s", types.CollectorTopicMap))
+				if getCMapFromStore != nil {
+					_ = json.Unmarshal([]byte(*getCMapFromStore), &inMemoryTopic)
+					for collectorIdx, topicSlice := range inMemoryTopic.TopicMap {
+						for i := 0; i < len(topicSlice); i++ {
+							_ = c.StorePut(fmt.Sprintf("%s/%s", types.Topic, topicSlice[i]), strconv.Itoa(collectorIdx))
+						}
 					}
 				}
 			}
@@ -489,6 +491,9 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCSPCollector(delTopicList []s
 
 		agentInfo := common.AgentInfo{}
 		agentInfoBytes, _ := c.StoreGet(types.Agent + delTopic)
+		if agentInfoBytes == nil {
+			return
+		}
 		_ = json.Unmarshal([]byte(*agentInfoBytes), &agentInfo)
 		agentInfo.AgentHealth = string(common.Unhealthy)
 		agentInfo.AgentState = string(common.Disable)

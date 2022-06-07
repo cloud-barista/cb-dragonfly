@@ -68,21 +68,23 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 		if topicListData, _ := cbStore.StoreGet(types.MCKSCollectorTopicMap); topicListData != nil {
 			// 콜렉터 정책 검사 (기존 구동 정책과 현재 구동 정책이 동일한 지 확인)
 			collectorPolicy, _ := cbstore.GetInstance().StoreGet(types.CollectorPolicy)
-			if *collectorPolicy == cm.CollectorPolicy {
-				// 콜렉터 목록 로드
-				err := json.Unmarshal([]byte(*topicListData), &inMemoryTopic)
-				if err != nil {
-					util.GetLogger().Error("failed to load collector topic map, error=", err.Error())
-					return nil, err
-				}
-				// 개별 토픽 정보 로드
-				for key, topicSlice := range inMemoryTopic.TopicMap {
-					for i := 0; i < len(topicSlice); i++ {
-						_ = cbStore.StorePut(fmt.Sprintf("%s/%s", types.MCKSTopic, topicSlice[i]), key)
+			if collectorPolicy != nil {
+				if *collectorPolicy == cm.CollectorPolicy {
+					// 콜렉터 목록 로드
+					err := json.Unmarshal([]byte(*topicListData), &inMemoryTopic)
+					if err != nil {
+						util.GetLogger().Error("failed to load collector topic map, error=", err.Error())
+						return nil, err
+					}
+					// 개별 토픽 정보 로드
+					for key, topicSlice := range inMemoryTopic.TopicMap {
+						for i := 0; i < len(topicSlice); i++ {
+							_ = cbStore.StorePut(fmt.Sprintf("%s/%s", types.MCKSTopic, topicSlice[i]), key)
+						}
 					}
 				}
+				_ = cbstore.GetInstance().StorePut(types.CollectorPolicy, cm.CollectorPolicy)
 			}
-			_ = cbstore.GetInstance().StorePut(types.CollectorPolicy, cm.CollectorPolicy)
 		}
 	} else if deployType == types.Helm {
 		// 배포 방식이 헬름 모드일 경우
@@ -100,6 +102,11 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 // DoSchedule 콜렉터 스케줄러 구동
 func (cScheduler CollectorScheduler) DoSchedule() error {
 	interval, _ := cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "collector_interval")
+	if interval == nil {
+		errMsg := "failed to schedule collectors, err: no collector interval configuration data"
+		util.GetLogger().Error(errMsg)
+		return errors.New(errMsg)
+	}
 	aggregateInterval, err := strconv.Atoi(*interval)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to collector_interval configuration data, error=%s", err.Error())
