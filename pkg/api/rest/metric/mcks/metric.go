@@ -79,7 +79,7 @@ func GetMCKSMonInfo(c echo.Context) error {
 		ServiceType:         types.MCKS,
 		ServiceID:           mcksId,
 		MetricName:          metricName,
-		MonitoringMechanism: config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy,
+		MonitoringMechanism: strings.EqualFold(config.GetInstance().Monitoring.DefaultPolicy, types.PushPolicy),
 		Period:              period,
 		MCKSReqInfo: types.MCKSReqInfo{
 			GroupBy:   groupBy,

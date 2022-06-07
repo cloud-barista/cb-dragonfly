@@ -6,6 +6,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
@@ -52,7 +53,7 @@ func GetVMMonInfo(c echo.Context) error {
 		ServiceID:           mcisId,
 		VMID:                vmId,
 		MetricName:          metricName,
-		MonitoringMechanism: config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy,
+		MonitoringMechanism: strings.EqualFold(config.GetInstance().Monitoring.DefaultPolicy, types.PushPolicy),
 		Period:              period,
 		AggegateType:        aggregateType,
 		Duration:            duration,
