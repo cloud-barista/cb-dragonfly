@@ -137,17 +137,21 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 			case "kubernetes_node":
 				if strings.EqualFold(info.MCKSReqInfo.GroupBy, types.Cluster) {
 					query = query.Where("time", influxBuilder.MoreThan, timeDuration).
+						And("\"nsId\"", influxBuilder.Equal, "'"+info.NsID+"'").
 						And("\"mcksId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
 						GroupByTime(timeCriteria).
+						GroupByTag("\"nsId\"").
 						GroupByTag("\"mcksId\"").
 						Fill("0").
 						OrderByTime("ASC")
 				}
 				if strings.EqualFold(info.MCKSReqInfo.GroupBy, types.Node) {
 					query = query.Where("time", influxBuilder.MoreThan, timeDuration).
+						And("\"nsId\"", influxBuilder.Equal, "'"+info.NsID+"'").
 						And("\"mcksId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
 						And("\"node_name\"", influxBuilder.Equal, "'"+info.MCKSReqInfo.Node+"'").
 						GroupByTime(timeCriteria).
+						GroupByTag("\"nsId\"").
 						GroupByTag("\"mcksId\"").
 						GroupByTag("\"node_name\"").
 						Fill("0").
@@ -156,9 +160,11 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 			default:
 				if strings.EqualFold(info.MCKSReqInfo.GroupBy, types.Node) {
 					query = query.Where("time", influxBuilder.MoreThan, timeDuration).
+						And("\"nsId\"", influxBuilder.Equal, "'"+info.NsID+"'").
 						And("\"mcksId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
 						And("\"node_name\"", influxBuilder.Equal, "'"+info.MCKSReqInfo.Node+"'").
 						GroupByTime(timeCriteria).
+						GroupByTag("\"nsId\"").
 						GroupByTag("\"mcksId\"").
 						GroupByTag("\"node_name\"").
 						Fill("0").
@@ -166,9 +172,11 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 				}
 				if strings.EqualFold(info.MCKSReqInfo.GroupBy, types.Namespace) {
 					query = query.Where("time", influxBuilder.MoreThan, timeDuration).
+						And("\"nsId\"", influxBuilder.Equal, "'"+info.NsID+"'").
 						And("\"mcksId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
 						And("\"namespace\"", influxBuilder.Equal, "'"+info.MCKSReqInfo.Namespace+"'").
 						GroupByTime(timeCriteria).
+						GroupByTag("\"nsId\"").
 						GroupByTag("\"mcksId\"").
 						GroupByTag("\"namespace\"").
 						Fill("0").
@@ -176,10 +184,12 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 				}
 				if strings.EqualFold(info.MCKSReqInfo.GroupBy, string(types.MCKS_POD)) {
 					query = query.Where("time", influxBuilder.MoreThan, timeDuration).
+						And("\"nsId\"", influxBuilder.Equal, "'"+info.NsID+"'").
 						And("\"mcksId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
 						And("\"namespace\"", influxBuilder.Equal, "'"+info.MCKSReqInfo.Namespace+"'").
 						And("\"pod_name\"", influxBuilder.Equal, "'"+info.MCKSReqInfo.Pod+"'").
 						GroupByTime(timeCriteria).
+						GroupByTag("\"nsId\"").
 						GroupByTag("\"mcksId\"").
 						GroupByTag("\"node_name\"").
 						GroupByTag("\"pod_name\"").
