@@ -103,21 +103,22 @@ func (a *Aggregator) aggregateNodeMetric(metrics []TelegrafMetric) {
 		return metric.Name == "kubernetes_node"
 	})
 	nodeMetricArr := nodeMetricFilter.([]TelegrafMetric)
+	if len(nodeMetricArr) != 0 {
+		// 2. 전체 클러스터에서 노드 목록 추출
+		nodeNameFilter := funk.Uniq(funk.Get(nodeMetricArr, "Tags.node_name"))
+		nodeNameArr := nodeNameFilter.([]string)
 
-	// 2. 전체 클러스터에서 노드 목록 추출
-	nodeNameFilter := funk.Uniq(funk.Get(nodeMetricArr, "Tags.node_name"))
-	nodeNameArr := nodeNameFilter.([]string)
-
-	// 개별 노드에 대한 모니터링 메트릭 처리 및 저장
-	for _, nodeName := range nodeNameArr {
-		currentNodeMetricArr := funk.Filter(nodeMetricArr, func(metric TelegrafMetric) bool {
-			return metric.Tags["node_name"] == nodeName
-		})
-		nodeMetric := aggregateMetric(metricName, currentNodeMetricArr.([]TelegrafMetric), string(a.AggregateType))
-		err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, nodeMetric.Name, nodeMetric.Tags, nodeMetric.Fields)
-		if err != nil {
-			util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
-			continue
+		// 개별 노드에 대한 모니터링 메트릭 처리 및 저장
+		for _, nodeName := range nodeNameArr {
+			currentNodeMetricArr := funk.Filter(nodeMetricArr, func(metric TelegrafMetric) bool {
+				return metric.Tags["node_name"] == nodeName
+			})
+			nodeMetric := aggregateMetric(metricName, currentNodeMetricArr.([]TelegrafMetric), string(a.AggregateType))
+			err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, nodeMetric.Name, nodeMetric.Tags, nodeMetric.Fields)
+			if err != nil {
+				util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
+				continue
+			}
 		}
 	}
 }
