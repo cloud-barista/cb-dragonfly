@@ -53,7 +53,7 @@ spec:
             defaultMode: 420
       containers:
         - name: cb-dragonfly-agent
-          image: harbor.innogrid.com/dragonfly/telegraf:1.15.4
+          image: cloudbaristaorg/cb-dragonfly:agent-1.15.4
           env:
             - name: HOST_IP
               valueFrom:
