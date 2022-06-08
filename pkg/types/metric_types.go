@@ -10,14 +10,14 @@ const (
 	DiskIO       Metric = "diskio"
 	Network      Metric = "network"
 	None         Metric = "none"
-	MCKS_NODE    Metric = "node"
-	MCKS_POD     Metric = "pod"
+	MCK8S_NODE   Metric = "node"
+	MCK8S_POD    Metric = "pod"
 )
 
 const (
 	MCIS       string = "mcis"
 	VM         string = "vm"
-	MCKS       string = "mcks"
+	MCK8S      string = "mck8s"
 	KUBERNETES string = "kubernetes"
 	K8S        string = "k8s"
 	Cluster    string = "cluster"
@@ -26,7 +26,7 @@ const (
 	ALL        string = "all"
 )
 
-type MCKSReqInfo struct {
+type MCK8SReqInfo struct {
 	GroupBy   string // Node: Cluster or Node  // Pod: Node or Namespace or Pod
 	Node      string
 	Namespace string
@@ -40,7 +40,7 @@ type DBMetricRequestInfo struct {
 	MonitoringMechanism bool // push: true
 	VMID                string
 	MetricName          string
-	MCKSReqInfo
+	MCK8SReqInfo
 	Period       string
 	AggegateType string
 	Duration     string
@@ -55,7 +55,7 @@ func (m Metric) ToString() string {
 
 func (m Metric) ToAgentMetricKey() string {
 	//var metricKey string
-	if m == Cpu || m == CpuFrequency || m == Disk || m == DiskIO || m == MCKS_NODE || m == MCKS_POD {
+	if m == Cpu || m == CpuFrequency || m == Disk || m == DiskIO || m == MCK8S_NODE || m == MCK8S_POD {
 		return m.ToString()
 	} else if m == Memory {
 		return "mem"

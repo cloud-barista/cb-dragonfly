@@ -1,4 +1,4 @@
-package mcks
+package mck8s
 
 import (
 	"context"
@@ -35,10 +35,10 @@ import (
 func CreateTelegrafConfigConfigmap(info common.AgentInstallInfo, yamlData unstructured.Unstructured) (corev1.ConfigMap, error) {
 	mechanism := fmt.Sprintf(strings.ToLower(config.GetInstance().Monitoring.DefaultPolicy))
 	if strings.EqualFold(mechanism, common.PULL_MECHANISM) {
-		return corev1.ConfigMap{}, errors.New("pull monitoring for mcks is not supported")
+		return corev1.ConfigMap{}, errors.New("pull monitoring for mck8s is not supported")
 	}
 	rootPath := os.Getenv("CBMON_ROOT")
-	filePath := rootPath + "/file/conf/mcks/telegraf.conf"
+	filePath := rootPath + "/file/conf/mck8s/telegraf.conf"
 
 	read, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -54,10 +54,10 @@ func CreateTelegrafConfigConfigmap(info common.AgentInstallInfo, yamlData unstru
 	// 파일 내의 변수 값 설정 (hostId, collectorServer)
 	strConf := string(read)
 
-	// 파일 MCKS 에이전트 변수 값 설정
-	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_mcks_%s", info.NsId, info.McksID))
+	// 파일 MCK8S 에이전트 변수 값 설정
+	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_mck8s_%s", info.NsId, info.Mck8sId))
 	strConf = strings.ReplaceAll(strConf, "{{ns_id}}", info.NsId)
-	strConf = strings.ReplaceAll(strConf, "{{mcks_id}}", info.McksID)
+	strConf = strings.ReplaceAll(strConf, "{{mck8s_id}}", info.Mck8sId)
 	strConf = strings.ReplaceAll(strConf, "{{server_port}}", fmt.Sprintf("%d", serverPort))
 	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", mechanism)
 
@@ -201,7 +201,7 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 
 	rootPath := os.Getenv("CBMON_ROOT")
-	commonDir := rootPath + "/file/agent/mcks"
+	commonDir := rootPath + "/file/agent/mck8s"
 
 	dynamicClient, err := dynamic.NewForConfig(kubeconfig)
 	if err != nil {
@@ -297,7 +297,7 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 
 	// 토픽 큐에 신규 에이전트 정보를 등록
-	err = util.PutMCKSRingQueue(types.TopicAdd, agentUUID)
+	err = util.PutMCK8SRingQueue(types.TopicAdd, agentUUID)
 	if err != nil {
 		//common.CleanAgentInstall(info, nil, nil, kubeClient)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to add agent metadata to queue, error=%s", err))

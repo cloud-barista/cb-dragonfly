@@ -44,8 +44,8 @@ type Dragonfly struct {
 }
 
 type Agent struct {
-	ServiceAccount string `json:"mcks_serviceaccount" mapstructure:"mcks_serviceaccount"` // MCKS 에이전트 클러스터 시스템 계정
-	Namespace      string `json:"mcks_namespace" mapstructure:"mcks_namespace"`           // MCKS 에이전트 클러스터 네임스페이스
+	ServiceAccount string `json:"mck8s_serviceaccount" mapstructure:"mck8s_serviceaccount"` // MCK8S 에이전트 클러스터 시스템 계정
+	Namespace      string `json:"mck8s_namespace" mapstructure:"mck8s_namespace"`           // MCK8S 에이전트 클러스터 네임스페이스
 	Image          string `json:"image" mapstructure:"image"`
 }
 

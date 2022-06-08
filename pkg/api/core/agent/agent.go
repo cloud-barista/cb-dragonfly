@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/mcis"
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/mcks"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/mck8s"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"net/http"
 )
@@ -15,8 +15,8 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 		return http.StatusBadRequest, errors.New(fmt.Sprintf("already exist agent, service_type: %s, namespace: %s", info.ServiceType, info.NsId))
 	}
 
-	if util.CheckMCKSType(info.ServiceType) {
-		return mcks.InstallAgent(info)
+	if util.CheckMCK8SType(info.ServiceType) {
+		return mck8s.InstallAgent(info)
 	}
 	return mcis.InstallAgent(info)
 }
@@ -27,8 +27,8 @@ func UninstallAgent(info common.AgentInstallInfo) (int, error) {
 		return http.StatusBadRequest, errors.New(fmt.Sprintf("requested agent info not found, service_type: %s, namespace: %s", info.ServiceType, info.NsId))
 	}
 
-	if util.CheckMCKSType(info.ServiceType) {
-		return mcks.UninstallAgent(info)
+	if util.CheckMCK8SType(info.ServiceType) {
+		return mck8s.UninstallAgent(info)
 	}
 	return mcis.UninstallAgent(info)
 }

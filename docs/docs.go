@@ -170,7 +170,7 @@ const docTemplate = `{
                                         "[DEFAULT]": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github.com_cloud-barista_cb-dragonfly_pkg_api_rest_agent.MetaDataListType"
+                                                "$ref": "#/definitions/pkg_api_rest_agent.MetaDataListType"
                                             }
                                         },
                                         "[ID]": {
@@ -246,11 +246,11 @@ const docTemplate = `{
                     },
                     {
                         "enum": [
-                            "test_mcks"
+                            "test_mck8s"
                         ],
                         "type": "string",
-                        "description": "MCKS 아이디",
-                        "name": "mcksId",
+                        "description": "MCK8S 아이디",
+                        "name": "mck8sId",
                         "in": "query"
                     }
                 ],
@@ -268,7 +268,7 @@ const docTemplate = `{
                                         "[DEFAULT]": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github.com_cloud-barista_cb-dragonfly_pkg_api_rest_agent.MetaDataListType"
+                                                "$ref": "#/definitions/pkg_api_rest_agent.MetaDataListType"
                                             }
                                         },
                                         "[ID]": {
@@ -321,7 +321,7 @@ const docTemplate = `{
                                         "[DEFAULT]": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/github.com_cloud-barista_cb-dragonfly_pkg_api_rest_agent.MetaDataListType"
+                                                "$ref": "#/definitions/pkg_api_rest_agent.MetaDataListType"
                                             }
                                         },
                                         "[ID]": {
@@ -1182,7 +1182,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/ns/{ns_id}/mcks/{mcks_id}/metric/{metric_name}/info": {
+        "/ns/{ns_id}/mck8s/{mck8s_id}/metric/{metric_name}/info": {
             "get": {
                 "description": "멀티 클라우드 쿠버네티스 서비스 모니터링 정보 조회",
                 "consumes": [
@@ -1205,8 +1205,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "MCKS 아이디",
-                        "name": "mcks_id",
+                        "description": "MCK8S 아이디",
+                        "name": "mck8s_id",
                         "in": "path",
                         "required": true
                     },
@@ -1381,7 +1381,7 @@ const docTemplate = `{
                 "mcis_id": {
                     "type": "string"
                 },
-                "mcks_id": {
+                "mck8s_id": {
                     "type": "string"
                 },
                 "ns_id": {
@@ -1477,7 +1477,7 @@ const docTemplate = `{
                     "description": "MCIS 모니터링",
                     "type": "string"
                 },
-                "mcks_id": {
+                "mck8s_id": {
                     "description": "쿠버네티스 모니터링",
                     "type": "string"
                 },

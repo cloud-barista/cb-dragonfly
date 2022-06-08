@@ -9,7 +9,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/pull"
 	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/pull/puller"
 	push_mcis "github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mcis"
-	push_mcks "github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mcks"
+	push_mck8s "github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mck8s"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
@@ -52,13 +52,13 @@ func startMCISPushModule(wg *sync.WaitGroup) error {
 	return nil
 }
 
-// startMCKSPushModule MCKS 수집 모듈 구동
-func startMCKSPushModule(wg *sync.WaitGroup) error {
+// startMCK8SPushModule MCK8S 수집 모듈 구동
+func startMCK8SPushModule(wg *sync.WaitGroup) error {
 
-	fmt.Println("start MCKS monitoring module ...")
+	fmt.Println("start MCK8S monitoring module ...")
 
 	// 콜렉터 매니저 생성
-	cm, err := push_mcks.NewCollectorManager(wg)
+	cm, err := push_mck8s.NewCollectorManager(wg)
 	if err != nil {
 		util.GetLogger().Error(err)
 		return err
@@ -66,7 +66,7 @@ func startMCKSPushModule(wg *sync.WaitGroup) error {
 
 	// 콜렉터 스케줄러 실행
 	wg.Add(1)
-	err = push_mcks.StartScheduler(cm)
+	err = push_mck8s.StartScheduler(cm)
 	if err != nil {
 		util.GetLogger().Error(err)
 		return err
@@ -97,8 +97,8 @@ func startMCISPullModule(wg *sync.WaitGroup) error {
 	return nil
 }
 
-// TODO: MCKS 환경 PULL 모듈 개발 시 활용
-func startMCKSPullModule(wg *sync.WaitGroup) error {
+// TODO: MCK8S 환경 PULL 모듈 개발 시 활용
+func startMCK8SPullModule(wg *sync.WaitGroup) error {
 	return nil
 }
 
@@ -115,8 +115,8 @@ func NewMechanism(wg *sync.WaitGroup) error {
 		if err := startMCISPushModule(wg); err != nil {
 			return err
 		}
-		// MCKS 수집 모듈 구동
-		if err := startMCKSPushModule(wg); err != nil {
+		// MCK8S 수집 모듈 구동
+		if err := startMCK8SPushModule(wg); err != nil {
 			return err
 		}
 		break
@@ -126,7 +126,7 @@ func NewMechanism(wg *sync.WaitGroup) error {
 			return err
 		}
 		break
-		// TODO: MCKS 수집 모듈 구동
+		// TODO: MCK8S 수집 모듈 구동
 	default:
 		errMsg := "wrong monitoring mechanism config detected. change config to \"push\" or \"pull\""
 		util.GetLogger().Error(errMsg)

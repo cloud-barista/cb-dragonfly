@@ -428,7 +428,7 @@ func (c MonitoringService) InstallAgent(ctx context.Context, request *pb.Install
 		CspType:      request.CspType,
 		Port:         request.Port,
 		ServiceType:  request.ServiceType,
-		McksID:       request.McksID,
+		Mck8sId:      request.Mck8sId,
 		APIServerURL: request.APIServerURL,
 		ServerCA:     request.ServerCA,
 		ClientCA:     request.ClientCA,

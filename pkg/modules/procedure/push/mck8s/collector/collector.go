@@ -31,17 +31,17 @@ func (mc *MetricCollector) DoCollect(wg *sync.WaitGroup) error {
 					_ = mc.ConsumerKafkaConn.Unsubscribe()
 					err := mc.ConsumerKafkaConn.Close()
 					if err != nil {
-						errMsg := fmt.Sprintf("fail to delete mcks metic collector, kafka close connection failed with error=%s", err)
+						errMsg := fmt.Sprintf("fail to delete mck8s metic collector, kafka close connection failed with error=%s", err)
 						util.GetLogger().Error(errMsg)
 						fmt.Println(errMsg)
 						return errors.New(errMsg)
 					}
-					fmt.Println(fmt.Sprintf("#### Group_%d MCKS collector Delete ####", mc.CreateOrder))
+					fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector Delete ####", mc.CreateOrder))
 					return nil
 				}
 
 				deliveredTopic := chanData
-				fmt.Println(fmt.Sprintf("Group_%d MCKS collector Delivered : %s", mc.CreateOrder, deliveredTopic))
+				fmt.Println(fmt.Sprintf("Group_%d MCK8S collector Delivered : %s", mc.CreateOrder, deliveredTopic))
 
 				// 토픽 데이터 구독
 				err := mc.ConsumerKafkaConn.SubscribeTopics([]string{deliveredTopic}, nil)
@@ -72,7 +72,7 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 	}
 	consumerKafkaConn, err := kafka.NewConsumer(kafkaConfig)
 	if err != nil {
-		errMsg := fmt.Sprintf("fail to create mcks metic collector, kafka connection failed with error=%s", err)
+		errMsg := fmt.Sprintf("fail to create mck8s metic collector, kafka connection failed with error=%s", err)
 		util.GetLogger().Error(errMsg)
 		return MetricCollector{}, errors.New(errMsg)
 	}
@@ -86,6 +86,6 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 		},
 		Ch: ch,
 	}
-	fmt.Println(fmt.Sprintf("#### Group_%d MCKS collector Create ####", createOrder))
+	fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector Create ####", createOrder))
 	return mc, nil
 }

@@ -37,17 +37,16 @@ func InstallTelegraf(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, rest.SetMessage("empty agent type parameter"))
 	}
 
-	if util.CheckMCKSType(params.ServiceType) {
+	if util.CheckMCK8SType(params.ServiceType) {
 		// 토큰 값이 비어있을 경우
 		if !checkEmptyFormParam(params.ClientToken) {
 			// 키 기반 연동일 때 데이터 확인
-			//if !checkEmptyFormParam(params.NsId, params.McksId, params.APIServerURL, params.ServerCA, params.ClientCA, params.ClientKey) {
-			if !checkEmptyFormParam(params.NsId, params.McksId, params.APIServerURL, params.ServerCA, params.ClientCA) {
-				return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcks agent installation by key"))
+			if !checkEmptyFormParam(params.NsId, params.Mck8sId, params.APIServerURL, params.ServerCA, params.ClientCA) {
+				return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mck8s agent installation by key"))
 			} else {
 				// 토큰 기반 연동일 때 데이터 확인
-				if !checkEmptyFormParam(params.NsId, params.McksId, params.APIServerURL) {
-					return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcks agent installation by token"))
+				if !checkEmptyFormParam(params.NsId, params.Mck8sId, params.APIServerURL) {
+					return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mck8s agent installation by token"))
 				}
 			}
 		}
@@ -73,7 +72,7 @@ func InstallTelegraf(c echo.Context) error {
 		CspType:      params.CspType,
 		Port:         params.Port,
 		ServiceType:  params.ServiceType,
-		McksID:       params.McksId,
+		Mck8sId:      params.Mck8sId,
 		APIServerURL: params.APIServerURL,
 		ServerCA:     params.ServerCA,
 		ClientCA:     params.ClientCA,
@@ -184,16 +183,16 @@ func UninstallAgent(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, rest.SetMessage("empty agent type parameter"))
 	}
 
-	if util.CheckMCKSType(params.ServiceType) {
+	if util.CheckMCK8SType(params.ServiceType) {
 		// 토큰 값이 비어있을 경우
 		if !checkEmptyFormParam(params.ClientToken) {
 			// 키 기반 연동일 때 데이터 확인
-			if !checkEmptyFormParam(params.NsId, params.McksId, params.APIServerURL, params.ServerCA, params.ClientCA, params.ClientKey) {
-				return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcks agent uninstallation by key"))
+			if !checkEmptyFormParam(params.NsId, params.Mck8sId, params.APIServerURL, params.ServerCA, params.ClientCA, params.ClientKey) {
+				return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mck8s agent uninstallation by key"))
 			} else {
 				// 토큰 기반 연동일 때 데이터 확인
-				if !checkEmptyFormParam(params.NsId, params.McksId, params.APIServerURL) {
-					return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcks agent uninstallation by token"))
+				if !checkEmptyFormParam(params.NsId, params.Mck8sId, params.APIServerURL) {
+					return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mck8s agent uninstallation by token"))
 				}
 			}
 		}
@@ -219,7 +218,7 @@ func UninstallAgent(c echo.Context) error {
 		CspType:      params.CspType,
 		Port:         params.Port,
 		ServiceType:  params.ServiceType,
-		McksID:       params.McksId,
+		Mck8sId:      params.Mck8sId,
 		APIServerURL: params.APIServerURL,
 		ServerCA:     params.ServerCA,
 		ClientCA:     params.ClientCA,

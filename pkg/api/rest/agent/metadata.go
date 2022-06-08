@@ -64,11 +64,11 @@ func GetAgentMetadata(c echo.Context) error {
 		NsId:        nsId,
 	}
 
-	if util.CheckMCKSType(serviceType) {
+	if util.CheckMCK8SType(serviceType) {
 		if !checkEmptyFormParam(nsId, serviceId) {
-			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter to get mcks agent metadata"))
+			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter to get mck8s agent metadata"))
 		}
-		requestInfo.McksID = serviceId
+		requestInfo.Mck8sId = serviceId
 	}
 
 	if util.CheckMCISType(serviceType) {
@@ -77,7 +77,7 @@ func GetAgentMetadata(c echo.Context) error {
 		if !checkEmptyFormParam(nsId, serviceId, vmId, cspType) {
 			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter to get mcis agent metadata"))
 		}
-		requestInfo.McksID = serviceId
+		requestInfo.Mck8sId = serviceId
 		requestInfo.VmId = vmId
 		requestInfo.CspType = cspType
 	}
@@ -99,7 +99,7 @@ func GetAgentMetadata(c echo.Context) error {
 // @Param mcisId query string false "MCIS 아이디" Enums(test_mcis)
 // @Param vmId query string false "VM 아이디" Enums(test_vm)
 // @Param cspType query string false "VM의 CSP 정보" Enums(aws)
-// @Param mcksId query string false "MCKS 아이디" Enums(test_mcks)
+// @Param mck8sId query string false "MCK8S 아이디" Enums(test_mck8s)
 // @Success 200 {object}  rest.JSONResult{[DEFAULT]=[]MetaDataListType,[ID]=common.AgentInfo} "Different return structures by the given param"
 // @Failure 404 {object} rest.SimpleMsg
 // @Failure 500 {object} rest.SimpleMsg
@@ -115,10 +115,10 @@ func PutAgentMetadata(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, rest.SetMessage("empty agent type parameter"))
 	}
 
-	if util.CheckMCKSType(params.ServiceType) {
+	if util.CheckMCK8SType(params.ServiceType) {
 		// 토큰 값이 비어있을 경우
-		if !checkEmptyFormParam(params.NsId, params.McksId) {
-			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter to update mcks agent metadata"))
+		if !checkEmptyFormParam(params.NsId, params.Mck8sId) {
+			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter to update mck8s agent metadata"))
 		}
 	}
 	// MCIS 에이전트 form 파라미터 값 체크
@@ -136,7 +136,7 @@ func PutAgentMetadata(c echo.Context) error {
 		VmId:        params.VmId,
 		PublicIp:    params.PublicIp,
 		CspType:     params.CspType,
-		McksID:      params.McksId,
+		Mck8sId:     params.Mck8sId,
 	}
 	// 메타데이터 조회
 	if _, err := common.GetAgent(requestInfo); err != nil {

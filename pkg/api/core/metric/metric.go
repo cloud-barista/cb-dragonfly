@@ -147,8 +147,8 @@ func GetMonInfo(info types.DBMetricRequestInfo) (interface{}, int, error) {
 		resultMap["values"] = influxdbmetric.ConvertMetricValFormat(resultRow.Columns, resultRow.Values)
 		return resultMap, http.StatusOK, nil
 
-	case types.MCKS_NODE:
-		if !util.CheckMCKSType(info.ServiceType) {
+	case types.MCK8S_NODE:
+		if !util.CheckMCK8SType(info.ServiceType) {
 			return nil, http.StatusBadRequest, errors.New(fmt.Sprintf("not supported metric data for %s, metric=%s", info.ServiceType, info.MetricName))
 		}
 
@@ -170,24 +170,24 @@ func GetMonInfo(info types.DBMetricRequestInfo) (interface{}, int, error) {
 			return nil, http.StatusInternalServerError, errors.New("internal server error with parsing metric data")
 		}
 
-		resultData.Name = string(types.MCKS_NODE)
+		resultData.Name = string(types.MCK8S_NODE)
 		return resultData, http.StatusOK, nil
 
-	case types.MCKS_POD:
-		if !util.CheckMCKSType(info.ServiceType) {
+	case types.MCK8S_POD:
+		if !util.CheckMCK8SType(info.ServiceType) {
 			return nil, http.StatusBadRequest, errors.New(fmt.Sprintf("not supported metric data for %s, metric=%s", info.ServiceType, info.MetricName))
 		}
 		resultData := types.DBData{}
-		mcksMeasurements := []string{"kubernetes_pod_container", "kubernetes_pod_network"}
+		mck8sMeasurements := []string{"kubernetes_pod_container", "kubernetes_pod_network"}
 
-		for i, measurement := range mcksMeasurements {
+		for i, measurement := range mck8sMeasurements {
 			info.MetricName = measurement
 			podMetric, err := v1.GetInstance().ReadMetric(info)
 			if err != nil {
 				return nil, http.StatusInternalServerError, err
 			}
 			if podMetric == nil {
-				return nil, http.StatusNotFound, errors.New(fmt.Sprintf("not found metric data, metric=%s", types.MCKS_POD))
+				return nil, http.StatusNotFound, errors.New(fmt.Sprintf("not found metric data, metric=%s", types.MCK8S_POD))
 			}
 
 			var tmpData types.DBData
@@ -228,7 +228,7 @@ func GetMonInfo(info types.DBMetricRequestInfo) (interface{}, int, error) {
 			resultData.Tags = tmpData.Tags
 		}
 
-		resultData.Name = string(types.MCKS_POD)
+		resultData.Name = string(types.MCK8S_POD)
 		resultData.Columns = util.Unique(resultData.Columns, false)
 		return resultData, http.StatusOK, nil
 	default:

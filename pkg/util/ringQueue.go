@@ -24,16 +24,16 @@ func GetRingQueue() *queue.Queue {
 	return ringQueue
 }
 
-// MCKS 큐
+// MCK8S 큐
 
-var mcksRingQueueOnce sync.Once
-var mcksRingQueue *queue.Queue
+var mck8sRingQueueOnce sync.Once
+var mck8sRingQueue *queue.Queue
 
-func GetMCKSRingQueue() *queue.Queue {
-	mcksRingQueueOnce.Do(func() {
-		mcksRingQueue = queue.New(1000)
+func GetMCK8SRingQueue() *queue.Queue {
+	mck8sRingQueueOnce.Do(func() {
+		mck8sRingQueue = queue.New(1000)
 	})
-	return mcksRingQueue
+	return mck8sRingQueue
 }
 
 func RingQueuePut(topicManagePolicy string, topic string) error {
@@ -53,7 +53,7 @@ func RingQueuePut(topicManagePolicy string, topic string) error {
 	return nil
 }
 
-func PutMCKSRingQueue(topicManagePolicy string, topic string) error {
+func PutMCK8SRingQueue(topicManagePolicy string, topic string) error {
 	var topicBytes []byte
 	var err error
 	topicStructure := TopicStructure{
@@ -64,7 +64,7 @@ func PutMCKSRingQueue(topicManagePolicy string, topic string) error {
 		fmt.Println("error?")
 		return err
 	}
-	if err = GetMCKSRingQueue().Put(topicBytes); err != nil {
+	if err = GetMCK8SRingQueue().Put(topicBytes); err != nil {
 		return err
 	}
 	return nil

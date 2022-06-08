@@ -263,8 +263,8 @@ func ToFixed(num float64, precision int) float64 {
 	return float64(round(num*output)) / output
 }
 
-func CheckMCKSType(serviceType string) bool {
-	return strings.EqualFold(serviceType, types.MCKS) || strings.EqualFold(serviceType, types.KUBERNETES) || strings.EqualFold(serviceType, types.K8S)
+func CheckMCK8SType(serviceType string) bool {
+	return strings.EqualFold(serviceType, types.MCK8S) || strings.EqualFold(serviceType, types.KUBERNETES) || strings.EqualFold(serviceType, types.K8S)
 }
 
 func CheckMCISType(serviceType string) bool {

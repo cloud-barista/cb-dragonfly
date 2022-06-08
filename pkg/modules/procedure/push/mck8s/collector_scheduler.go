@@ -26,13 +26,13 @@ type CollectorScheduler struct {
 	topicQueue       *queue.Queue
 }
 
-// StartScheduler MCKS 콜렉터 스케줄러 구동
+// StartScheduler MCK8S 콜렉터 스케줄러 구동
 func StartScheduler(collectManager CollectManager) error {
 
 	// 콜렉터 스케줄러 생성
 	scheduler, err := NewCollectorScheduler(collectManager)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to initialize MCKS collector scheduler, error=%s", err.Error())
+		errMsg := fmt.Sprintf("failed to initialize MCK8S collector scheduler, error=%s", err.Error())
 		util.GetLogger().Error(errMsg)
 		return errors.New(errMsg)
 	}
@@ -62,10 +62,10 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 		cbStore := cbstore.GetInstance()
 
 		// 기존에 저장된 개별 토픽 정보 초기화
-		_ = cbstore.GetInstance().StoreDelList(types.MCKSTopic)
+		_ = cbstore.GetInstance().StoreDelList(types.MCK8STopic)
 
 		// 기존에 저장된 토픽 목록 정보가 있을 경우 동기화
-		if topicListData, _ := cbStore.StoreGet(types.MCKSCollectorTopicMap); topicListData != nil {
+		if topicListData, _ := cbStore.StoreGet(types.MCK8SCollectorTopicMap); topicListData != nil {
 			// 콜렉터 정책 검사 (기존 구동 정책과 현재 구동 정책이 동일한 지 확인)
 			collectorPolicy, _ := cbstore.GetInstance().StoreGet(types.CollectorPolicy)
 			if collectorPolicy != nil {
@@ -79,7 +79,7 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 					// 개별 토픽 정보 로드
 					for key, topicSlice := range inMemoryTopic.TopicMap {
 						for i := 0; i < len(topicSlice); i++ {
-							_ = cbStore.StorePut(fmt.Sprintf("%s/%s", types.MCKSTopic, topicSlice[i]), key)
+							_ = cbStore.StorePut(fmt.Sprintf("%s/%s", types.MCK8STopic, topicSlice[i]), key)
 						}
 					}
 				}
@@ -94,7 +94,7 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 	collectorScheduler := &CollectorScheduler{
 		cm:               cm,
 		inMemoryTopicMap: inMemoryTopic,
-		topicQueue:       util.GetMCKSRingQueue(),
+		topicQueue:       util.GetMCK8SRingQueue(),
 	}
 	return collectorScheduler, nil
 }
@@ -144,7 +144,7 @@ func (cScheduler CollectorScheduler) DoSchedule() error {
 			delTopicList = util.GetAllTopicBySort(util.Unique(util.ReturnDiffTopicList(delTopicList, addTopicList), true))
 		}
 
-		fmt.Println("### Now Scheduling - MCKS collector scheduler ###")
+		fmt.Println("### Now Scheduling - MCK8S collector scheduler ###")
 		fmt.Println("## Add Topics Queue ##", addTopicList)
 		fmt.Println("## Del Topics Queue ##", delTopicList)
 
@@ -159,7 +159,7 @@ func (cScheduler CollectorScheduler) DoSchedule() error {
 	}
 }
 
-// SchedulePolicyBasedCollector 쿠버네티스 서비스(MCKS) 에이전트와 콜렉터를 1:1로 스케줄링
+// SchedulePolicyBasedCollector 쿠버네티스 서비스(MCK8S) 에이전트와 콜렉터를 1:1로 스케줄링
 func (cScheduler CollectorScheduler) SchedulePolicyBasedCollector(addTopicList []string, delTopicList []string) {
 	provisioningOnce.Do(cScheduler.ProvisioningCollector)
 
@@ -182,7 +182,7 @@ func (cScheduler CollectorScheduler) ProvisioningCollector() {
 		// 콜렉터 생성
 		err := cScheduler.cm.CreateCollector(topic)
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to create mcks collector with topic %s, error=%s", topic, err.Error())
+			errMsg := fmt.Sprintf("failed to create mck8s collector with topic %s, error=%s", topic, err.Error())
 			fmt.Println(errMsg)
 			util.GetLogger().Error(errMsg)
 			continue
@@ -204,7 +204,7 @@ func (cScheduler CollectorScheduler) AddTopicsToCollector(addTopicList []string)
 	for i := 0; i < len(addTopicList); i++ {
 		topic := addTopicList[i]
 
-		topicMsg, _ := cbStore.StoreGet(fmt.Sprintf("%s/%s", types.MCKSTopic, topic))
+		topicMsg, _ := cbStore.StoreGet(fmt.Sprintf("%s/%s", types.MCK8STopic, topic))
 		if topicMsg != nil {
 			continue
 		}
@@ -212,7 +212,7 @@ func (cScheduler CollectorScheduler) AddTopicsToCollector(addTopicList []string)
 		// 콜렉터 생성
 		err := cScheduler.cm.CreateCollector(topic)
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to create mcks collector with topic %s, error=%s", topic, err.Error())
+			errMsg := fmt.Sprintf("failed to create mck8s collector with topic %s, error=%s", topic, err.Error())
 			fmt.Println(errMsg)
 			util.GetLogger().Error(errMsg)
 			continue
@@ -236,7 +236,7 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCollector(delTopicList []stri
 	for i := 0; i < len(delTopicList); i++ {
 		topic := delTopicList[i]
 
-		topicMsg, _ := cbStore.StoreGet(fmt.Sprintf("%s/%s", types.MCKSTopic, topic))
+		topicMsg, _ := cbStore.StoreGet(fmt.Sprintf("%s/%s", types.MCK8STopic, topic))
 		if topicMsg != nil {
 			continue
 		}
@@ -244,7 +244,7 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCollector(delTopicList []stri
 		// 콜렉터 삭제
 		err := cScheduler.cm.DeleteCollector(topic)
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to delete mcks collector with topic %s, error=%s", topic, err.Error())
+			errMsg := fmt.Sprintf("failed to delete mck8s collector with topic %s, error=%s", topic, err.Error())
 			fmt.Println(errMsg)
 			util.GetLogger().Error(errMsg)
 			continue
@@ -261,5 +261,5 @@ func (cScheduler CollectorScheduler) WriteCollectorMapToInMemoryDB() {
 		TopicMap: cScheduler.inMemoryTopicMap.TopicMap,
 	}
 	cMapBytes, _ := json.Marshal(inMemoryTopic)
-	_ = cbstore.GetInstance().StorePut(fmt.Sprintf("%s", types.MCKSCollectorTopicMap), string(cMapBytes))
+	_ = cbstore.GetInstance().StorePut(fmt.Sprintf("%s", types.MCK8SCollectorTopicMap), string(cMapBytes))
 }

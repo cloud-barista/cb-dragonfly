@@ -19,7 +19,7 @@ type AgentType struct {
 	NsId        string `json:"ns_id"`
 
 	// 쿠버네티스 모니터링
-	McksId       string `json:"mcks_id"`
+	Mck8sId      string `json:"mck8s_id"`
 	APIServerURL string `json:"apiserver_url"`
 	ServerCA     string `json:"server_ca"`
 	ClientCA     string `json:"client_ca"`

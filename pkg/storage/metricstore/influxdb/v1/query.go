@@ -17,7 +17,7 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 		info.AggegateType = "mean"
 	}
 	mcisType := util.CheckMCISType(info.ServiceType)
-	mcksType := util.CheckMCKSType(info.ServiceType)
+	mck8sType := util.CheckMCK8SType(info.ServiceType)
 	// 시간 범위 설정
 	timeDuration := fmt.Sprintf("(now()+1m) - %s", info.Duration)
 
@@ -81,8 +81,8 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 		}
 	}
 
-	// MCKS 모니터링
-	if mcksType {
+	// MCK8S 모니터링
+	if mck8sType {
 		switch info.MetricName {
 		case "kubernetes_node":
 			query = influxBuilder.NewQuery().On(info.MetricName).
@@ -132,65 +132,65 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 				Fill("0").
 				OrderByTime("ASC")
 		}
-		if mcksType {
+		if mck8sType {
 			switch info.MetricName {
 			case "kubernetes_node":
-				if strings.EqualFold(info.MCKSReqInfo.GroupBy, types.Cluster) {
+				if strings.EqualFold(info.MCK8SReqInfo.GroupBy, types.Cluster) {
 					query = query.Where("time", influxBuilder.MoreThan, timeDuration).
 						And("\"nsId\"", influxBuilder.Equal, "'"+info.NsID+"'").
-						And("\"mcksId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
+						And("\"mck8sId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
 						GroupByTime(timeCriteria).
 						GroupByTag("\"nsId\"").
-						GroupByTag("\"mcksId\"").
+						GroupByTag("\"mck8sId\"").
 						Fill("0").
 						OrderByTime("ASC")
 				}
-				if strings.EqualFold(info.MCKSReqInfo.GroupBy, types.Node) {
+				if strings.EqualFold(info.MCK8SReqInfo.GroupBy, types.Node) {
 					query = query.Where("time", influxBuilder.MoreThan, timeDuration).
 						And("\"nsId\"", influxBuilder.Equal, "'"+info.NsID+"'").
-						And("\"mcksId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
-						And("\"node_name\"", influxBuilder.Equal, "'"+info.MCKSReqInfo.Node+"'").
+						And("\"mck8sId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
+						And("\"node_name\"", influxBuilder.Equal, "'"+info.MCK8SReqInfo.Node+"'").
 						GroupByTime(timeCriteria).
 						GroupByTag("\"nsId\"").
-						GroupByTag("\"mcksId\"").
+						GroupByTag("\"mck8sId\"").
 						GroupByTag("\"node_name\"").
 						Fill("0").
 						OrderByTime("ASC")
 				}
 			default:
-				if strings.EqualFold(info.MCKSReqInfo.GroupBy, types.Node) {
+				if strings.EqualFold(info.MCK8SReqInfo.GroupBy, types.Node) {
 					query = query.Where("time", influxBuilder.MoreThan, timeDuration).
 						And("\"nsId\"", influxBuilder.Equal, "'"+info.NsID+"'").
-						And("\"mcksId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
-						And("\"node_name\"", influxBuilder.Equal, "'"+info.MCKSReqInfo.Node+"'").
+						And("\"mck8sId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
+						And("\"node_name\"", influxBuilder.Equal, "'"+info.MCK8SReqInfo.Node+"'").
 						GroupByTime(timeCriteria).
 						GroupByTag("\"nsId\"").
-						GroupByTag("\"mcksId\"").
+						GroupByTag("\"mck8sId\"").
 						GroupByTag("\"node_name\"").
 						Fill("0").
 						OrderByTime("ASC")
 				}
-				if strings.EqualFold(info.MCKSReqInfo.GroupBy, types.Namespace) {
+				if strings.EqualFold(info.MCK8SReqInfo.GroupBy, types.Namespace) {
 					query = query.Where("time", influxBuilder.MoreThan, timeDuration).
 						And("\"nsId\"", influxBuilder.Equal, "'"+info.NsID+"'").
-						And("\"mcksId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
-						And("\"namespace\"", influxBuilder.Equal, "'"+info.MCKSReqInfo.Namespace+"'").
+						And("\"mck8sId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
+						And("\"namespace\"", influxBuilder.Equal, "'"+info.MCK8SReqInfo.Namespace+"'").
 						GroupByTime(timeCriteria).
 						GroupByTag("\"nsId\"").
-						GroupByTag("\"mcksId\"").
+						GroupByTag("\"mck8sId\"").
 						GroupByTag("\"namespace\"").
 						Fill("0").
 						OrderByTime("ASC")
 				}
-				if strings.EqualFold(info.MCKSReqInfo.GroupBy, string(types.MCKS_POD)) {
+				if strings.EqualFold(info.MCK8SReqInfo.GroupBy, string(types.MCK8S_POD)) {
 					query = query.Where("time", influxBuilder.MoreThan, timeDuration).
 						And("\"nsId\"", influxBuilder.Equal, "'"+info.NsID+"'").
-						And("\"mcksId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
-						And("\"namespace\"", influxBuilder.Equal, "'"+info.MCKSReqInfo.Namespace+"'").
-						And("\"pod_name\"", influxBuilder.Equal, "'"+info.MCKSReqInfo.Pod+"'").
+						And("\"mck8sId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
+						And("\"namespace\"", influxBuilder.Equal, "'"+info.MCK8SReqInfo.Namespace+"'").
+						And("\"pod_name\"", influxBuilder.Equal, "'"+info.MCK8SReqInfo.Pod+"'").
 						GroupByTime(timeCriteria).
 						GroupByTag("\"nsId\"").
-						GroupByTag("\"mcksId\"").
+						GroupByTag("\"mck8sId\"").
 						GroupByTag("\"node_name\"").
 						GroupByTag("\"pod_name\"").
 						Fill("0").

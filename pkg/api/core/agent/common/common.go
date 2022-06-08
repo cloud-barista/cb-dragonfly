@@ -31,7 +31,7 @@ type AgentInstallInfo struct {
 	CspType      string
 	Port         string
 	ServiceType  string
-	McksID       string
+	Mck8sId      string
 	APIServerURL string
 	ServerCA     string
 	ClientCA     string
@@ -40,7 +40,7 @@ type AgentInstallInfo struct {
 }
 
 func CleanAgentInstall(info AgentInstallInfo, sshInfo *sshrun.SSHInfo, osType *string, kubeClient *kubernetes.Clientset) {
-	if util.CheckMCKSType(info.ServiceType) {
+	if util.CheckMCK8SType(info.ServiceType) {
 		_ = kubeClient.RbacV1().ClusterRoleBindings().Delete(context.TODO(), AGENT_CLUSTERROLEBINDING, metav1.DeleteOptions{})
 		_ = kubeClient.RbacV1().ClusterRoles().Delete(context.TODO(), AGENT_CLUSTERROLE, metav1.DeleteOptions{})
 		_ = kubeClient.CoreV1().Namespaces().Delete(context.TODO(), config.GetInstance().Agent.Namespace, metav1.DeleteOptions{})

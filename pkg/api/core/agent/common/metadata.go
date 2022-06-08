@@ -46,7 +46,7 @@ type AgentInfo struct {
 	AgentUnhealthyRespCnt int    `json:"agent_unhealthy_resp_cnt"`
 	PublicIp              string `json:"public_ip"`
 	ServiceType           string `json:"service_type"`
-	McksID                string `json:"mcks_id"`
+	Mck8sId               string `json:"mck8s_id"`
 	APIServerURL          string `json:"apiserver_url"`
 	ServerCA              string `json:"server_ca"`
 	ClientCA              string `json:"client_ca"`
@@ -55,8 +55,8 @@ type AgentInfo struct {
 }
 
 func MakeAgentUUID(info AgentInstallInfo) string {
-	if util.CheckMCKSType(info.ServiceType) {
-		return fmt.Sprintf("%s_%s_%s", info.NsId, info.ServiceType, info.McksID)
+	if util.CheckMCK8SType(info.ServiceType) {
+		return fmt.Sprintf("%s_%s_%s", info.NsId, info.ServiceType, info.Mck8sId)
 	}
 	return fmt.Sprintf("%s_%s_%s_%s_%s", info.NsId, info.ServiceType, info.McisId, info.VmId, info.CspType)
 }
@@ -109,10 +109,10 @@ func GetAgent(info AgentInstallInfo) (*AgentInfo, error) {
 func PutAgent(info AgentInstallInfo) (string, AgentInfo, error) {
 	agentUUID := MakeAgentUUID(info)
 	agentInfo := AgentInfo{}
-	if util.CheckMCKSType(info.ServiceType) {
+	if util.CheckMCK8SType(info.ServiceType) {
 		agentInfo = AgentInfo{
 			NsId:                  info.NsId,
-			McksID:                info.McksID,
+			Mck8sId:               info.Mck8sId,
 			AgentType:             config.GetInstance().Monitoring.DefaultPolicy,
 			AgentState:            string(Enable),
 			AgentHealth:           string(Healthy),

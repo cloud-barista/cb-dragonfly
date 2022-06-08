@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/metric/mcis"
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/metric/mcks"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/metric/mck8s"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest/topic"
 	"net/http"
 	"sync"
@@ -82,7 +82,7 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	// 멀티 클라우드 인프라 VM 모니터링/실시간 모니터링 정보 조회
 	dragonfly.GET("/ns/:ns_id/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/info", mcis.GetVMMonInfo)
 	// 멀티 클라우드 쿠버네티스 서비스 모니터링 정보 조회
-	dragonfly.GET("/ns/:ns_id/mcks/:mcks_id/metric/:metric_name/info", mcks.GetMCKSMonInfo)
+	dragonfly.GET("/ns/:ns_id/mck8s/:mck8s_id/metric/:metric_name/info", mck8s.GetMCK8SMonInfo)
 
 	// windows 에이전트 config, package 파일 다운로드
 	//dragonfly.GET("/installer/cbinstaller.zip", agent.GetWindowInstaller)

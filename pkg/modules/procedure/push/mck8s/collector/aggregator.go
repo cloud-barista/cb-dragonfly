@@ -132,19 +132,21 @@ func (a *Aggregator) aggregatePodMetric(metrics []TelegrafMetric, metricName str
 	podMetricArr := podMetricFilter.([]TelegrafMetric)
 
 	// 2. 파드 별 메트릭 처리
-	podNameFilter := funk.Uniq(funk.Get(podMetricArr, "Tags.pod_name"))
-	podNameArr := podNameFilter.([]string)
+	if podMetricArr != nil {
+		podNameFilter := funk.Uniq(funk.Get(podMetricArr, "Tags.pod_name"))
+		podNameArr := podNameFilter.([]string)
 
-	// 3. 단일 파드에 대한 파드 메트릭 처리 및 저장
-	for _, podName := range podNameArr {
-		currentPodMetricArr := funk.Filter(podMetricArr, func(metric TelegrafMetric) bool {
-			return metric.Tags["pod_name"] == podName
-		})
-		podMetric := aggregateMetric(metricName, currentPodMetricArr.([]TelegrafMetric), string(a.AggregateType))
-		err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, podMetric.Name, podMetric.Tags, podMetric.Fields)
-		if err != nil {
-			util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
-			continue
+		// 3. 단일 파드에 대한 파드 메트릭 처리 및 저장
+		for _, podName := range podNameArr {
+			currentPodMetricArr := funk.Filter(podMetricArr, func(metric TelegrafMetric) bool {
+				return metric.Tags["pod_name"] == podName
+			})
+			podMetric := aggregateMetric(metricName, currentPodMetricArr.([]TelegrafMetric), string(a.AggregateType))
+			err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, podMetric.Name, podMetric.Tags, podMetric.Fields)
+			if err != nil {
+				util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
+				continue
+			}
 		}
 	}
 }

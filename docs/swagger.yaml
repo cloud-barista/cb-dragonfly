@@ -22,7 +22,7 @@ definitions:
         type: string
       mcis_id:
         type: string
-      mcks_id:
+      mck8s_id:
         type: string
       ns_id:
         type: string
@@ -87,7 +87,7 @@ definitions:
       mcis_id:
         description: MCIS 모니터링
         type: string
-      mcks_id:
+      mck8s_id:
         description: 쿠버네티스 모니터링
         type: string
       ns_id:
@@ -401,7 +401,7 @@ paths:
             - properties:
                 '[DEFAULT]':
                   items:
-                    $ref: '#/definitions/github.com_cloud-barista_cb-dragonfly_pkg_api_rest_agent.MetaDataListType'
+                    $ref: '#/definitions/pkg_api_rest_agent.MetaDataListType'
                   type: array
                 '[ID]':
                   $ref: '#/definitions/common.AgentInfo'
@@ -446,11 +446,11 @@ paths:
         in: query
         name: cspType
         type: string
-      - description: MCKS 아이디
+      - description: MCK8S 아이디
         enum:
-        - test_mcks
+        - test_mck8s
         in: query
-        name: mcksId
+        name: mck8sId
         type: string
       produces:
       - application/json
@@ -463,7 +463,7 @@ paths:
             - properties:
                 '[DEFAULT]':
                   items:
-                    $ref: '#/definitions/github.com_cloud-barista_cb-dragonfly_pkg_api_rest_agent.MetaDataListType'
+                    $ref: '#/definitions/pkg_api_rest_agent.MetaDataListType'
                   type: array
                 '[ID]':
                   $ref: '#/definitions/common.AgentInfo'
@@ -495,7 +495,7 @@ paths:
             - properties:
                 '[DEFAULT]':
                   items:
-                    $ref: '#/definitions/github.com_cloud-barista_cb-dragonfly_pkg_api_rest_agent.MetaDataListType'
+                    $ref: '#/definitions/pkg_api_rest_agent.MetaDataListType'
                   type: array
                 '[ID]':
                   $ref: '#/definitions/common.AgentInfo'
@@ -1066,7 +1066,7 @@ paths:
       summary: Get vm monitoring info
       tags:
       - '[Monitoring] Monitoring management'
-  /ns/{ns_id}/mcks/{mcks_id}/metric/{metric_name}/info:
+  /ns/{ns_id}/mck8s/{mck8s_id}/metric/{metric_name}/info:
     get:
       consumes:
       - application/json
@@ -1077,9 +1077,9 @@ paths:
         name: ns_id
         required: true
         type: string
-      - description: MCKS 아이디
+      - description: MCK8S 아이디
         in: path
-        name: mcks_id
+        name: mck8s_id
         required: true
         type: string
       - description: 메트릭 정보

@@ -7,14 +7,14 @@ const (
 
 // CB-Store key
 const (
-	Agent                 = "/monitoring/agents/"
-	MonConfig             = "/monitoring/configs"
-	EventLog              = "/monitoring/eventLogs"
-	CollectorPolicy       = "/monitoring/collectorPolicy"
-	Topic                 = "/push/topic"
-	CollectorTopicMap     = "/push/collectorTopicMap"
-	MCKSTopic             = "/mcks/push/topic"
-	MCKSCollectorTopicMap = "/mcks/push/collectorTopicMap"
+	Agent                  = "/monitoring/agents/"
+	MonConfig              = "/monitoring/configs"
+	EventLog               = "/monitoring/eventLogs"
+	CollectorPolicy        = "/monitoring/collectorPolicy"
+	Topic                  = "/push/topic"
+	CollectorTopicMap      = "/push/collectorTopicMap"
+	MCK8STopic             = "/mck8s/push/topic"
+	MCK8SCollectorTopicMap = "/mck8s/push/collectorTopicMap"
 )
 
 const (
