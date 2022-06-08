@@ -333,8 +333,16 @@ func UninstallAgent(info common.AgentInstallInfo) (int, error) {
 	common.CleanAgentInstall(info, nil, nil, kubeClient)
 
 	// 메타데이터 삭제
-	if err = common.DeleteAgent(info); err != nil {
+	agentUUID, err := common.DeleteAgent(info)
+	if err != nil {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete metadata, error=%s", err))
+	}
+
+	// 토픽 큐에 삭제 에이전트 정보를 등록
+	err = util.PutMCK8SRingQueue(types.TopicDel, agentUUID)
+	if err != nil {
+		//common.CleanAgentInstall(info, nil, nil, kubeClient)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to add agent metadata to queue, error=%s", err))
 	}
 	return http.StatusOK, nil
 }

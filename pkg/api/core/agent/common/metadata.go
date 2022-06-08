@@ -62,12 +62,12 @@ func MakeAgentUUID(info AgentInstallInfo) string {
 }
 
 // AgentListManager 에이전트 목록 관리
-func DeleteAgent(info AgentInstallInfo) error {
+func DeleteAgent(info AgentInstallInfo) (string, error) {
 	agentUUID := MakeAgentUUID(info)
 	if err := cbstore.GetInstance().StoreDelete(types.Agent + agentUUID); err != nil {
-		return err
+		return agentUUID, err
 	}
-	return nil
+	return agentUUID, nil
 }
 
 func ListAgent() (map[string]AgentInfo, error) {

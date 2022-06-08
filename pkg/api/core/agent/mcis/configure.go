@@ -292,7 +292,7 @@ func UninstallAgent(info common.AgentInstallInfo) (int, error) {
 	common.CleanAgentInstall(info, &sshInfo, &osType, nil)
 
 	// 메타데이터 삭제
-	err = common.DeleteAgent(info)
+	_, err = common.DeleteAgent(info)
 	if err != nil {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete metadata, error=%s", err))
 	}
