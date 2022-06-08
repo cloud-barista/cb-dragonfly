@@ -264,12 +264,14 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 
 			// 클러스터 Scope 리소스인지 확인
 			var dynamicResource dynamic.ResourceInterface
-			if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
-				// Namespaced resource
-				dynamicResource = dynamicClient.Resource(mapping.Resource).Namespace(namespaceInfo.Name)
-			} else {
-				// Cluster-wide resource
-				dynamicResource = dynamicClient.Resource(mapping.Resource)
+			if mapping != nil {
+				if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
+					// Namespaced resource
+					dynamicResource = dynamicClient.Resource(mapping.Resource).Namespace(namespaceInfo.Name)
+				} else {
+					// Cluster-wide resource
+					dynamicResource = dynamicClient.Resource(mapping.Resource)
+				}
 			}
 
 			// 그 외의 데이터 생성
@@ -290,7 +292,7 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 
 	// 메타데이터 저장
-	agentUUID, _, err := common.PutAgent(info)
+	agentUUID, _, err := common.PutAgent(info, 0, common.Enable, common.Healthy)
 	if err != nil {
 		//common.CleanAgentInstall(info, nil, nil, kubeClient)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))

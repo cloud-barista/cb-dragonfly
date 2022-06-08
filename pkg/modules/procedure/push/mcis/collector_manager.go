@@ -106,7 +106,7 @@ func (manager *CollectManager) CreateCollector() error {
 			{Name: "create_order", Value: strconv.Itoa(collectorCreateOrder)},
 			{Name: "namespace", Value: config.GetInstance().Dragonfly.HelmNamespace},
 			{Name: "df_addr", Value: fmt.Sprintf("%s:%d", config.GetInstance().Dragonfly.DragonflyIP, config.GetInstance().Dragonfly.HelmPort)},
-			{Name: "collect_interval", Value: strconv.Itoa(config.GetInstance().Monitoring.CollectorInterval)},
+			{Name: "collect_interval", Value: strconv.Itoa(config.GetInstance().Monitoring.MCISCollectorInterval)},
 			{Name: "collect_uuid", Value: collectorUUID},
 		}
 		deploymentTemplate := util.DeploymentTemplate(collectorCreateOrder, collectorUUID, env)

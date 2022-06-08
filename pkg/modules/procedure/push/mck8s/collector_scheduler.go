@@ -101,7 +101,7 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 
 // DoSchedule 콜렉터 스케줄러 구동
 func (cScheduler CollectorScheduler) DoSchedule() error {
-	interval, _ := cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "collector_interval")
+	interval, _ := cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "mck8s_collector_interval")
 	if interval == nil {
 		errMsg := "failed to schedule collectors, err: no collector interval configuration data"
 		util.GetLogger().Error(errMsg)

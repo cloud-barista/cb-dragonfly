@@ -12,8 +12,9 @@ import (
 )
 
 type MetricCollector struct {
+	KafkaAdminClient  *kafka.AdminClient
+	KafkaConsumerConn *kafka.Consumer
 	CreateOrder       int
-	ConsumerKafkaConn *kafka.Consumer
 	Aggregator        Aggregator
 	Ch                chan string
 }
@@ -28,14 +29,16 @@ func (mc *MetricCollector) DoCollect(wg *sync.WaitGroup) error {
 				// 콜렉터 삭제 요청일 경우 토픽 구독 취소 및 삭제 처리
 				if chanData == "close" {
 					close(mc.Ch)
-					_ = mc.ConsumerKafkaConn.Unsubscribe()
-					err := mc.ConsumerKafkaConn.Close()
+
+					mc.KafkaAdminClient.Close()
+					_ = mc.KafkaConsumerConn.Unsubscribe()
+					err := mc.KafkaConsumerConn.Close()
 					if err != nil {
 						errMsg := fmt.Sprintf("fail to delete mck8s metic collector, kafka close connection failed with error=%s", err)
 						util.GetLogger().Error(errMsg)
-						fmt.Println(errMsg)
 						return errors.New(errMsg)
 					}
+
 					fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector Delete ####", mc.CreateOrder))
 					return nil
 				}
@@ -44,18 +47,15 @@ func (mc *MetricCollector) DoCollect(wg *sync.WaitGroup) error {
 				fmt.Println(fmt.Sprintf("Group_%d MCK8S collector Delivered : %s", mc.CreateOrder, deliveredTopic))
 
 				// 토픽 데이터 구독
-				err := mc.ConsumerKafkaConn.SubscribeTopics([]string{deliveredTopic}, nil)
+				err := mc.KafkaConsumerConn.SubscribeTopics([]string{deliveredTopic}, nil)
 				if err != nil {
 					errMsg := fmt.Sprintf("fail to subscribe topic with topic %s, error=%s", deliveredTopic, err)
 					util.GetLogger().Error(errMsg)
 					return errors.New(errMsg)
 				}
 
-				// TODO: 토픽 데이터 처리
-				mc.Aggregator.AggregateMetric(mc.ConsumerKafkaConn, deliveredTopic)
-
-				// TODO: 비활성화된 토픽 체크
-
+				// 토픽 데이터 처리
+				mc.Aggregator.AggregateMetric(mc.KafkaAdminClient, mc.KafkaConsumerConn, deliveredTopic)
 			}
 			break
 		}
@@ -70,21 +70,33 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 		"enable.auto.commit": true,
 		"auto.offset.reset":  "earliest",
 	}
-	consumerKafkaConn, err := kafka.NewConsumer(kafkaConfig)
+
+	// kafka 관리자 커넥션 설정
+	kafkaAdminClient, err := kafka.NewAdminClient(kafkaConfig)
 	if err != nil {
-		errMsg := fmt.Sprintf("fail to create mck8s metic collector, kafka connection failed with error=%s", err)
+		errMsg := fmt.Sprintf("fail to create mcks metic collector, kafka admin connection failed with error=%s", err)
+		util.GetLogger().Error(errMsg)
+		return MetricCollector{}, errors.New(errMsg)
+	}
+
+	// kafka 컨슈머 커넥션 설정
+	kafkaConsumerConn, err := kafka.NewConsumer(kafkaConfig)
+	if err != nil {
+		errMsg := fmt.Sprintf("fail to create mcks metic collector, kafka consumer connection failed with error=%s", err)
 		util.GetLogger().Error(errMsg)
 		return MetricCollector{}, errors.New(errMsg)
 	}
 
 	ch := make(chan string)
 	mc := MetricCollector{
-		ConsumerKafkaConn: consumerKafkaConn,
-		CreateOrder:       createOrder,
+		KafkaAdminClient:  kafkaAdminClient,
+		KafkaConsumerConn: kafkaConsumerConn,
 		Aggregator: Aggregator{
+			CreateOrder:   createOrder,
 			AggregateType: aggregateType,
 		},
-		Ch: ch,
+		Ch:          ch,
+		CreateOrder: createOrder,
 	}
 	fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector Create ####", createOrder))
 	return mc, nil

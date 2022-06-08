@@ -3,6 +3,13 @@ package mcis
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/bramvdbogaerde/go-scp"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
@@ -11,12 +18,6 @@ import (
 	sshrun "github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/ssh"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func CreateTelegrafConfigFile(installInfo common.AgentInstallInfo) (string, error) {
@@ -217,7 +218,7 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 
 	// 메타데이터 저장
-	if _, _, err = common.PutAgent(info); err != nil {
+	if _, _, err = common.PutAgent(info, 0, common.Enable, common.Healthy); err != nil {
 		common.CleanAgentInstall(info, &sshInfo, &osType, nil)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))
 	}

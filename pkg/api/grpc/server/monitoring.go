@@ -2,10 +2,11 @@ package server
 
 import (
 	"context"
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric/mcis"
 	"net/http"
 	"time"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric/mcis"
 
 	coreagent "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent"
 	agentcommon "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
@@ -371,10 +372,10 @@ func (c MonitoringService) GetVMMonNetworkInfo(ctx context.Context, request *pb.
 func (c MonitoringService) SetMonConfig(ctx context.Context, request *pb.MonitoringConfigRequest) (*pb.MonitoringConfigResponse, error) {
 	// convert grpc request to config struct
 	reqParams := config.Monitoring{
-		AgentInterval:     int(request.Item.AgentInterval),
-		CollectorInterval: int(request.Item.CollectorInterval),
-		MonitoringPolicy:  request.Item.MonitoringPolicy,
-		MaxHostCount:      int(request.Item.MaxHostCount),
+		AgentInterval:         int(request.Item.AgentInterval),
+		MCISCollectorInterval: int(request.Item.CollectorInterval),
+		MonitoringPolicy:      request.Item.MonitoringPolicy,
+		MaxHostCount:          int(request.Item.MaxHostCount),
 	}
 	monConfig, statusCode, err := coreconfig.SetMonConfig(reqParams)
 	if statusCode != http.StatusOK {

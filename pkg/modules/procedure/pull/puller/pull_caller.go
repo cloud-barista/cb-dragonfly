@@ -2,10 +2,11 @@ package puller
 
 import (
 	"fmt"
-	agentmetadata "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric/mcis"
 	"net/http"
 	"time"
+
+	agentmetadata "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/metric/mcis"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/metricstore/influxdb/v1"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
@@ -51,7 +52,6 @@ func (pc PullCaller) healthcheck(uuid string, agent agentmetadata.AgentInfo) err
 	resp, _ := client.Get(agentUrl)
 	if resp != nil {
 		if resp.StatusCode == http.StatusNoContent {
-			agent.AgentHealth = string(agentmetadata.Healthy)
 			_, _, err := agentmetadata.PutAgent(agentmetadata.AgentInstallInfo{
 				NsId:        agent.NsId,
 				McisId:      agent.McisId,
@@ -59,7 +59,7 @@ func (pc PullCaller) healthcheck(uuid string, agent agentmetadata.AgentInfo) err
 				CspType:     agent.CspType,
 				PublicIp:    agent.PublicIp,
 				ServiceType: agent.ServiceType,
-			})
+			}, 0, agentmetadata.Enable, agentmetadata.Healthy)
 			if err != nil {
 				return err
 			}
@@ -86,15 +86,13 @@ func (pc PullCaller) pullMetric(uuid string, agent agentmetadata.AgentInfo) {
 
 		// Update Agent Health
 		if statusCode == http.StatusOK && agent.AgentHealth == string(agentmetadata.Unhealthy) {
-			agent.AgentHealth = string(agentmetadata.Healthy)
 			_, _, err := agentmetadata.PutAgent(agentmetadata.AgentInstallInfo{
+				ServiceType: agent.ServiceType,
 				NsId:        agent.NsId,
 				McisId:      agent.McisId,
 				VmId:        agent.VmId,
 				CspType:     agent.CspType,
-				PublicIp:    agent.PublicIp,
-				ServiceType: agent.ServiceType,
-			})
+			}, 0, agentmetadata.Enable, agentmetadata.Healthy)
 			if err != nil {
 				continue
 			}
@@ -102,7 +100,6 @@ func (pc PullCaller) pullMetric(uuid string, agent agentmetadata.AgentInfo) {
 		if statusCode != http.StatusOK {
 			agent.AgentUnhealthyRespCnt += 1
 			if agent.AgentUnhealthyRespCnt > AgentUnhealthyCnt {
-				agent.AgentHealth = string(agentmetadata.Unhealthy)
 				_, _, err := agentmetadata.PutAgent(agentmetadata.AgentInstallInfo{
 					NsId:        agent.NsId,
 					McisId:      agent.McisId,
@@ -110,7 +107,7 @@ func (pc PullCaller) pullMetric(uuid string, agent agentmetadata.AgentInfo) {
 					CspType:     agent.CspType,
 					PublicIp:    agent.PublicIp,
 					ServiceType: agent.ServiceType,
-				})
+				}, agent.AgentUnhealthyRespCnt, agentmetadata.Enable, agentmetadata.Unhealthy)
 				if err != nil {
 					continue
 				}

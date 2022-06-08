@@ -1,11 +1,12 @@
 package collector
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
+	agentmetadata "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	v1 "github.com/cloud-barista/cb-dragonfly/pkg/storage/metricstore/influxdb/v1"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
@@ -21,27 +22,46 @@ type TelegrafMetric struct {
 }
 
 type Aggregator struct {
+	CreateOrder   int
 	AggregateType types.AggregateType
 }
 
-func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topic string) (bool, error) {
+func (a *Aggregator) AggregateMetric(kafkaAdminClient *kafka.AdminClient, kafkaConsumerConn *kafka.Consumer, topic string) {
 	curTime := time.Now().Unix()
 	reconnectTry := 0
 	var topicMsgBytes [][]byte
 
 	// 토픽 메세지 조회
 	for {
+
 		reconnectTry++
 
-		topicMsg, err := kafkaConn.ReadMessage(5 * time.Second)
+		// 토픽 조회 재시도 횟수 제한 체크
+		if reconnectTry >= types.ReadConnectionTimeout {
+			//errMsg := fmt.Sprintf("exceed maximum kafka connection try, try count=%d", reconnectTry)
+			//util.GetLogger().Info(errMsg)
+
+			// 토픽 조회 재시도 횟수 제한 초과 시 1초 sleep 처리
+			time.Sleep(1 * time.Second)
+
+			break
+		}
+
+		topicMsg, err := kafkaConsumerConn.ReadMessage(5 * time.Second)
 		if err != nil {
-			errMsg := fmt.Sprintf("fail to read topic message with topic %s, error=%s", topic, err)
-			util.GetLogger().Error(errMsg)
+			//errMsg := fmt.Sprintf("fail to read topic message with topic %s, error=%s", topic, err)
+			//util.GetLogger().Info(errMsg)
+
+			// 메세지 큐 조회 에러 시 1초 sleep 처리
+			time.Sleep(1 * time.Second)
+
 			continue
 		}
+
 		if topicMsg != nil {
 			// 토픽 메세지 저장
 			topicMsgBytes = append(topicMsgBytes, topicMsg.Value)
+			//fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector - add topic %d ####", a.CreateOrder, len(topicMsgBytes)))
 			// 토픽 생성 시간 체크
 			if topicMsg.Timestamp.Unix() > curTime {
 				break
@@ -50,20 +70,71 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topic string) (b
 			reconnectTry = 0
 			topicMsg = nil
 		}
-
-		// 토픽 타임아웃 재시도 횟수 제한 체크
-		if reconnectTry >= types.ReadConnectionTimeout {
-			errMsg := fmt.Sprintf("exceed maximum kafka connection %d", reconnectTry)
-			util.GetLogger().Error(errMsg)
-			break
-		}
 	}
 
+	// 에이전트 메타데이터 정보 조회
+	agentInfo, err := agentmetadata.GetAgentByUUID(topic)
+	if agentInfo == nil || err != nil {
+		errMsg := fmt.Sprintf("failed to get agent metadata with UUID %s, error=%s", topic, err.Error())
+		util.GetLogger().Error(errMsg)
+	}
+
+	// 토픽에 모니터링 데이더가 특정 횟수 이상 쌓이지 않을 경우 에이전트 Unhealthy 처리
 	if len(topicMsgBytes) == 0 {
-		return false, errors.New("failed to get monitoring data from kafka, data bytes is zero")
+		util.GetLogger().Info("failed to get monitoring data from kafka, data bytes is zero")
+
+		// 이미 에이전트 헬스체크 상태가 Unhealthy 경우에는 메타데이터 업데이트 스킵
+		if agentmetadata.AgentHealth(agentInfo.AgentHealth) == agentmetadata.Unhealthy {
+			return
+		}
+
+		// 에이전트 메타데이터 헬스체크 상태 설정 변경
+		updatedAgentInfo := agentmetadata.AgentInstallInfo{
+			ServiceType: agentInfo.ServiceType,
+			NsId:        agentInfo.NsId,
+			Mck8sId:     agentInfo.Mck8sId,
+		}
+		agentInfo.AgentUnhealthyRespCnt += 1
+		curAgentHealthy := agentmetadata.Healthy
+		if agentInfo.AgentUnhealthyRespCnt > 5 {
+			curAgentHealthy = agentmetadata.Unhealthy
+		}
+
+		// 에이전트 메타데이터 헬스체크 상태 변경
+		_, _, err = agentmetadata.PutAgent(updatedAgentInfo, agentInfo.AgentUnhealthyRespCnt, agentmetadata.Enable, curAgentHealthy)
+		if err != nil {
+			util.GetLogger().Error(err)
+		}
+		fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector - update AgentUnhealthyRespCnt %d ####", a.CreateOrder, agentInfo.AgentUnhealthyRespCnt))
+
+		if curAgentHealthy == agentmetadata.Unhealthy {
+			fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector - delete Topic %s ####", a.CreateOrder, topic))
+			_, err := kafkaAdminClient.DeleteTopics(context.Background(), []string{topic})
+			if err != nil {
+				errMsg := fmt.Sprintf("failed to delete topic %s, error=%s", topic, err.Error())
+				util.GetLogger().Error(errMsg)
+			}
+		}
+
+		return
 	}
 
-	// TODO: 최초 토픽 데이터 처리 시 에이전트 메타데이터 헬스상태 변경
+	// 토픽 데이터 처리 시 에이전트 메타데이터 헬스상태 변경
+	if agentmetadata.AgentHealth(agentInfo.AgentHealth) == agentmetadata.Unhealthy {
+		// 에이전트 메타데이터 헬스체크 상태 설정 변경
+		updatedAgentInfo := agentmetadata.AgentInstallInfo{
+			ServiceType: agentInfo.ServiceType,
+			NsId:        agentInfo.NsId,
+			Mck8sId:     agentInfo.Mck8sId,
+		}
+
+		// 에이전트 메타데이터 헬스체크 상태 변경
+		_, _, err = agentmetadata.PutAgent(updatedAgentInfo, 0, agentmetadata.Enable, agentmetadata.Healthy)
+		if err != nil {
+			util.GetLogger().Error(err)
+		}
+		fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector - update AgentUnhealthyRespCnt %s ####", a.CreateOrder, agentmetadata.Healthy))
+	}
 
 	// 토픽 메세지 파싱
 	metrics := make([]TelegrafMetric, len(topicMsgBytes))
@@ -77,8 +148,6 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topic string) (b
 
 	// 모니터링 데이터 처리
 	a.Aggregate(metrics)
-
-	return true, nil
 }
 
 // Aggregate 쿠버네티스 노드, 파드 메트릭 처리 및 저장
@@ -103,54 +172,58 @@ func (a *Aggregator) aggregateNodeMetric(metrics []TelegrafMetric) {
 		return metric.Name == "kubernetes_node"
 	})
 	nodeMetricArr := nodeMetricFilter.([]TelegrafMetric)
-	if nodeMetricArr != nil {
-		// 2. 전체 클러스터에서 노드 목록 추출
-		nodeNameFilter := funk.Uniq(funk.Get(nodeMetricArr, "Tags.node_name"))
-		if nodeNameFilter != nil {
-			nodeNameArr := nodeNameFilter.([]string)
+	if len(nodeMetricArr) == 0 {
+		return
+	}
 
-			// 개별 노드에 대한 모니터링 메트릭 처리 및 저장
-			for _, nodeName := range nodeNameArr {
-				currentNodeMetricArr := funk.Filter(nodeMetricArr, func(metric TelegrafMetric) bool {
-					return metric.Tags["node_name"] == nodeName
-				})
-				nodeMetric := aggregateMetric(metricName, currentNodeMetricArr.([]TelegrafMetric), string(a.AggregateType))
-				err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, nodeMetric.Name, nodeMetric.Tags, nodeMetric.Fields)
-				if err != nil {
-					util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
-					continue
-				}
-			}
+	// 2. 전체 클러스터에서 노드 목록 추출
+	nodeNameFilter := funk.Uniq(funk.Get(nodeMetricArr, "Tags.node_name"))
+	nodeNameArr := nodeNameFilter.([]string)
+
+	// 개별 노드에 대한 모니터링 메트릭 처리 및 저장
+	for _, nodeName := range nodeNameArr {
+		currentNodeMetricArr := funk.Filter(nodeMetricArr, func(metric TelegrafMetric) bool {
+			return metric.Tags["node_name"] == nodeName
+		})
+		nodeMetric := aggregateMetric(metricName, currentNodeMetricArr.([]TelegrafMetric), string(a.AggregateType))
+		err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, nodeMetric.Name, nodeMetric.Tags, nodeMetric.Fields)
+		if err != nil {
+			util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
+			continue
 		}
 	}
 }
 
 // aggregateMetric 쿠버네티스 파드 메트릭 처리 및 저장
 func (a *Aggregator) aggregatePodMetric(metrics []TelegrafMetric, metricName string) {
+	// 데이터가 없을 경우
+	if len(metrics) == 0 {
+		return
+	}
+
 	// 1. 토픽 메세지에서 파드 메트릭 메세지를 필터링
 	podMetricFilter := funk.Filter(metrics, func(metric TelegrafMetric) bool {
 		return metric.Name == metricName
 	})
 	podMetricArr := podMetricFilter.([]TelegrafMetric)
+	if len(podMetricArr) == 0 {
+		return
+	}
 
 	// 2. 파드 별 메트릭 처리
-	if podMetricArr != nil {
-		podNameFilter := funk.Uniq(funk.Get(podMetricArr, "Tags.pod_name"))
-		if podNameFilter != nil {
-			podNameArr := podNameFilter.([]string)
+	podNameFilter := funk.Uniq(funk.Get(podMetricArr, "Tags.pod_name"))
+	podNameArr := podNameFilter.([]string)
 
-			// 3. 단일 파드에 대한 파드 메트릭 처리 및 저장
-			for _, podName := range podNameArr {
-				currentPodMetricArr := funk.Filter(podMetricArr, func(metric TelegrafMetric) bool {
-					return metric.Tags["pod_name"] == podName
-				})
-				podMetric := aggregateMetric(metricName, currentPodMetricArr.([]TelegrafMetric), string(a.AggregateType))
-				err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, podMetric.Name, podMetric.Tags, podMetric.Fields)
-				if err != nil {
-					util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
-					continue
-				}
-			}
+	// 3. 단일 파드에 대한 파드 메트릭 처리 및 저장
+	for _, podName := range podNameArr {
+		currentPodMetricArr := funk.Filter(podMetricArr, func(metric TelegrafMetric) bool {
+			return metric.Tags["pod_name"] == podName
+		})
+		podMetric := aggregateMetric(metricName, currentPodMetricArr.([]TelegrafMetric), string(a.AggregateType))
+		err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, podMetric.Name, podMetric.Tags, podMetric.Fields)
+		if err != nil {
+			util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
+			continue
 		}
 	}
 }

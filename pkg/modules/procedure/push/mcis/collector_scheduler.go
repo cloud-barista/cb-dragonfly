@@ -118,7 +118,7 @@ func NewCollectorScheduler(wg *sync.WaitGroup, manager *CollectManager) (*Collec
 
 func (cScheduler CollectorScheduler) Scheduler() error {
 
-	interval, _ := cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "collector_interval")
+	interval, _ := cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "mcis_collector_interval")
 	aggreTime, _ := strconv.Atoi(*interval)
 	topicQue := cScheduler.topicQue
 	cPolicy := cScheduler.cm.CollectorPolicy

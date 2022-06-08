@@ -3,13 +3,14 @@ package common
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"strings"
+
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	sshrun "github.com/cloud-barista/cb-spider/cloud-control-manager/vm-ssh"
-	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"strings"
 )
 
 const (

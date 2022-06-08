@@ -2,12 +2,13 @@ package agent
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 type MetaDataListType struct {
@@ -138,12 +139,19 @@ func PutAgentMetadata(c echo.Context) error {
 		CspType:     params.CspType,
 		Mck8sId:     params.Mck8sId,
 	}
+
 	// 메타데이터 조회
-	if _, err := common.GetAgent(requestInfo); err != nil {
+	existAgentMetadata, err := common.GetAgent(requestInfo)
+	if err != nil {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("failed to get metadata before update metadata, error=%s", err)))
 	}
+
 	// 메타데이터 수정
-	agentUUID, agentMetadata, err := common.PutAgent(requestInfo)
+	agentUUID, agentMetadata, err := common.PutAgent(requestInfo,
+		existAgentMetadata.AgentUnhealthyRespCnt,
+		common.AgentState(existAgentMetadata.AgentState),
+		common.AgentHealth(existAgentMetadata.AgentHealth))
+
 	errQue := util.RingQueuePut(types.TopicAdd, agentUUID)
 	if err != nil || errQue != nil {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("failed to update metadata, error=%s", err)))

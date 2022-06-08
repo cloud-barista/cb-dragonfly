@@ -3,11 +3,12 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/mcis"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/mck8s"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
-	"net/http"
 )
 
 func InstallAgent(info common.AgentInstallInfo) (int, error) {

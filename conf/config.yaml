@@ -32,7 +32,8 @@ agent:
 # monitoring interval configuration info
 monitoring:
   agent_interval: 2                                 # agent interval (s)
-  collector_interval: 10                            # aggregate interval (s)
+  mcis_collector_interval: 10                       # aggregate interval (s)
+  mck8s_collector_interval: 60                      # aggregate interval (s)
   max_host_count:  5                                # maximum host count per collector
   monitoring_policy: "agentCount"                   # "agentCount" => The number of agent, "csp" => csp group
   default_policy: "push"                            # push, pull
