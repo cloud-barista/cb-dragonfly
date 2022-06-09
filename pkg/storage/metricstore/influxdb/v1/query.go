@@ -67,13 +67,11 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 				Field("disk_free", info.AggegateType)
 
 		case "diskio":
-			fieldArr := []string{"kb_read", "kb_written", "ops_read", "ops_write", "read_time", "write_time"}
-			diskQuery = getPerSecMetric(info.MonitoringMechanism, info.VMID, info.MetricName, info.Period, fieldArr, info.Duration)
+			diskQuery = getPerSecMetric(info, "kb_read", "kb_written", "ops_read", "ops_write", "read_time", "write_time")
 			return diskQuery, nil
 
 		case "net":
-			fieldArr := []string{"bytes_in", "bytes_out", "pkts_in", "pkts_out", "err_in", "err_out", "drop_in", "drop_out"}
-			diskQuery = getPerSecMetric(info.MonitoringMechanism, info.VMID, info.MetricName, info.Period, fieldArr, info.Duration)
+			diskQuery = getPerSecMetric(info, "bytes_in", "bytes_out", "pkts_in", "pkts_out", "err_in", "err_out", "drop_in", "drop_out")
 			return diskQuery, nil
 
 		default:
@@ -104,11 +102,8 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 				Field("rootfs_used_bytes", info.AggegateType)
 
 		case "kubernetes_pod_network":
-			query = influxBuilder.NewQuery().On(info.MetricName).
-				Field("rx_bytes", info.AggegateType).
-				Field("rx_errors", info.AggegateType).
-				Field("tx_bytes", info.AggegateType).
-				Field("tx_errors", info.AggegateType)
+			networkQuery := getPerSecMetric(info, "rx_bytes", "rx_errors", "tx_bytes", "tx_errors")
+			return networkQuery, nil
 
 		default:
 			return "", errors.New("not found metric")
@@ -191,7 +186,7 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 						GroupByTime(timeCriteria).
 						GroupByTag("\"nsId\"").
 						GroupByTag("\"mck8sId\"").
-						GroupByTag("\"node_name\"").
+						GroupByTag("\"namespace\"").
 						GroupByTag("\"pod_name\"").
 						Fill("0").
 						OrderByTime("ASC")
@@ -213,11 +208,11 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 	return queryString, nil
 }
 
-func getPerSecMetric(isPUSH bool, vmId, metric, period string, fieldArr []string, duration string) string {
+func getPerSecMetric(info types.DBMetricRequestInfo, fieldArr ...string) string {
 	var query string
 
 	var timeCriteria string
-	switch period {
+	switch info.Period {
 	case "m":
 		timeCriteria = "1m"
 	case "h":
@@ -240,12 +235,27 @@ func getPerSecMetric(isPUSH bool, vmId, metric, period string, fieldArr []string
 	var whereQueryForm string
 
 	// 메트릭 조회 조건 쿼리 생성
-	if isPUSH {
-		whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"vmId\"='%s' GROUP BY time(%s) fill(0)"
-		query += fmt.Sprintf(whereQueryForm, metric, duration, vmId, timeCriteria)
+	if info.MonitoringMechanism {
+		if util.CheckMCK8SType(info.ServiceType) {
+			if strings.EqualFold(info.MCK8SReqInfo.GroupBy, types.Node) {
+				whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"nsId\"='%s' AND \"mck8sId\"='%s' AND \"node_name\"='%s' GROUP BY time(%s), \"nsId\", \"mck8sId\", \"node_name\" fill(0)"
+				query += fmt.Sprintf(whereQueryForm, info.MetricName, info.Duration, info.NsID, info.ServiceID, info.MCK8SReqInfo.Node, timeCriteria)
+			}
+			if strings.EqualFold(info.MCK8SReqInfo.GroupBy, types.Namespace) {
+				whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"nsId\"='%s' AND \"mck8sId\"='%s' AND \"namespace\"='%s' GROUP BY time(%s), \"nsId\", \"mck8sId\", \"namespace\" fill(0)"
+				query += fmt.Sprintf(whereQueryForm, info.MetricName, info.Duration, info.NsID, info.ServiceID, info.MCK8SReqInfo.Namespace, timeCriteria)
+			}
+			if strings.EqualFold(info.MCK8SReqInfo.GroupBy, string(types.MCK8S_POD)) {
+				whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"nsId\"='%s' AND \"mck8sId\"='%s' AND \"namespace\"='%s' AND \"pod_name\"='%s' GROUP BY time(%s), \"nsId\", \"mck8sId\", \"namespace\", \"pod_name\" fill(0)"
+				query += fmt.Sprintf(whereQueryForm, info.MetricName, info.Duration, info.NsID, info.ServiceID, info.MCK8SReqInfo.Namespace, info.MCK8SReqInfo.Pod, timeCriteria)
+			}
+		} else {
+			whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"vmId\"='%s' GROUP BY time(%s) fill(0)"
+			query += fmt.Sprintf(whereQueryForm, info.MetricName, info.Duration, info.VMID, timeCriteria)
+		}
 	} else {
 		whereQueryForm = " FROM \"%s\" WHERE time > (now()+1m) - %s AND \"vmId\"='%s' GROUP BY time(%s), \"vmId\", \"nsId\", \"mcisId\" fill(0)"
-		query += fmt.Sprintf(whereQueryForm, metric, duration, vmId, timeCriteria)
+		query += fmt.Sprintf(whereQueryForm, info.MetricName, info.Duration, info.VMID, timeCriteria)
 	}
 
 	return query
