@@ -3,9 +3,10 @@ package v1
 import (
 	"errors"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"sync"
 	"time"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
@@ -208,7 +209,8 @@ func (s Storage) WriteOnDemandMetric(dbName string, metricName string, tagArr ma
 	}
 
 	now := time.Now().UTC()
-	metricPoint, err := influxdbClient.NewPoint(metricName, tagArr, metricVal, now)
+	timestamp := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), 0, 0, now.Location())
+	metricPoint, err := influxdbClient.NewPoint(metricName, tagArr, metricVal, timestamp)
 	if err != nil {
 		util.GetLogger().Error("failed to create InfluxDB metric point: ", err)
 		return err
