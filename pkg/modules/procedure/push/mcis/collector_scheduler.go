@@ -149,9 +149,12 @@ func (cScheduler CollectorScheduler) Scheduler() error {
 			addTopicList = util.GetAllTopicBySort(util.Unique(addTopicList, true))
 			delTopicList = util.GetAllTopicBySort(util.Unique(util.ReturnDiffTopicList(delTopicList, addTopicList), true))
 		}
-		fmt.Println("### Now Scheduling - MCIS collector scheduler ###")
-		fmt.Println("## Add Topics Queue ##", addTopicList)
-		fmt.Println("## Del Topics Queue ##", delTopicList)
+
+		curTime := time.Now().Format(time.RFC3339)
+		fmt.Printf("[%s] <MCIS> collector scheduler - Now Scheduling ###\n", curTime)
+		fmt.Printf("[%s] <MCIS> Add Topics Queue ## : %s\n", curTime, addTopicList)
+		fmt.Printf("[%s] <MCIS> Del Topics Queue ## : %s\n", curTime, delTopicList)
+
 		// collector 운용 정책에 따라 addTopicList 와 delTopicList 를 아래 메소드를 통해 수행합니다.
 		switch cPolicy {
 		case types.AgentCntCollectorPolicy:

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
@@ -39,12 +40,12 @@ func (mc *MetricCollector) DoCollect(wg *sync.WaitGroup) error {
 						return errors.New(errMsg)
 					}
 
-					fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector Delete ####", mc.CreateOrder))
+					fmt.Printf("[%s] <MCK8S> DELETE Group_%d collector\n", time.Now().Format(time.RFC3339), mc.CreateOrder)
 					return nil
 				}
 
 				deliveredTopic := chanData
-				fmt.Println(fmt.Sprintf("Group_%d MCK8S collector Delivered : %s", mc.CreateOrder, deliveredTopic))
+				fmt.Printf("[%s] <MCK8S> EXECUTE Group_%d collector - topic: %s\n", time.Now().Format(time.RFC3339), mc.CreateOrder, deliveredTopic)
 
 				// 토픽 데이터 구독
 				err := mc.KafkaConsumerConn.SubscribeTopics([]string{deliveredTopic}, nil)
@@ -98,6 +99,6 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 		Ch:          ch,
 		CreateOrder: createOrder,
 	}
-	fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector Create ####", createOrder))
+	fmt.Printf("[%s] <MCK8S> CREATE collector\n", time.Now().Format(time.RFC3339))
 	return mc, nil
 }

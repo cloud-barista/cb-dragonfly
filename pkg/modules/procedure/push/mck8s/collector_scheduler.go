@@ -144,9 +144,10 @@ func (cScheduler CollectorScheduler) DoSchedule() error {
 			delTopicList = util.GetAllTopicBySort(util.Unique(util.ReturnDiffTopicList(delTopicList, addTopicList), true))
 		}
 
-		fmt.Println("### Now Scheduling - MCK8S collector scheduler ###")
-		fmt.Println("## Add Topics Queue ##", addTopicList)
-		fmt.Println("## Del Topics Queue ##", delTopicList)
+		curTime := time.Now().Format(time.RFC3339)
+		fmt.Printf("[%s] <MCK8S> collector scheduler - Now Scheduling ###\n", curTime)
+		fmt.Printf("[%s] <MCK8S> Add Topics Queue ## : %s\n", curTime, addTopicList)
+		fmt.Printf("[%s] <MCK8S> Del Topics Queue ## : %s\n", curTime, delTopicList)
 
 		// 콜렉터 구동
 		switch cPolicy {
@@ -237,7 +238,7 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCollector(delTopicList []stri
 		topic := delTopicList[i]
 
 		topicMsg, _ := cbStore.StoreGet(fmt.Sprintf("%s/%s", types.MCK8STopic, topic))
-		if topicMsg != nil {
+		if *topicMsg == "" {
 			continue
 		}
 

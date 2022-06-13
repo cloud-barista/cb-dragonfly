@@ -74,16 +74,19 @@ func (a *Aggregator) AggregateMetric(kafkaAdminClient *kafka.AdminClient, kafkaC
 
 	// 에이전트 메타데이터 정보 조회
 	agentInfo, err := agentmetadata.GetAgentByUUID(topic)
-	if agentInfo == nil || err != nil {
-		errMsg := fmt.Sprintf("failed to get agent metadata with UUID %s, error=%s", topic, err.Error())
-		util.GetLogger().Error(errMsg)
+	if err != nil {
+		//errMsg := fmt.Sprintf("failed to get agent metadata with UUID %s, error=%s", topic, err.Error())
+		//util.GetLogger().Error(errMsg)
 	}
 
 	// 토픽에 모니터링 데이더가 특정 횟수 이상 쌓이지 않을 경우 에이전트 Unhealthy 처리
 	if len(topicMsgBytes) == 0 {
-		util.GetLogger().Info("failed to get monitoring data from kafka, data bytes is zero")
+		//util.GetLogger().Info("failed to get monitoring data from kafka, data bytes is zero")
 
 		// 이미 에이전트 헬스체크 상태가 Unhealthy 경우에는 메타데이터 업데이트 스킵
+		if agentInfo == nil {
+			return
+		}
 		if agentmetadata.AgentHealth(agentInfo.AgentHealth) == agentmetadata.Unhealthy {
 			return
 		}
@@ -105,10 +108,10 @@ func (a *Aggregator) AggregateMetric(kafkaAdminClient *kafka.AdminClient, kafkaC
 		if err != nil {
 			util.GetLogger().Error(err)
 		}
-		fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector - update AgentUnhealthyRespCnt %d ####", a.CreateOrder, agentInfo.AgentUnhealthyRespCnt))
+		fmt.Printf("[%s] <MCK8S> Group_%d collector - update AgentUnhealthyRespCnt %d\n", time.Now().Format(time.RFC3339), a.CreateOrder, agentInfo.AgentUnhealthyRespCnt)
 
 		if curAgentHealthy == agentmetadata.Unhealthy {
-			fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector - delete Topic %s ####", a.CreateOrder, topic))
+			fmt.Printf("[%s] <MCK8S> Group_%d collector - delete Topic %s\n", time.Now().Format(time.RFC3339), a.CreateOrder, topic)
 			_, err := kafkaAdminClient.DeleteTopics(context.Background(), []string{topic})
 			if err != nil {
 				errMsg := fmt.Sprintf("failed to delete topic %s, error=%s", topic, err.Error())
@@ -120,20 +123,20 @@ func (a *Aggregator) AggregateMetric(kafkaAdminClient *kafka.AdminClient, kafkaC
 	}
 
 	// 토픽 데이터 처리 시 에이전트 메타데이터 헬스상태 변경
-	if agentmetadata.AgentHealth(agentInfo.AgentHealth) == agentmetadata.Unhealthy {
-		// 에이전트 메타데이터 헬스체크 상태 설정 변경
-		updatedAgentInfo := agentmetadata.AgentInstallInfo{
-			ServiceType: agentInfo.ServiceType,
-			NsId:        agentInfo.NsId,
-			Mck8sId:     agentInfo.Mck8sId,
+	if agentInfo != nil {
+		if agentmetadata.AgentHealth(agentInfo.AgentHealth) == agentmetadata.Unhealthy {
+			// 에이전트 메타데이터 헬스체크 상태 변경
+			updatedAgentInfo := agentmetadata.AgentInstallInfo{
+				ServiceType: agentInfo.ServiceType,
+				NsId:        agentInfo.NsId,
+				Mck8sId:     agentInfo.Mck8sId,
+			}
+			_, _, err = agentmetadata.PutAgent(updatedAgentInfo, 0, agentmetadata.Enable, agentmetadata.Healthy)
+			if err != nil {
+				util.GetLogger().Error(err)
+			}
+			fmt.Printf("[%s] <MCK8S> Group_%d collector - update AgentStatus %s\n", time.Now().Format(time.RFC3339), a.CreateOrder, agentmetadata.Healthy)
 		}
-
-		// 에이전트 메타데이터 헬스체크 상태 변경
-		_, _, err = agentmetadata.PutAgent(updatedAgentInfo, 0, agentmetadata.Enable, agentmetadata.Healthy)
-		if err != nil {
-			util.GetLogger().Error(err)
-		}
-		fmt.Println(fmt.Sprintf("#### Group_%d MCK8S collector - update AgentUnhealthyRespCnt %s ####", a.CreateOrder, agentmetadata.Healthy))
 	}
 
 	// 토픽 메세지 파싱
@@ -152,6 +155,8 @@ func (a *Aggregator) AggregateMetric(kafkaAdminClient *kafka.AdminClient, kafkaC
 
 // Aggregate 쿠버네티스 노드, 파드 메트릭 처리 및 저장
 func (a *Aggregator) Aggregate(metrics []TelegrafMetric) {
+
+	fmt.Printf("[%s] <MCK8S> EXECUTE Group_%d aggregator\n", time.Now().Format(time.RFC3339), a.CreateOrder)
 
 	// 쿠버네티스 노드 메트릭 처리 및 저장
 	a.aggregateNodeMetric(metrics)

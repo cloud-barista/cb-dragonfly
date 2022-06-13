@@ -55,8 +55,6 @@ func startMCISPushModule(wg *sync.WaitGroup) error {
 // startMCK8SPushModule MCK8S 수집 모듈 구동
 func startMCK8SPushModule(wg *sync.WaitGroup) error {
 
-	fmt.Println("start MCK8S monitoring module ...")
-
 	// 콜렉터 매니저 생성
 	cm, err := push_mck8s.NewCollectorManager(wg)
 	if err != nil {
