@@ -48,6 +48,7 @@ func CreateTelegrafConfigFile(installInfo common.AgentInstallInfo) (string, erro
 	strConf = strings.ReplaceAll(strConf, "{{server_port}}", fmt.Sprintf("%d", serverPort))
 
 	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_mcis_%s_%s_%s", installInfo.NsId, installInfo.McisId, installInfo.VmId, installInfo.CspType))
+	strConf = strings.ReplaceAll(strConf, "{{agent_collect_interval}}", fmt.Sprintf("%ds", config.GetInstance().Monitoring.AgentInterval))
 
 	var kafkaPort int
 	if config.GetInstance().GetMonConfig().DeployType == types.Helm {

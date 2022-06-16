@@ -61,6 +61,8 @@ func CreateTelegrafConfigConfigmap(info common.AgentInstallInfo, yamlData unstru
 	strConf = strings.ReplaceAll(strConf, "{{server_port}}", fmt.Sprintf("%d", serverPort))
 	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", mechanism)
 
+	strConf = strings.ReplaceAll(strConf, "{{agent_collect_interval}}", fmt.Sprintf("%ds", config.GetInstance().Monitoring.AgentInterval))
+
 	var kafkaPort int
 	if config.GetInstance().GetMonConfig().DeployType == types.Helm {
 		kafkaPort = config.GetInstance().Kafka.HelmPort

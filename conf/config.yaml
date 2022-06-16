@@ -31,7 +31,7 @@ agent:
 
 # monitoring interval configuration info
 monitoring:
-  agent_interval: 2                                 # agent interval (s)
+  agent_interval: 2                                 # agent interval (s)  mcis_agent: 2s(default)  mcks_agent: 30s(default)
   mcis_collector_interval: 10                       # aggregate interval (s)
   mck8s_collector_interval: 60                      # aggregate interval (s)
   max_host_count:  5                                # maximum host count per collector
