@@ -14,7 +14,6 @@ require (
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/Scalingo/go-utils v7.1.0+incompatible
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/bramvdbogaerde/go-scp v1.0.0
 	github.com/cloud-barista/cb-log v0.4.0
 	github.com/cloud-barista/cb-spider v0.4.5
