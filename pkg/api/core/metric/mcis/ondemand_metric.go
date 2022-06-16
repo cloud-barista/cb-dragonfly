@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
-	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mcis/collector"
+	"github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/push/mcis/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"

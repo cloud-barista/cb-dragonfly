@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mck8s/collector"
+	"github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/push/mck8s/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 )

@@ -2,12 +2,13 @@ package pull
 
 import (
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"sync"
 	"time"
 
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
+
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/pull/puller"
+	"github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/pull/puller"
 )
 
 type PullManager struct {

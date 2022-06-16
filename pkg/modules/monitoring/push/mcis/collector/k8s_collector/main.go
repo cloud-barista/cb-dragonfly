@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mcis/collector"
+	"github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/push/mcis/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"github.com/confluentinc/confluent-kafka-go/kafka"

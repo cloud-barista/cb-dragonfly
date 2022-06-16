@@ -3,8 +3,9 @@ package puller
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"time"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/cbstore"

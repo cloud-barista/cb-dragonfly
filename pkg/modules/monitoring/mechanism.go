@@ -1,4 +1,4 @@
-package procedure
+package monitoring
 
 import (
 	"errors"
@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/pull"
-	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/pull/puller"
-	push_mcis "github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mcis"
-	push_mck8s "github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mck8s"
+	"github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/pull"
+	"github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/pull/puller"
+	push_mcis "github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/push/mcis"
+	push_mck8s "github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/push/mck8s"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"

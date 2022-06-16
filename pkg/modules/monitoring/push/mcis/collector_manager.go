@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
-	"github.com/cloud-barista/cb-dragonfly/pkg/modules/procedure/push/mcis/collector"
+	"github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/push/mcis/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	apiv1 "k8s.io/api/core/v1"
