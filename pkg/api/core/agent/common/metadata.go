@@ -41,7 +41,7 @@ type AgentInfo struct {
 	NsId                  string `json:"ns_id"`
 	McisId                string `json:"mcis_id"`
 	VmId                  string `json:"vm_id"`
-	CspType               string `json:"csp_type"`
+	CspType               string `json:"cspType"`
 	AgentType             string `json:"agent_type"`
 	AgentState            string `json:"agent_state"`
 	AgentHealth           string `json:"agent_health"`
