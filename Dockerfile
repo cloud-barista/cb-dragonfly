@@ -38,7 +38,7 @@ RUN apk add --no-cache \
     librdkafka-dev \
     pkgconf
 
-RUN go build -tags musl ${GO_FLAGS} -ldflags "${LD_FLAGS}" -o ${OUTPUT} ./pkg \
+RUN go mod vendor && go build -tags musl ${GO_FLAGS} -ldflags "${LD_FLAGS}" -o ${OUTPUT} ./pkg \
     && chmod +x ${OUTPUT}
 
 ###################################################

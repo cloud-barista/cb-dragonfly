@@ -60,6 +60,8 @@ func InstallTelegraf(c echo.Context) error {
 		if params.Port == "" {
 			params.Port = "22"
 		}
+	} else {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage(fmt.Sprintf("unsupported agentType: %s", params.ServiceType)))
 	}
 
 	requestInfo := &agentcommon.AgentInstallInfo{

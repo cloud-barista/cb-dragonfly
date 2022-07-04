@@ -165,14 +165,7 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to register kafka domain, error=%s", err))
 	}
 
-	var dragonflyPort string
-	if config.GetInstance().Monitoring.DeployType == types.Helm {
-		dragonflyPort = strconv.Itoa(config.GetInstance().Dragonfly.HelmPort)
-	} else {
-		dragonflyPort = strconv.Itoa(config.GetInstance().Dragonfly.Port)
-	}
-
-	inputDragonflyDomain := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", config.GetInstance().Dragonfly.DragonflyIP+":"+dragonflyPort, "cb-dragonfly")
+	inputDragonflyDomain := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", config.GetInstance().Dragonfly.DragonflyIP, "cb-dragonfly")
 	_, err = sshrun.SSHRun(sshInfo, inputDragonflyDomain)
 	if err != nil {
 		common.CleanAgentInstall(info, &sshInfo, &osType, nil)
