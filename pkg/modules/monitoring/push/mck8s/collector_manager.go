@@ -3,13 +3,13 @@ package mcis
 import (
 	"errors"
 	"fmt"
-	"strings"
-	"sync"
-
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/push/mck8s/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
+	"strings"
+	"sync"
+	"time"
 )
 
 type CollectManager struct {
@@ -42,7 +42,8 @@ func (manager *CollectManager) CreateCollector(topic string) error {
 	manager.CollectorAddrMap[topic] = &newCollector
 
 	deployType := config.GetInstance().Monitoring.DeployType
-	if deployType == types.Dev || deployType == types.Compose {
+	//TODO: Helm 분리 및 개발
+	if deployType == types.Dev || deployType == types.Compose || deployType == types.Helm {
 		go func() {
 			err := newCollector.DoCollect(manager.WaitGroup)
 			if err != nil {
@@ -51,6 +52,11 @@ func (manager *CollectManager) CreateCollector(topic string) error {
 			}
 		}()
 	}
+
+	defer func(topicData string) {
+		curTime := time.Now().Format(time.RFC3339)
+		fmt.Printf("[%s] <MCK8S> Create collector - topic: %s\n", curTime, topicData)
+	}(topic)
 
 	return nil
 }
@@ -63,11 +69,16 @@ func (manager *CollectManager) DeleteCollector(topic string) error {
 
 	targetCollector := manager.CollectorAddrMap[topic]
 	deployType := config.GetInstance().Monitoring.DeployType
-	if deployType == types.Dev || deployType == types.Compose {
+	// TODO: Helm 개발 및 분리
+	if deployType == types.Dev || deployType == types.Compose || deployType == types.Helm {
 		// 콜렉터 채널에 종료 요청
 		targetCollector.Ch <- "close"
 	}
 
+	defer func(topicData string) {
+		curTime := time.Now().Format(time.RFC3339)
+		fmt.Printf("[%s] <MCK8S> Delete collector - topic: %s\n", curTime, topicData)
+	}(topic)
 	// 콜렉터 목록에서 콜렉터 삭제
 	delete(manager.CollectorAddrMap, topic)
 
