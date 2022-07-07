@@ -3,9 +3,10 @@ package v1
 import (
 	"errors"
 	"fmt"
-	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"sync"
 	"time"
+
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
@@ -208,7 +209,8 @@ func (s Storage) WriteOnDemandMetric(dbName string, metricName string, tagArr ma
 	}
 
 	now := time.Now().UTC()
-	metricPoint, err := influxdbClient.NewPoint(metricName, tagArr, metricVal, now)
+	timestamp := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), 0, 0, now.Location())
+	metricPoint, err := influxdbClient.NewPoint(metricName, tagArr, metricVal, timestamp)
 	if err != nil {
 		util.GetLogger().Error("failed to create InfluxDB metric point: ", err)
 		return err
@@ -222,14 +224,37 @@ func (s Storage) WriteOnDemandMetric(dbName string, metricName string, tagArr ma
 	return nil
 }
 
-func (s Storage) ReadMetric(isPush bool, nsId string, mcisId string, vmId string, metric string, period string, function string, duration string) (interface{}, error) {
-	var database string
-	if isPush {
+func (s Storage) ReadTagValuesByKey(info types.DBMetricRequestInfo, measurement, tagKey *string) (interface{}, error) {
+	database := PullDatabase
+	if info.MonitoringMechanism {
 		database = DefaultDatabase
-	} else {
-		database = PullDatabase
 	}
-	queryString, err := BuildQuery(isPush, vmId, metric, period, function, duration)
+	query := influxdbClient.NewQuery(fmt.Sprintf("SHOW TAG VALUES ON \"%s\" FROM \"%s\" WITH KEY = \"%s\"", database, *measurement, *tagKey), database, "")
+	if measurement == nil {
+		query = influxdbClient.NewQuery(fmt.Sprintf("SHOW TAG VALUES ON \"%s\" WITH KEY = \"%s\"", database, *tagKey), database, "")
+	}
+
+	res, _ := s.Client.Query(query)
+	if res.Err != "" {
+		return nil, errors.New(res.Err)
+	}
+	if len(res.Results) > 0 {
+		if len(res.Results[0].Series) > 0 {
+			return res.Results[0].Series[0], nil
+		}
+	}
+	return nil, nil
+}
+
+func (s Storage) ReadMetric(info types.DBMetricRequestInfo) (interface{}, error) {
+	database := PullDatabase
+	if info.MonitoringMechanism {
+		database = DefaultDatabase
+	}
+	var queryString string
+	var err error
+
+	queryString, err = BuildQuery(info)
 	if err != nil {
 		return nil, err
 	}
