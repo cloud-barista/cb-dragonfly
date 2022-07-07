@@ -13,21 +13,7 @@
 
 **Full Changelog**: https://github.com/cloud-barista/cb-dragonfly/compare/v0.5.1...v0.5.2
 
-
-# v0.5.0 (Affogato, 2021.12.16.)
-## Works with
-- CB-Tumblebug (https://github.com/cloud-barista/cb-tumblebug/releases/tag/v0.5.2)
-
-### API
- - Postman API URL:  https://documenter.getpostman.com/view/11342380/UzJFvJUi
-
-## What's Changed
-* Add MCK8S monitoring features by @inno-cloudbarista in https://github.com/cloud-barista/cb-dragonfly/pull/134
-* Add new MCK8s monitoring features in monitoring agents
-* Add new MCK8s monitoring API
-
-**Full Changelog**: https://github.com/cloud-barista/cb-dragonfly/compare/v0.5.1...v0.5.2
-
+---
 
 # v0.5.0 (Affogato, 2021.12.16.)
 
