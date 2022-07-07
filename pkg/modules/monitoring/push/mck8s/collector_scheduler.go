@@ -56,7 +56,8 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 
 	// 배포 방식에 따라 콜렉터 스케줄러 구동
 	deployType := config.GetInstance().Monitoring.DeployType
-	if deployType == types.Dev || deployType == types.Compose {
+	// TODO: Helm 모드 개발 및 분리
+	if deployType == types.Dev || deployType == types.Compose || deployType == types.Helm {
 		// 배포 방식이 개발 모드이거나 도커 모드일 경우
 
 		cbStore := cbstore.GetInstance()
@@ -83,13 +84,14 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 						}
 					}
 				}
-				_ = cbstore.GetInstance().StorePut(types.CollectorPolicy, cm.CollectorPolicy)
 			}
+			_ = cbstore.GetInstance().StorePut(types.CollectorPolicy, cm.CollectorPolicy)
 		}
-	} else if deployType == types.Helm {
-		// 배포 방식이 헬름 모드일 경우
-		// TODO: 헬름 환경 기반 구동
 	}
+	//else if deployType == types.Helm {
+	//	// 배포 방식이 헬름 모드일 경우
+	//	// TODO: 헬름 환경 기반 구동
+	//}
 
 	collectorScheduler := &CollectorScheduler{
 		cm:               cm,
@@ -238,7 +240,7 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCollector(delTopicList []stri
 		topic := delTopicList[i]
 
 		topicMsg, _ := cbStore.StoreGet(fmt.Sprintf("%s/%s", types.MCK8STopic, topic))
-		if *topicMsg == "" {
+		if topicMsg == nil {
 			continue
 		}
 
@@ -263,4 +265,13 @@ func (cScheduler CollectorScheduler) WriteCollectorMapToInMemoryDB() {
 	}
 	cMapBytes, _ := json.Marshal(inMemoryTopic)
 	_ = cbstore.GetInstance().StorePut(fmt.Sprintf("%s", types.MCK8SCollectorTopicMap), string(cMapBytes))
+
+	for _, topic := range inMemoryTopic.TopicMap {
+		if err := cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.MCK8STopic, topic), "0"); err != nil {
+			errMsg := fmt.Sprintf("[%s] MCK8S: Failed to save topic data in cbstore, topic: %s, error=%s", time.Now().Format(time.RFC3339), topic, err.Error())
+			fmt.Println(errMsg)
+			util.GetLogger().Error(errMsg)
+			return
+		}
+	}
 }

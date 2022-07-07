@@ -50,9 +50,7 @@ func InstallTelegraf(c echo.Context) error {
 				}
 			}
 		}
-	}
-	// MCIS 에이전트 form 파라미터 값 체크
-	if util.CheckMCISType(params.ServiceType) {
+	} else if util.CheckMCISType(params.ServiceType) {
 		// MCIS 에이전트 form 파라미터 값 체크
 		if !checkEmptyFormParam(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType) {
 			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter for mcis agent installation"))
@@ -60,6 +58,8 @@ func InstallTelegraf(c echo.Context) error {
 		if params.Port == "" {
 			params.Port = "22"
 		}
+	} else {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage(fmt.Sprintf("unsupported agentType: %s", params.ServiceType)))
 	}
 
 	requestInfo := &agentcommon.AgentInstallInfo{

@@ -294,7 +294,7 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 
 	// 메타데이터 저장
-	agentUUID, _, err := common.PutAgent(info, 0, common.Enable, common.Healthy)
+	agentUUID, _, err := common.PutAgent(info, 0, common.Enable, common.Unhealthy)
 	if err != nil {
 		//common.CleanAgentInstall(info, nil, nil, kubeClient)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))

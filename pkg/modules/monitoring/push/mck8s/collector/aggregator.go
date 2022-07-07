@@ -149,6 +149,7 @@ func (a *Aggregator) AggregateMetric(kafkaAdminClient *kafka.AdminClient, kafkaC
 		}
 	}
 
+	fmt.Printf("[%s] <MCK8S> Collected Topic %s : %d\n", time.Now().Format(time.RFC3339), topic, len(topicMsgBytes))
 	// 모니터링 데이터 처리
 	a.Aggregate(metrics)
 }

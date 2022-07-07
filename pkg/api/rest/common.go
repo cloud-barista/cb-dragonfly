@@ -32,7 +32,7 @@ type AgentType struct {
 	PublicIp string `json:"public_ip"`
 	UserName string `json:"user_name"`
 	SshKey   string `json:"ssh_key"`
-	CspType  string `json:"csp_type"`
+	CspType  string `json:"cspType"`
 	Port     string `json:"port"`
 }
 
