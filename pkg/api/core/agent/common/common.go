@@ -61,6 +61,12 @@ func CleanAgentInstall(info AgentInstallInfo, sshInfo *sshrun.SSHInfo, osType *s
 	sshrun.SSHRun(*sshInfo, removeRpmCmd)
 	removeDirCmd := fmt.Sprintf("sudo rm -rf /etc/telegraf/telegraf.conf")
 	sshrun.SSHRun(*sshInfo, removeDirCmd)
+
+	Cmd := fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", config.GetInstance().Dragonfly.DragonflyIP, "cb-dragonfly-kafka cb-dragonfly")
+	sshrun.SSHRun(*sshInfo, Cmd)
+
+	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", info.PublicIp, "cb-agent")
+	sshrun.SSHRun(*sshInfo, Cmd)
 }
 
 func GetPackageName(path string) (string, error) {

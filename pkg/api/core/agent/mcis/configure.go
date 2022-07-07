@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -158,18 +157,16 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 
 	// 카프카 도메인 정보 기입 /etc/hosts => agent에서 도메인 등록하도록 기능 변경
-	inputKafkaServerDomain := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", config.GetInstance().Dragonfly.DragonflyIP, "cb-dragonfly-kafka")
-	_, err = sshrun.SSHRun(sshInfo, inputKafkaServerDomain)
-	if err != nil {
+	inputDomain := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", config.GetInstance().Dragonfly.DragonflyIP, "cb-dragonfly-kafka cb-dragonfly")
+	if _, err = sshrun.SSHRun(sshInfo, inputDomain); err != nil {
 		common.CleanAgentInstall(info, &sshInfo, &osType, nil)
-		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to register kafka domain, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to register dragonfly domain, error=%s", err))
 	}
 
-	inputDragonflyDomain := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", config.GetInstance().Dragonfly.DragonflyIP, "cb-dragonfly")
-	_, err = sshrun.SSHRun(sshInfo, inputDragonflyDomain)
-	if err != nil {
+	inputAgentPublicIP := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", info.PublicIp, "cb-agent")
+	if _, err = sshrun.SSHRun(sshInfo, inputAgentPublicIP); err != nil {
 		common.CleanAgentInstall(info, &sshInfo, &osType, nil)
-		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to register kafka domain, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to register agent domain, error=%s", err))
 	}
 
 	// 공통 서비스 활성화 및 실행
@@ -264,23 +261,16 @@ func UninstallAgent(info common.AgentInstallInfo) (int, error) {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to uninstall agent, error=%s", err))
 	}
 
-	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", config.GetInstance().Dragonfly.DragonflyIP, "cb-dragonfly-kafka")
+	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", config.GetInstance().Dragonfly.DragonflyIP, "cb-dragonfly-kafka cb-dragonfly")
 	if _, err = sshrun.SSHRun(sshInfo, Cmd); err != nil {
 		common.CleanAgentInstall(info, &sshInfo, &osType, nil)
-		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete domain list, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete dragonfly domain list, error=%s", err))
 	}
 
-	var dragonflyPort string
-	if config.GetInstance().Monitoring.DeployType == types.Helm {
-		dragonflyPort = strconv.Itoa(config.GetInstance().Dragonfly.HelmPort)
-	} else {
-		dragonflyPort = strconv.Itoa(config.GetInstance().Dragonfly.Port)
-	}
-
-	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", config.GetInstance().Dragonfly.DragonflyIP+":"+dragonflyPort, "cb-dragonfly")
+	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", info.PublicIp, "cb-agent")
 	if _, err = sshrun.SSHRun(sshInfo, Cmd); err != nil {
 		common.CleanAgentInstall(info, &sshInfo, &osType, nil)
-		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete domain list, error=%s", err))
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete agent domain, error=%s", err))
 	}
 
 	// 에이전트 설치에 사용한 파일 폴더 채로 제거
