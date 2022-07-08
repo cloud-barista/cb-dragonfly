@@ -1,7 +1,7 @@
 
 # v0.6.0 (CafeLatte, 2022.07.08.)
 ## Works with
-- CB-Tumblebug (https://github.com/cloud-barista/cb-tumblebug/releases/tag/v0.5.2)
+- CB-Tumblebug (https://github.com/cloud-barista/cb-tumblebug/releases/tag/v0.6.0)
 
 ### API
  - Postman API URL:  https://documenter.getpostman.com/view/11342380/UzJFvJUi
@@ -11,7 +11,7 @@
 * Add new MCK8s monitoring features in monitoring agents
 * Add new MCK8s monitoring API
 
-**Full Changelog**: https://github.com/cloud-barista/cb-dragonfly/compare/v0.5.1...v0.5.2
+**Full Changelog**: https://github.com/cloud-barista/cb-dragonfly/compare/v0.5.1...v0.6.0
 
 ---
 
