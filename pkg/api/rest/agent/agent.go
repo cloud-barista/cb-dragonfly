@@ -2,6 +2,8 @@ package agent
 
 import (
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"github.com/labstack/echo/v4"
 	"io/ioutil"
@@ -87,14 +89,14 @@ func InstallTelegraf(c echo.Context) error {
 	return c.JSON(http.StatusOK, rest.SetMessage("agent installation is finished"))
 }
 
-// TODO: WINDOW Version
+// TODO: WINDOW Version GetWindowInstaller ...
 func GetWindowInstaller(c echo.Context) error {
 	rootPath := os.Getenv("CBMON_ROOT")
 	filePath := rootPath + "/file/pkg/windows/installer/cbinstaller_windows_amd64.zip"
 	return c.File(filePath)
 }
 
-// Telegraf config 파일 다운로드
+// GetTelegrafConfFile (윈도우 전용) Telegraf 설정 파일 다운로드
 func GetTelegrafConfFile(c echo.Context) error {
 	// Query 파라미터 가져오기
 	nsId := c.QueryParam("ns_id")
@@ -108,7 +110,7 @@ func GetTelegrafConfFile(c echo.Context) error {
 	}
 
 	rootPath := os.Getenv("CBMON_ROOT")
-	filePath := rootPath + "/file/conf/telegraf.conf"
+	filePath := rootPath + "/file/conf/mcis/telegraf.conf"
 
 	read, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -117,10 +119,29 @@ func GetTelegrafConfFile(c echo.Context) error {
 
 	// 파일 내의 변수 값 설정 (hostId, collectorServer)
 	strConf := string(read)
+	strConf = strings.ReplaceAll(strConf, `osType = "linux"`, `osType = "windows"`)
 	strConf = strings.ReplaceAll(strConf, "{{ns_id}}", nsId)
 	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", mcisId)
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
 	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", cspType)
+
+	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", config.GetInstance().Monitoring.DefaultPolicy)
+	strConf = strings.ReplaceAll(strConf, "{{agent_collect_interval}}", fmt.Sprintf("%ds", config.GetInstance().Monitoring.AgentInterval))
+
+	if strings.EqualFold(config.GetInstance().Monitoring.DeployType, "helm") {
+		strConf = strings.ReplaceAll(strConf, "{{server_port}}", fmt.Sprintf("%d", config.GetInstance().Dragonfly.HelmPort))
+	} else {
+		strConf = strings.ReplaceAll(strConf, "{{server_port}}", fmt.Sprintf("%d", config.GetInstance().Dragonfly.Port))
+	}
+	var kafkaPort int
+	if config.GetInstance().GetMonConfig().DeployType == types.Helm {
+		kafkaPort = config.GetInstance().Kafka.HelmPort
+	} else {
+		kafkaPort = types.KafkaDefaultPort
+	}
+	kafkaAddr := fmt.Sprintf("%s:%d", config.GetInstance().Kafka.EndpointUrl, kafkaPort)
+	strConf = strings.ReplaceAll(strConf, "{{broker_server}}", kafkaAddr)
+	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_mcis_%s_%s_%s", nsId, mcisId, vmId, cspType))
 
 	return c.Blob(http.StatusOK, "text/plain", []byte(strConf))
 }
