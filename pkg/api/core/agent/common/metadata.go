@@ -57,6 +57,13 @@ func MakeAgentUUID(info AgentInstallInfo) string {
 	return fmt.Sprintf("%s_%s_%s_%s_%s", info.NsId, info.ServiceType, info.McisId, info.VmId, info.CspType)
 }
 
+func MakeAgentUUIDByInfo(info AgentInfo) string {
+	if util.CheckMCK8SType(info.ServiceType) {
+		return fmt.Sprintf("%s_%s_%s", info.NsId, info.ServiceType, info.Mck8sId)
+	}
+	return fmt.Sprintf("%s_%s_%s_%s_%s", info.NsId, info.ServiceType, info.McisId, info.VmId, info.CspType)
+}
+
 // DeleteAgent 에이전트 메타데이터 삭제
 func DeleteAgent(info AgentInstallInfo) (string, error) {
 	agentUUID := MakeAgentUUID(info)

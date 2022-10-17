@@ -85,9 +85,9 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.GET("/ns/:ns_id/mck8s/:mck8s_id/metric/:metric_name/info", mck8s.GetMCK8SMonInfo)
 
 	// windows 에이전트 config, package 파일 다운로드
-	//dragonfly.GET("/installer/cbinstaller.zip", agent.GetWindowInstaller)
-	//dragonfly.GET("/file/agent/conf", agent.GetTelegrafConfFile)
-	//dragonfly.GET("/file/agent/pkg", agent.GetTelegrafPkgFile)
+	dragonfly.GET("/installer/cbinstaller.zip", agent.GetWindowInstaller)
+	dragonfly.GET("/file/agent/conf", agent.GetTelegrafConfFile)
+	dragonfly.GET("/file/agent/pkg", agent.GetTelegrafPkgFile)
 
 	// 에이전트 설치
 	dragonfly.POST("/agent", agent.InstallTelegraf)
@@ -98,6 +98,8 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.GET("/agents/metadata", agent.ListAgentMetadata)
 	dragonfly.GET("/agent/metadata", agent.GetAgentMetadata)
 	dragonfly.PUT("/agent/metadata", agent.PutAgentMetadata)
+	dragonfly.POST("/windows/agent/metadata", agent.CreateWindowAgentMetadata)
+	dragonfly.DELETE("/windows/agent/metadata", agent.DeleteWindowAgentMetadata)
 
 	// 삭제할 토픽 큐 등록 ( deployment collector 로 부터 삭제가 필요한 topic 들을 받기 위한 api )
 	dragonfly.GET("/topic/delete/:topic", topic.AddDeleteTopicToQueue)

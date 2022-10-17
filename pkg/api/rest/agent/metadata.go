@@ -2,13 +2,12 @@ package agent
 
 import (
 	"fmt"
-	"net/http"
-
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
 type MetaDataListType struct {
@@ -157,4 +156,81 @@ func PutAgentMetadata(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("failed to update metadata, error=%s", err)))
 	}
 	return c.JSON(http.StatusOK, agentMetadata)
+}
+
+// 윈도우 에이전트 배포 이후 메타데이터 Unhealthy 선등록
+func CreateWindowAgentMetadata(c echo.Context) error {
+	// 에이전트 UUID 파라미터 값 추출
+	params := &rest.AgentType{}
+	if err := c.Bind(params); err != nil {
+		return err
+	}
+
+	if !checkEmptyFormParam(params.ServiceType) {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage("empty agent type parameter"))
+	}
+
+	if util.CheckMCISType(params.ServiceType) {
+		// MCIS 에이전트 form 파라미터 값 체크
+		if !checkEmptyFormParam(params.NsId, params.McisId, params.VmId, params.CspType, params.PublicIp) {
+			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter to update mcis agent metadata"))
+		}
+	}
+
+	requestInfo := common.AgentInstallInfo{
+		ServiceType: params.ServiceType,
+		NsId:        params.NsId,
+		McisId:      params.McisId,
+		VmId:        params.VmId,
+		PublicIp:    params.PublicIp,
+		CspType:     params.CspType,
+		Mck8sId:     params.Mck8sId,
+	}
+
+	// 메타데이터 수정
+	agentUUID, agentMetadata, err := common.PutAgent(requestInfo,
+		0,
+		common.Enable,
+		common.Unhealthy,
+	)
+
+	errQue := util.RingQueuePut(types.TopicAdd, agentUUID)
+	if err != nil || errQue != nil {
+		return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("failed to update metadata, error=%s", err)))
+	}
+	return c.JSON(http.StatusOK, agentMetadata)
+}
+
+// 윈도우 에이전트 삭제 이후 메타데이터 삭제
+func DeleteWindowAgentMetadata(c echo.Context) error {
+	// 에이전트 UUID 파라미터 값 추출
+	params := &rest.AgentType{}
+	if err := c.Bind(params); err != nil {
+		return err
+	}
+
+	targetAgentInfo := common.AgentInfo{
+		ServiceType: params.ServiceType,
+		NsId:        params.NsId,
+		McisId:      params.McisId,
+		VmId:        params.VmId,
+		CspType:     params.CspType,
+	}
+
+	uuid := common.MakeAgentUUIDByInfo(targetAgentInfo)
+
+	metadata, err := common.GetAgentByUUID(uuid)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("faild to find agent '%s' metadata, error=%s", uuid, err)))
+	}
+	if metadata == nil {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage(fmt.Sprintf("unregistered agent '%s'", uuid)))
+	}
+
+	// 메타데이터 삭제
+	if err = common.DeleteAgentByUUID(uuid); err != nil {
+		return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("failed to delete agent '%s' metadata, error=%s", uuid, err)))
+	}
+
+	return c.JSON(http.StatusNoContent, nil)
 }
