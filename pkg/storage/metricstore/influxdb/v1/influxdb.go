@@ -183,12 +183,20 @@ func (s Storage) WriteMetric(dbName string, metrics map[string]interface{}) erro
 		}
 		delete(metricValMap, "tagInfo")
 		for metricName, metric := range metricValMap {
-			metricPoint, err := influxdbClient.NewPoint(metricName, tagInfo, metric.(map[string]interface{}), now)
-			if err != nil {
-				util.GetLogger().Error("failed to create InfluxDB metricVal point: ", err)
-				continue
+			convertedMetric := metric.(map[string]interface{})
+			if len(convertedMetric) > 0 {
+				for k, metricval := range convertedMetric {
+					if metricval == nil {
+						delete(convertedMetric, k)
+					}
+				}
+				metricPoint, err := influxdbClient.NewPoint(metricName, tagInfo, convertedMetric, now)
+				if err != nil {
+					util.GetLogger().Error("failed to create InfluxDB metricVal point: ", err)
+					continue
+				}
+				bp.AddPoint(metricPoint)
 			}
-			bp.AddPoint(metricPoint)
 		}
 	}
 
