@@ -85,7 +85,7 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.GET("/ns/:ns_id/mck8s/:mck8s_id/metric/:metric_name/info", mck8s.GetMCK8SMonInfo)
 
 	// windows 에이전트 config, package 파일 다운로드
-	dragonfly.GET("/installer/cbinstaller.zip", agent.GetWindowInstaller)
+	dragonfly.GET("/installer/cbinstaller", agent.GetWindowInstaller)
 	dragonfly.GET("/file/agent/conf", agent.GetTelegrafConfFile)
 	dragonfly.GET("/file/agent/pkg", agent.GetTelegrafPkgFile)
 
