@@ -15,6 +15,7 @@ import (
 
 const (
 	UBUNTU                   = "UBUNTU"
+	DEBIAN                   = "DEBIAN"
 	CENTOS                   = "CENTOS"
 	AGENT_NAMESPACE          = "cb-dragonfly"
 	AGENT_CLUSTERROLE        = "cb-dragonfly-agent-clusterrole"
@@ -52,6 +53,8 @@ func CleanAgentInstall(info AgentInstallInfo, sshInfo *sshrun.SSHInfo, osType *s
 	if strings.Contains(*osType, CENTOS) {
 		uninstallCmd = fmt.Sprintf("sudo rpm -e telegraf")
 	} else if strings.Contains(*osType, UBUNTU) {
+		uninstallCmd = fmt.Sprintf("sudo dpkg -r telegraf")
+	} else if strings.Contains(*osType, DEBIAN) {
 		uninstallCmd = fmt.Sprintf("sudo dpkg -r telegraf")
 	}
 	sshrun.SSHRun(*sshInfo, uninstallCmd)
