@@ -106,6 +106,9 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	} else if strings.Contains(osType, common.UBUNTU) {
 		targetFile = fmt.Sprintf("$HOME/cb-dragonfly/cb-agent.deb")
 		installCmd = fmt.Sprintf("sudo dpkg -i $HOME/cb-dragonfly/cb-agent.deb")
+	} else if strings.Contains(osType, common.DEBIAN) {
+		targetFile = fmt.Sprintf("$HOME/cb-dragonfly/cb-agent.deb")
+		installCmd = fmt.Sprintf("sudo dpkg -i $HOME/cb-dragonfly/cb-agent.deb")
 	}
 
 	mcisInstallFile := rootPath + fmt.Sprintf("/file/agent/mcis/install_mcis_script.sh")
