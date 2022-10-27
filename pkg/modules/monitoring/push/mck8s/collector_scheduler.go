@@ -250,6 +250,14 @@ func (cScheduler CollectorScheduler) AddTopicsToCollector(addTopicList []string)
 			continue
 		}
 
+		// store에 저장
+		if err := cbStore.StorePut(fmt.Sprintf("%s/%s", types.MCK8STopic, topic), "0"); err != nil {
+			errMsg := fmt.Sprintf("[%s] MCK8S: Failed to save topic data in cbstore, topic: %s, error=%s", time.Now().Format(time.RFC3339), topic, err.Error())
+			fmt.Println(errMsg)
+			util.GetLogger().Error(errMsg)
+			return
+		}
+
 		// 콜렉터 생성
 		err := cScheduler.cm.CreateCollector(topic)
 		if err != nil {
@@ -282,6 +290,14 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCollector(delTopicList []stri
 			continue
 		}
 
+		// store에서 삭제
+		if err := cbStore.StoreDelete(fmt.Sprintf("%s/%s", types.MCK8STopic, topic)); err != nil {
+			errMsg := fmt.Sprintf("[%s] MCK8S: Failed to delete topic data in cbstore, topic: %s, error=%s", time.Now().Format(time.RFC3339), topic, err.Error())
+			fmt.Println(errMsg)
+			util.GetLogger().Error(errMsg)
+			return
+		}
+
 		// 콜렉터 삭제
 		err := cScheduler.cm.DeleteCollector(topic)
 		if err != nil {
@@ -303,13 +319,4 @@ func (cScheduler CollectorScheduler) WriteCollectorMapToInMemoryDB() {
 	}
 	cMapBytes, _ := json.Marshal(inMemoryTopic)
 	_ = cbstore.GetInstance().StorePut(fmt.Sprintf("%s", types.MCK8SCollectorTopicMap), string(cMapBytes))
-
-	for _, topic := range inMemoryTopic.TopicMap {
-		if err := cbstore.GetInstance().StorePut(fmt.Sprintf("%s/%s", types.MCK8STopic, topic), "0"); err != nil {
-			errMsg := fmt.Sprintf("[%s] MCK8S: Failed to save topic data in cbstore, topic: %s, error=%s", time.Now().Format(time.RFC3339), topic, err.Error())
-			fmt.Println(errMsg)
-			util.GetLogger().Error(errMsg)
-			return
-		}
-	}
 }
