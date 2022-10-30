@@ -27,13 +27,15 @@ type AgentType struct {
 	ClientToken  string `json:"client_token"`
 
 	// MCIS 모니터링
-	McisId   string `json:"mcis_id"`
-	VmId     string `json:"vm_id"`
-	PublicIp string `json:"public_ip"`
-	UserName string `json:"user_name"`
-	SshKey   string `json:"ssh_key"`
-	CspType  string `json:"cspType"`
-	Port     string `json:"port"`
+	McisId      string `json:"mcis_id"`
+	VmId        string `json:"vm_id"`
+	PublicIp    string `json:"public_ip"`
+	UserName    string `json:"user_name"`
+	SshKey      string `json:"ssh_key"`
+	CspType     string `json:"cspType"`
+	Port        string `json:"port"`
+	AgentState  string `json:"agent_state"`
+	AgentHealth string `json:"agent_health"`
 }
 
 type VMOnDemandMetricTags struct {

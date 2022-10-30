@@ -8,6 +8,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"strings"
 )
 
 type MetaDataListType struct {
@@ -145,11 +146,17 @@ func PutAgentMetadata(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("failed to get metadata before update metadata, error=%s", err)))
 	}
 
+	// 에이전트 상태 업데이트 데이터가 있을 경우
+	agentUnHealthyRespCnt := existAgentMetadata.AgentUnhealthyRespCnt
+	if !strings.EqualFold(params.AgentState, existAgentMetadata.AgentState) || !strings.EqualFold(params.AgentHealth, existAgentMetadata.AgentHealth) {
+		agentUnHealthyRespCnt = 0
+	}
+
 	// 메타데이터 수정
 	agentUUID, agentMetadata, err := common.PutAgent(requestInfo,
-		existAgentMetadata.AgentUnhealthyRespCnt,
-		common.AgentState(existAgentMetadata.AgentState),
-		common.AgentHealth(existAgentMetadata.AgentHealth))
+		agentUnHealthyRespCnt,
+		common.AgentState(params.AgentState),
+		common.AgentHealth(params.AgentHealth))
 
 	errQue := util.RingQueuePut(types.TopicAdd, agentUUID)
 	if err != nil || errQue != nil {
