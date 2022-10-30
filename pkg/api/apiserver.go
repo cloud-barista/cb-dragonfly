@@ -86,8 +86,8 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 
 	// windows 에이전트 config, package 파일 다운로드
 	dragonfly.GET("/installer/cbinstaller", agent.GetWindowInstaller)
-	dragonfly.POST("/file/agent/conf", agent.GetTelegrafConfFile)
-	dragonfly.POST("/file/agent/pkg", agent.GetTelegrafPkgFile)
+	dragonfly.GET("/file/agent/conf", agent.GetTelegrafConfFile)
+	dragonfly.GET("/file/agent/pkg", agent.GetTelegrafPkgFile)
 
 	// 에이전트 설치
 	dragonfly.POST("/agent", agent.InstallTelegraf)
