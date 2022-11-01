@@ -32,7 +32,7 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 
 	KafkaConfig = &kafka.ConfigMap{
 		"bootstrap.servers":  fmt.Sprintf("%s", config.GetDefaultConfig().Kafka.EndpointUrl),
-		"group.id":           fmt.Sprintf("%d", createOrder),
+		"group.id":           fmt.Sprintf("mcis-%d", createOrder),
 		"enable.auto.commit": true,
 		//"max.poll.interval.ms": 300000,
 		//"session.timeout.ms": 15000,
@@ -120,6 +120,9 @@ func (mc *MetricCollector) Collector(wg *sync.WaitGroup) error {
 								delete(deadOrAliveCnt, delTopic)
 							}
 							deadOrAliveCnt[delTopic] += 1
+							collectInterval := config.GetDefaultConfig().GetMonConfig().MCISCollectorInterval
+
+							time.Sleep(time.Duration(collectInterval) * time.Second)
 						}
 					}
 				}
