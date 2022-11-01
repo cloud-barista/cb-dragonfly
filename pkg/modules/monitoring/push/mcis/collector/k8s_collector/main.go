@@ -76,7 +76,7 @@ func main() {
 	/** Set Kafka, ConfigMap Conn Start */
 	KafkaConfig = &kafka.ConfigMap{
 		"bootstrap.servers":  kafkaEndpointUrl,
-		"group.id":           fmt.Sprintf("%d", createOrder),
+		"group.id":           fmt.Sprintf("mck8s-%d", createOrder),
 		"enable.auto.commit": true,
 		"auto.offset.reset":  "earliest",
 	}
