@@ -43,6 +43,7 @@ const (
 )
 
 const (
+	AgentPort            = 8888
 	KafkaDefaultPort     = 9092
 	InfluxDefaultPort    = 8086
 	KapacitorDefaultPort = 9092
@@ -60,15 +61,17 @@ const (
 )
 
 const (
-	ConfigMapName  = "cb-dragonfly-collector-configmap"
-	DeploymentName = "cb-dragonfly-collector-"
+	ConfigMapName       = "cb-dragonfly-collector-configmap"
+	DeploymentName      = "cb-dragonfly-collector-"
+	MCK8SConfigMapName  = "cb-dragonfly-mck8s-collector-configmap"
+	MCK8SDeploymentName = "cb-dragonfly-mck8s-collector-"
 )
 
 const (
 	LabelKey = "name"
 	//Namespace = "dragonfly"
-	//CollectorImage = "docker.io/hojun121/collector:latest"
-	CollectorImage = "cloudbaristaorg/cb-dragonfly:0.5.0-collector"
+	CollectorImage      = "cloudbaristaorg/cb-dragonfly:0.7.0-mcis-collector"
+	MCK8SCollectorImage = "cloudbaristaorg/cb-dragonfly:0.7.0-mcks-collector"
 )
 
 const (

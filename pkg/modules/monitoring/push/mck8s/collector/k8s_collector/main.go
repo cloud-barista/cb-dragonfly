@@ -4,26 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
+	collector2 "github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/push/mck8s/collector"
 	"os"
-	"sort"
 	"strconv"
 	"time"
 
-	"github.com/cloud-barista/cb-dragonfly/pkg/modules/monitoring/push/mcis/collector"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 type MetricCollector struct {
+	KafkaAdminClient  *kafka.AdminClient
+	KafkaConsumerConn *kafka.Consumer
 	CreateOrder       int
-	ConsumerKafkaConn *kafka.Consumer
-	Aggregator        collector.Aggregator
+	Aggregator        collector2.Aggregator
+	Ch                chan string
 }
 
 var KafkaConfig *kafka.ConfigMap
@@ -36,8 +35,8 @@ func PrintPanicError(err error) {
 }
 
 func DeleteDeployment(clientSet *kubernetes.Clientset, createOrder int, collectorUUID string, namespace string) {
-	fmt.Println("Deleting deployment...")
-	deploymentName := fmt.Sprintf("%s%d-%s", types.DeploymentName, createOrder, collectorUUID)
+	fmt.Println("MCKS Deleting deployment...")
+	deploymentName := fmt.Sprintf("%s%d-%s", types.MCK8SDeploymentName, createOrder, collectorUUID)
 	deploymentsClient := clientSet.AppsV1().Deployments(namespace)
 	deletePolicy := metav1.DeletePropagationForeground
 	if err := deploymentsClient.Delete(context.TODO(), deploymentName, metav1.DeleteOptions{
@@ -53,19 +52,21 @@ func DeleteDeployment(clientSet *kubernetes.Clientset, createOrder int, collecto
 // configmap 의 데이터( topicMaps ) 파싱하여, 자신의 collector idx 값을 가진 topics 들을 구독
 // 만약 자신의 collector idx 값이 없다면 스스로 deployment 삭제 요청
 func main() {
+	fmt.Println("MCKS main.go start")
 	/** Get Env Val Start */
 	kafkaEndpointUrl := os.Getenv("kafka_endpoint_url")
 	var createOrder int
-	createOrderString := os.Getenv("create_order")
+	createOrderString := os.Getenv("topic")
 	if createOrderString == "" {
 		fmt.Println("Get Env Error")
 		return
 	}
 	createOrder, _ = strconv.Atoi(createOrderString)
+	topic := os.Getenv("topic")
 	aggregateType := types.AVG
 	namespace := os.Getenv("namespace")
 	dfAddr := os.Getenv("df_addr")
-	collectInterval, _ := strconv.Atoi(os.Getenv("mcis_collector_interval"))
+	collectInterval, _ := strconv.Atoi(os.Getenv("mck8s_collector_interval"))
 	collectorUUID := os.Getenv("collect_uuid")
 	if kafkaEndpointUrl == "" || namespace == "" || dfAddr == "" {
 		fmt.Println("Get Env Error")
@@ -82,22 +83,23 @@ func main() {
 	}
 	consumerKafkaConn, err := kafka.NewConsumer(KafkaConfig)
 	PrintPanicError(err)
-	config, err := rest.InClusterConfig()
-	PrintPanicError(err)
-	clientSet, err := kubernetes.NewForConfig(config)
-	PrintPanicError(err)
+	config, errK8s := rest.InClusterConfig()
+	PrintPanicError(errK8s)
+	clientSet, errK8s2 := kubernetes.NewForConfig(config)
+	PrintPanicError(errK8s2)
 	/** Set Kafka, ConfigMap Conn End */
 
 	/** Operate Collector Start */
 	mc := MetricCollector{
-		ConsumerKafkaConn: consumerKafkaConn,
+		KafkaConsumerConn: consumerKafkaConn,
 		CreateOrder:       createOrder,
-		Aggregator: collector.Aggregator{
+		Aggregator: collector2.Aggregator{
+			//CHECK: CreateOrder 가 굳이 Aggregator 에 있을 필요가 있을까?
+			CreateOrder:   createOrder,
 			AggregateType: aggregateType,
 		},
 	}
 	fmt.Println(fmt.Sprintf("#### Group_%d collector Create ####", createOrder))
-	deadOrAliveCnt := map[string]int{}
 
 	configMapFailCnt := 0
 	for {
@@ -105,7 +107,7 @@ func main() {
 		fmt.Println(fmt.Sprintf("#### Group_%d collector ####", createOrder))
 		fmt.Println("Get ConfigMap")
 		/** Get ConfigMap<Data: Collector UUID Map, BinaryData: Collector Topics> Start */
-		configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(context.TODO(), types.ConfigMapName, metav1.GetOptions{})
+		configMap, err := clientSet.CoreV1().ConfigMaps(namespace).Get(context.TODO(), types.MCK8SConfigMapName, metav1.GetOptions{})
 		if err != nil {
 			if configMapFailCnt == 5 {
 				DeleteDeployment(clientSet, createOrder, collectorUUID, namespace)
@@ -125,57 +127,22 @@ func main() {
 		/** Check My Collector UUID End */
 
 		/** Get My Allocated Topics Start */
-		topicMap := map[int][]string{}
-		if err := json.Unmarshal(configMap.BinaryData["topicMap"], &topicMap); err != nil {
+		topicMap := map[string][]string{}
+		if err = json.Unmarshal(configMap.BinaryData["topicMap"], &topicMap); err != nil {
 			fmt.Println("Fail to unMarshal ConfigMap Object Data")
 		}
-		var DeliveredTopicList []string
-		DeliveredTopicList, ok := topicMap[mc.CreateOrder]
-		if !ok {
-			fmt.Println("No topic on this Collector")
-			continue
-		}
-		fmt.Println(fmt.Sprintf("Group_%d collector Delivered : %s", mc.CreateOrder, DeliveredTopicList))
-		err = mc.ConsumerKafkaConn.SubscribeTopics(DeliveredTopicList, nil)
-		if err != nil {
-			fmt.Println(err)
-		}
-		/** Get My Allocated Topics End */
+		deliveredTopic := topicMap[topic]
+		fmt.Printf("[%s] <MCK8S> EXECUTE Group_%d collector - topic: %s\n", time.Now().Format(time.RFC3339), mc.CreateOrder, deliveredTopic)
 
-		/** Processing Topics to TSDB & Transmit Dead Topics To DF Start */
-		start := time.Now()
-		aliveTopics, _ := mc.Aggregator.AggregateMetric(mc.ConsumerKafkaConn, DeliveredTopicList)
-		elapsed := time.Since(start)
-		sort.Strings(aliveTopics)
-		fmt.Println("Aggregate Time: ", elapsed)
-		for _, aliveTopic := range aliveTopics {
-			if _, ok := deadOrAliveCnt[aliveTopic]; ok {
-				delete(deadOrAliveCnt, aliveTopic)
-			}
+		// 토픽 데이터 구독
+		err = mc.KafkaConsumerConn.SubscribeTopics(deliveredTopic, nil)
+		if err != nil {
+			errMsg := fmt.Sprintf("fail to subscribe topic with topic %s, error=%s", deliveredTopic, err)
+			util.GetLogger().Error(errMsg)
 		}
-		if !cmp.Equal(DeliveredTopicList, aliveTopics) {
-			_ = mc.ConsumerKafkaConn.Unsubscribe()
-			deadTopics := util.ReturnDiffTopicList(DeliveredTopicList, aliveTopics)
-			var err error
-			for _, delTopic := range deadTopics {
-				if _, ok := deadOrAliveCnt[delTopic]; !ok {
-					deadOrAliveCnt[delTopic] = 0
-				} else if ok {
-					if deadOrAliveCnt[delTopic] == 3 {
-						getUrl := fmt.Sprintf("http://%s/dragonfly/topic/delete/%s", dfAddr, delTopic)
-						_, err = http.Get(getUrl)
-						if err != nil {
-							fmt.Println(err)
-						}
-						delete(deadOrAliveCnt, delTopic)
-					}
-					deadOrAliveCnt[delTopic] += 1
-				}
-			}
-			if err != nil {
-				fmt.Println("Sending Delete Topics to DF is Success")
-			}
-		}
+
+		// 토픽 데이터 처리
+		mc.Aggregator.AggregateMetric(mc.KafkaAdminClient, mc.KafkaConsumerConn, topic)
 		/** Processing Topics to TSDB & Transmit Dead Topics To DF End */
 	}
 	/** Operate Collector End */

@@ -38,7 +38,7 @@ RUN apk add --no-cache \
     librdkafka-dev \
     pkgconf
 
-RUN go build -tags musl ${GO_FLAGS} -ldflags "${LD_FLAGS}" -o ${OUTPUT} -i ./pkg/modules/procedure/push/collector/k8s_collector \
+RUN go build -tags musl ${GO_FLAGS} -ldflags "${LD_FLAGS}" -o ${OUTPUT} -i ./pkg/modules/monitoring/push/mcis/collector/k8s_collector \
     && chmod +x ${OUTPUT}
 
 ###################################################

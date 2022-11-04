@@ -47,6 +47,7 @@ func startMCISPushModule(wg *sync.WaitGroup) error {
 	wg.Add(1)
 	err = push_mcis.StartScheduler(wg, cm)
 	if err != nil {
+		util.GetLogger().Error(err)
 		return err
 	}
 	return nil
