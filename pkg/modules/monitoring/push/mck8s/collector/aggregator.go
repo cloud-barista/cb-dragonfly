@@ -159,23 +159,30 @@ func (a *Aggregator) Aggregate(metrics []TelegrafMetric) {
 
 	fmt.Printf("[%s] <MCK8S> EXECUTE Group_%d aggregator\n", time.Now().Format(time.RFC3339), a.CreateOrder)
 
+	// 쿠버네티스 시스템 메트릭 처리 및 저장
+	a.aggregateNodeMetric(metrics, "kubernetes_system_container")
+
 	// 쿠버네티스 노드 메트릭 처리 및 저장
-	a.aggregateNodeMetric(metrics)
+	a.aggregateNodeMetric(metrics, "kubernetes_node")
 
 	// 쿠버네티스 파드 메트릭 처리 및 저장
 	a.aggregatePodMetric(metrics, "kubernetes_pod_container")
 
+	// 쿠버네티스 파드 볼륨 메트릭 처리 및 저장
+	a.aggregatePodMetric(metrics, "kubernetes_pod_volume")
+
 	// 쿠버네티스 파드 네트워크 메트릭 처리 및 저장
 	a.aggregatePodMetric(metrics, "kubernetes_pod_network")
+
+	// 쿠버네티스 클러스터 메트릭 처리 및 저장
+	a.aggregateClusterMetric(metrics, "kubernetes_cluster")
 }
 
 // aggregateNodeMetric 쿠버네티스 노드 메트릭 처리 및 저장
-func (a *Aggregator) aggregateNodeMetric(metrics []TelegrafMetric) {
-	metricName := "kubernetes_node"
-
+func (a *Aggregator) aggregateNodeMetric(metrics []TelegrafMetric, metricName string) {
 	// 1. 토픽 메세지에서 노드 메트릭 메세지를 필터링
 	nodeMetricFilter := funk.Filter(metrics, func(metric TelegrafMetric) bool {
-		return metric.Name == "kubernetes_node"
+		return metric.Name == metricName
 	})
 	nodeMetricArr := nodeMetricFilter.([]TelegrafMetric)
 	if len(nodeMetricArr) == 0 {
@@ -231,6 +238,25 @@ func (a *Aggregator) aggregatePodMetric(metrics []TelegrafMetric, metricName str
 			util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
 			continue
 		}
+	}
+}
+
+// aggregateMetric 쿠버네티스 클러스터 메트릭 처리 및 저장
+func (a *Aggregator) aggregateClusterMetric(metrics []TelegrafMetric, metricName string) {
+	if len(metrics) == 0 {
+		return
+	}
+	clusterMetricFilter := funk.Filter(metrics, func(metric TelegrafMetric) bool {
+		return metric.Name == metricName
+	})
+	clusterMetricArr := clusterMetricFilter.([]TelegrafMetric)
+	if len(clusterMetricArr) == 0 {
+		return
+	}
+	clusterMetric := aggregateMetric(metricName, clusterMetricArr, string(a.AggregateType))
+	err := v1.GetInstance().WriteOnDemandMetric(v1.DefaultDatabase, clusterMetric.Name, clusterMetric.Tags, clusterMetric.Fields)
+	if err != nil {
+		util.GetLogger().Error(fmt.Sprintf("failed to write metric, error=%s", err.Error()))
 	}
 }
 
