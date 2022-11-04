@@ -35,7 +35,7 @@ func PrintPanicError(err error) {
 }
 
 func DeleteDeployment(clientSet *kubernetes.Clientset, createOrder int, collectorUUID string, namespace string) {
-	fmt.Println("MCKS Deleting deployment...")
+	fmt.Println("MCK8S Deleting deployment...")
 	deploymentName := fmt.Sprintf("%s%d-%s", types.MCK8SDeploymentName, createOrder, collectorUUID)
 	deploymentsClient := clientSet.AppsV1().Deployments(namespace)
 	deletePolicy := metav1.DeletePropagationForeground
@@ -52,7 +52,7 @@ func DeleteDeployment(clientSet *kubernetes.Clientset, createOrder int, collecto
 // configmap 의 데이터( topicMaps ) 파싱하여, 자신의 collector idx 값을 가진 topics 들을 구독
 // 만약 자신의 collector idx 값이 없다면 스스로 deployment 삭제 요청
 func main() {
-	fmt.Println("MCKS main.go start")
+	fmt.Println("MCK8S main.go start")
 	/** Get Env Val Start */
 	kafkaEndpointUrl := os.Getenv("kafka_endpoint_url")
 	var createOrder int
