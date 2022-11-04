@@ -111,7 +111,7 @@ func (manager *CollectManager) CreateCollector() error {
 			{Name: "mcis_collector_interval", Value: strconv.Itoa(config.GetInstance().Monitoring.MCISCollectorInterval)},
 			{Name: "collect_uuid", Value: collectorUUID},
 		}
-		deploymentTemplate := util.DeploymentTemplate(types.DeploymentName, collectorCreateOrder, collectorUUID, env, types.CollectorImage)
+		deploymentTemplate := util.DeploymentTemplate(types.DeploymentName, collectorCreateOrder, collectorUUID, env, types.MCISCollectorImage)
 		fmt.Println("Creating deployment...")
 		result, err := manager.K8sClientSet.AppsV1().Deployments(config.GetInstance().Dragonfly.HelmNamespace).Create(context.TODO(), deploymentTemplate, metav1.CreateOptions{})
 		if err != nil {
