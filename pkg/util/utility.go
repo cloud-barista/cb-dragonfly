@@ -233,7 +233,6 @@ func DeploymentTemplate(deploymentName string, collectorCreateOrder int, collect
 							SecurityContext: &apiv1.SecurityContext{
 								RunAsUser: Int64Ptr(0),
 							},
-							ImagePullPolicy: "Always",
 						},
 					},
 					Volumes: []apiv1.Volume{
