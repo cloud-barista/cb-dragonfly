@@ -20,5 +20,9 @@
 bin/
 vendor/
 
+# ide file
+*.xml
+.run/
+
 # data file on cb-store
 meta_db/
