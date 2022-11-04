@@ -47,7 +47,7 @@ func CreateTelegrafConfigFile(installInfo common.AgentInstallInfo) (string, erro
 	strConf = strings.ReplaceAll(strConf, "{{server_port}}", fmt.Sprintf("%d", serverPort))
 
 	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_mcis_%s_%s_%s", installInfo.NsId, installInfo.McisId, installInfo.VmId, installInfo.CspType))
-	strConf = strings.ReplaceAll(strConf, "{{agent_collect_interval}}", fmt.Sprintf("%ds", config.GetInstance().Monitoring.AgentInterval))
+	strConf = strings.ReplaceAll(strConf, "{{agent_collect_interval}}", fmt.Sprintf("%ds", config.GetInstance().Monitoring.MCISAgentInterval))
 
 	var kafkaPort int
 	if config.GetInstance().GetMonConfig().DeployType == types.Helm {
@@ -285,12 +285,12 @@ func UninstallAgent(info common.AgentInstallInfo) (int, error) {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete metadata, error=%s", err))
 	}
 
-	//// Topic Queue 등록
-	//if config.GetInstance().GetMonConfig().DefaultPolicy == types.PushPolicy {
-	//	if err = util.RingQueuePut(types.TopicDel, fmt.Sprintf("%s_%s_%s_%s", nsId, mcisId, vmId, cspType)); err != nil {
-	//		util.GetLogger().Error(err)
-	//	}
-	//}
+	// Topic Queue 등록
+	if config.GetInstance().GetMonConfig().DefaultPolicy == types.PushPolicy {
+		if err = util.RingQueuePut(types.TopicDel, common.MakeAgentUUID(info)); err != nil {
+			util.GetLogger().Error(err)
+		}
+	}
 	return http.StatusOK, nil
 }
 

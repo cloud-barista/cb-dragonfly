@@ -126,7 +126,7 @@ func GetTelegrafConfFile(c echo.Context) error {
 	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", cspType)
 
 	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", config.GetInstance().Monitoring.DefaultPolicy)
-	strConf = strings.ReplaceAll(strConf, "{{agent_collect_interval}}", fmt.Sprintf("%ds", config.GetInstance().Monitoring.AgentInterval))
+	strConf = strings.ReplaceAll(strConf, "{{agent_collect_interval}}", fmt.Sprintf("%ds", config.GetInstance().Monitoring.MCISAgentInterval))
 
 	if strings.EqualFold(config.GetInstance().Monitoring.DeployType, "helm") {
 		strConf = strings.ReplaceAll(strConf, "{{server_port}}", fmt.Sprintf("%d", config.GetInstance().Dragonfly.HelmPort))

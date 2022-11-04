@@ -71,7 +71,7 @@ func NewCollectorScheduler(wg *sync.WaitGroup, manager *CollectManager) (*Collec
 	// 초기화 작업때, 기존에 생성되어 있는 Topic, TopicMap 을 로드합니다.
 	if config.GetInstance().Monitoring.DeployType == types.Helm {
 		// Helm 일 경우, configmap 을 통하여 데이터를 로드합니다. (To InMemoryTopic)
-		configMap, err := manager.K8sClientSet.CoreV1().ConfigMaps(config.GetInstance().Dragonfly.HelmNamespace).Get(context.TODO(), "cb-dragonfly-collector-configmap", metav1.GetOptions{})
+		configMap, err := manager.K8sClientSet.CoreV1().ConfigMaps(config.GetInstance().Dragonfly.HelmNamespace).Get(context.TODO(), types.ConfigMapName, metav1.GetOptions{})
 		if err != nil {
 			fmt.Println("Fail to Get ConfigMap")
 			fmt.Println(err)
@@ -168,6 +168,7 @@ func (cScheduler CollectorScheduler) Scheduler() error {
 }
 
 /** ### AgentCnt Policy Start ### */
+
 // SchedulePolicyBasedCollector
 //  === InMemory 연산 Start ===
 //  - AddTopicsToCollector: cScheduler.inMemoryTopicMap (콜렉터의 토픽 현황 in-memory 객체) 에 추가 토픽들을 더합니다.
@@ -416,6 +417,7 @@ func (cScheduler CollectorScheduler) WriteCollectorMapToInMemoryDB() {
 /** ### AgentCnt Policy End ### */
 
 /** ### CSP Policy Start ### */
+
 // ScheduleCSPBasedCollector
 //   - types.TotalCspCnt 만큼 콜렉터 생성
 //   - types 에 정의된 csp 별로 collector 미리 생성
