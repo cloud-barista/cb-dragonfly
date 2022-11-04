@@ -83,6 +83,8 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.GET("/ns/:ns_id/mcis/:mcis_id/vm/:vm_id/metric/:metric_name/info", mcis.GetVMMonInfo)
 	// 멀티 클라우드 쿠버네티스 서비스 모니터링 정보 조회
 	dragonfly.GET("/ns/:ns_id/mck8s/:mck8s_id/metric/:metric_name/info", mck8s.GetMCK8SMonInfo)
+	// 멀티 클라우드 쿠버네티스 서비스 성능 모니터링 정보 조회
+	dragonfly.GET("/ns/:ns_id/mck8s_performance/:mck8s_id/metric/:metric_name/info", mck8s.GetMCK8SPerfMonInfo)
 
 	// windows 에이전트 config, package 파일 다운로드
 	dragonfly.GET("/installer/cbinstaller", agent.GetWindowInstaller)
