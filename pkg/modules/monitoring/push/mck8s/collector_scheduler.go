@@ -1,9 +1,12 @@
 package mcis
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	apiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strconv"
 	"sync"
 	"time"
@@ -21,13 +24,13 @@ type InMemoryTopic struct {
 
 // CollectorScheduler 콜렉터에게 토픽을 분배하는 역할을 담당하는 콜렉터 스케줄러
 type CollectorScheduler struct {
-	cm               CollectManager
-	inMemoryTopicMap InMemoryTopic
+	cm               *CollectManager
+	inMemoryTopicMap *InMemoryTopic
 	topicQueue       *queue.Queue
 }
 
 // StartScheduler MCK8S 콜렉터 스케줄러 구동
-func StartScheduler(collectManager CollectManager) error {
+func StartScheduler(collectManager *CollectManager) error {
 
 	// 콜렉터 스케줄러 생성
 	scheduler, err := NewCollectorScheduler(collectManager)
@@ -50,18 +53,31 @@ func StartScheduler(collectManager CollectManager) error {
 }
 
 // NewCollectorScheduler 콜렉터 스케줄러 생성
-func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
+func NewCollectorScheduler(manager *CollectManager) (*CollectorScheduler, error) {
 
+	cbStore := cbstore.GetInstance()
 	inMemoryTopic := InMemoryTopic{TopicMap: map[string][]string{}}
 
 	// 배포 방식에 따라 콜렉터 스케줄러 구동
 	deployType := config.GetInstance().Monitoring.DeployType
-	// TODO: Helm 모드 개발 및 분리
-	if deployType == types.Dev || deployType == types.Compose || deployType == types.Helm {
+	if deployType == types.Helm {
+		// Helm 일 경우, configmap 을 통하여 데이터를 로드합니다. (To InMemoryTopic)
+		configMap, err := manager.K8sClientSet.CoreV1().ConfigMaps(config.GetInstance().Dragonfly.HelmNamespace).Get(context.TODO(), types.MCK8SConfigMapName, metav1.GetOptions{})
+		if err != nil {
+			fmt.Println("Fail to Get ConfigMap")
+			fmt.Println(err)
+			return &CollectorScheduler{}, err
+		}
+		if err := json.Unmarshal(configMap.BinaryData["topicMap"], &inMemoryTopic.TopicMap); err != nil {
+			fmt.Println("Fail to unMarshal ConfigMap Object Data")
+		}
+		for key, topicSlice := range inMemoryTopic.TopicMap {
+			for i := 0; i < len(topicSlice); i++ {
+				_ = cbStore.StorePut(fmt.Sprintf("%s/%s", types.MCK8STopic, topicSlice[i]), key)
+			}
+		}
+	} else {
 		// 배포 방식이 개발 모드이거나 도커 모드일 경우
-
-		cbStore := cbstore.GetInstance()
-
 		// 기존에 저장된 개별 토픽 정보 초기화
 		_ = cbstore.GetInstance().StoreDelList(types.MCK8STopic)
 
@@ -70,7 +86,7 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 			// 콜렉터 정책 검사 (기존 구동 정책과 현재 구동 정책이 동일한 지 확인)
 			collectorPolicy, _ := cbstore.GetInstance().StoreGet(types.CollectorPolicy)
 			if collectorPolicy != nil {
-				if *collectorPolicy == cm.CollectorPolicy {
+				if *collectorPolicy == manager.CollectorPolicy {
 					// 콜렉터 목록 로드
 					err := json.Unmarshal([]byte(*topicListData), &inMemoryTopic)
 					if err != nil {
@@ -85,17 +101,12 @@ func NewCollectorScheduler(cm CollectManager) (*CollectorScheduler, error) {
 					}
 				}
 			}
-			_ = cbstore.GetInstance().StorePut(types.CollectorPolicy, cm.CollectorPolicy)
+			_ = cbstore.GetInstance().StorePut(types.CollectorPolicy, manager.CollectorPolicy)
 		}
 	}
-	//else if deployType == types.Helm {
-	//	// 배포 방식이 헬름 모드일 경우
-	//	// TODO: 헬름 환경 기반 구동
-	//}
-
 	collectorScheduler := &CollectorScheduler{
-		cm:               cm,
-		inMemoryTopicMap: inMemoryTopic,
+		cm:               manager,
+		inMemoryTopicMap: &inMemoryTopic,
 		topicQueue:       util.GetMCK8SRingQueue(),
 	}
 	return collectorScheduler, nil
@@ -162,7 +173,7 @@ func (cScheduler CollectorScheduler) DoSchedule() error {
 	}
 }
 
-// SchedulePolicyBasedCollector 쿠버네티스 서비스(MCK8S) 에이전트와 콜렉터를 1:1로 스케줄링
+// SchedulePolicyBasedCollector 쿠버네티스 서비스(MCK8S) 클러스터와 콜렉터를 1:1로 스케줄링
 func (cScheduler CollectorScheduler) SchedulePolicyBasedCollector(addTopicList []string, delTopicList []string) {
 	provisioningOnce.Do(cScheduler.ProvisioningCollector)
 
@@ -194,15 +205,42 @@ func (cScheduler CollectorScheduler) ProvisioningCollector() {
 }
 
 func (cScheduler CollectorScheduler) TriggerCollector() {
-	for key, _ := range cScheduler.cm.CollectorAddrMap {
-		cScheduler.cm.CollectorAddrMap[key].Ch <- key
+	switch config.GetInstance().Monitoring.DeployType {
+	case types.Helm:
+		topicMapData := map[string][]byte{}
+		topicMapBytes, _ := json.Marshal(cScheduler.inMemoryTopicMap.TopicMap)
+		topicMapData["topicMap"] = topicMapBytes
+		collectorUUIDMapData := map[string]string{}
+		if len(cScheduler.cm.CollectorAddrMap) != 0 {
+			for _, collectorUUID := range cScheduler.cm.CollectorAddrMap {
+				collectorUUIDString := fmt.Sprintf("%p", collectorUUID)
+				collectorUUIDMapData[collectorUUIDString] = "alive"
+			}
+		}
+		configMap := &apiv1.ConfigMap{
+			Data:       collectorUUIDMapData,
+			BinaryData: topicMapData,
+			ObjectMeta: metav1.ObjectMeta{
+				Name: types.MCK8SConfigMapName,
+			}}
+		configMapsClient := cScheduler.cm.K8sClientSet.CoreV1().ConfigMaps(config.GetInstance().Dragonfly.HelmNamespace)
+		result, err := configMapsClient.Update(context.TODO(), configMap, metav1.UpdateOptions{})
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println("updated ConfigMap: ", result.GetObjectMeta().GetName())
+		}
+	case types.Dev, types.Compose:
+		for key, _ := range cScheduler.inMemoryTopicMap.TopicMap {
+			cScheduler.cm.CollectorAddrMap[key].Ch <- key
+		}
 	}
 }
 
 // AddTopicsToCollector 신규 토픽에 대한 콜렉터 생성
 func (cScheduler CollectorScheduler) AddTopicsToCollector(addTopicList []string) {
 	cbStore := cbstore.GetInstance()
-	updatedTopicMap := cScheduler.inMemoryTopicMap
+	updatedTopicMap := *(cScheduler.inMemoryTopicMap)
 
 	for i := 0; i < len(addTopicList); i++ {
 		topic := addTopicList[i]
@@ -225,17 +263,17 @@ func (cScheduler CollectorScheduler) AddTopicsToCollector(addTopicList []string)
 	}
 
 	// 토픽 맵 최신화
-	cScheduler.inMemoryTopicMap = updatedTopicMap
+	*(cScheduler.inMemoryTopicMap) = updatedTopicMap
 }
 
 // DeleteTopicsToCollector 삭제 토픽에 대한 콜렉터 삭제
 func (cScheduler CollectorScheduler) DeleteTopicsToCollector(delTopicList []string) {
-	if len(cScheduler.inMemoryTopicMap.TopicMap) == 0 {
+	updatedTopicMap := *(cScheduler.inMemoryTopicMap)
+	if len(updatedTopicMap.TopicMap) == 0 {
 		return
 	}
 
 	cbStore := cbstore.GetInstance()
-	updatedTopicMap := cScheduler.inMemoryTopicMap
 	for i := 0; i < len(delTopicList); i++ {
 		topic := delTopicList[i]
 
@@ -256,7 +294,7 @@ func (cScheduler CollectorScheduler) DeleteTopicsToCollector(delTopicList []stri
 	}
 
 	// 토픽 맵 최신화
-	cScheduler.inMemoryTopicMap = updatedTopicMap
+	*(cScheduler.inMemoryTopicMap) = updatedTopicMap
 }
 
 func (cScheduler CollectorScheduler) WriteCollectorMapToInMemoryDB() {

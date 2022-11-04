@@ -18,7 +18,6 @@ import (
 )
 
 const (
-	AgentPort    = 8888
 	AgentTimeout = 30
 )
 
@@ -62,7 +61,7 @@ func getVMOnDemandMonInfo(metric types.Metric, publicIP string) (map[string]inte
 	client := http.Client{
 		Timeout: AgentTimeout * time.Second,
 	}
-	agentUrl := fmt.Sprintf("http://%s:%d/cb-dragonfly/metric/%s", publicIP, AgentPort, metric.ToAgentMetricKey())
+	agentUrl := fmt.Sprintf("http://%s:%d/cb-dragonfly/metric/%s", publicIP, types.AgentPort, metric.ToAgentMetricKey())
 	resp, err := client.Get(agentUrl)
 	if err != nil {
 		return nil, err
@@ -133,7 +132,7 @@ func GetMCISOnDemandPacketInfo(nsId string, mcisId string, vmId string, watchTim
 	}
 
 	for idx, targetAgent := range targetAgentInfo {
-		agentUrl := fmt.Sprintf("http://%s:%d/cb-dragonfly/mcis/dstip/%s/watchtime/%s", sourceAgentIP, AgentPort, targetAgent.PublicIp, watchTime)
+		agentUrl := fmt.Sprintf("http://%s:%d/cb-dragonfly/mcis/dstip/%s/watchtime/%s", sourceAgentIP, types.AgentPort, targetAgent.PublicIp, watchTime)
 		idx := idx
 		targetAgent := targetAgent
 		go func() {
@@ -171,7 +170,7 @@ func GetMCISOnDemandProcessInfo(publicIp string) (map[string][]ProcessUsage, int
 	client := http.Client{
 		Timeout: AgentTimeout * time.Second,
 	}
-	agentUrl := fmt.Sprintf("http://%s:%d/cb-dragonfly/mcis/process", publicIp, AgentPort)
+	agentUrl := fmt.Sprintf("http://%s:%d/cb-dragonfly/mcis/process", publicIp, types.AgentPort)
 	resp, err := client.Get(agentUrl)
 	if err != nil {
 		return map[string][]ProcessUsage{}, http.StatusInternalServerError, err

@@ -18,6 +18,8 @@ import (
 )
 
 /* CollectManager */
+
+// CollectManager
 // 1. CollectorAddrSlice
 //  - 생성한 Go-routine 기반 collector 의 주소값을 보관하는 배열 변수입니다.
 // 2. CollectorPolicy
@@ -70,8 +72,8 @@ func (manager *CollectManager) InitDFK8sEnv() (err error) {
 		Name: types.ConfigMapName,
 	}}
 	// Deploy ConfigMap => (1) 드래곤 플라이가 배포한 컨피그맵이 이미 생성되어 있는지 조회 (2) 컨피그 맵이 없을 경우, 배포
-	_, err = configMapsClient.Get(context.TODO(), types.ConfigMapName, metav1.GetOptions{})
-	if err != nil {
+	_, notExistErr := configMapsClient.Get(context.TODO(), types.ConfigMapName, metav1.GetOptions{})
+	if notExistErr != nil {
 		result, err := configMapsClient.Create(context.TODO(), configMap, metav1.CreateOptions{})
 		if err != nil {
 			return err
@@ -106,10 +108,10 @@ func (manager *CollectManager) CreateCollector() error {
 			{Name: "create_order", Value: strconv.Itoa(collectorCreateOrder)},
 			{Name: "namespace", Value: config.GetInstance().Dragonfly.HelmNamespace},
 			{Name: "df_addr", Value: fmt.Sprintf("%s:%d", config.GetInstance().Dragonfly.DragonflyIP, config.GetInstance().Dragonfly.HelmPort)},
-			{Name: "collect_interval", Value: strconv.Itoa(config.GetInstance().Monitoring.MCISCollectorInterval)},
+			{Name: "mcis_collector_interval", Value: strconv.Itoa(config.GetInstance().Monitoring.MCISCollectorInterval)},
 			{Name: "collect_uuid", Value: collectorUUID},
 		}
-		deploymentTemplate := util.DeploymentTemplate(collectorCreateOrder, collectorUUID, env)
+		deploymentTemplate := util.DeploymentTemplate(types.DeploymentName, collectorCreateOrder, collectorUUID, env, types.CollectorImage)
 		fmt.Println("Creating deployment...")
 		result, err := manager.K8sClientSet.AppsV1().Deployments(config.GetInstance().Dragonfly.HelmNamespace).Create(context.TODO(), deploymentTemplate, metav1.CreateOptions{})
 		if err != nil {

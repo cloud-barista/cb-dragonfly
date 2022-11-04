@@ -3,6 +3,8 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"github.com/cloud-barista/cb-dragonfly/pkg/config"
+	"github.com/cloud-barista/cb-dragonfly/pkg/types"
 	"net/http"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
@@ -12,8 +14,11 @@ import (
 )
 
 func InstallAgent(info common.AgentInstallInfo) (int, error) {
-	if agentMetadata, _ := common.GetAgent(info); agentMetadata != nil {
-		return http.StatusBadRequest, errors.New(fmt.Sprintf("already exist agent, service_type: %s, namespace: %s", info.ServiceType, info.NsId))
+	switch config.GetInstance().Monitoring.DeployType {
+	case types.Dev, types.Compose:
+		if agentMetadata, _ := common.GetAgent(info); agentMetadata != nil {
+			return http.StatusBadRequest, errors.New(fmt.Sprintf("already exist agent, service_type: %s, namespace: %s", info.ServiceType, info.NsId))
+		}
 	}
 
 	if util.CheckMCK8SType(info.ServiceType) {
@@ -22,10 +27,13 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	return mcis.InstallAgent(info)
 }
 
-// 전체 에이전트 삭제 테스트용 코드
+// UninstallAgent 전체 에이전트 삭제 테스트용 코드
 func UninstallAgent(info common.AgentInstallInfo) (int, error) {
-	if agentMetadata, _ := common.GetAgent(info); agentMetadata == nil {
-		return http.StatusBadRequest, errors.New(fmt.Sprintf("requested agent info not found, service_type: %s, namespace: %s", info.ServiceType, info.NsId))
+	switch config.GetInstance().Monitoring.DeployType {
+	case types.Dev, types.Compose:
+		if agentMetadata, _ := common.GetAgent(info); agentMetadata == nil {
+			return http.StatusBadRequest, errors.New(fmt.Sprintf("requested agent info not found, service_type: %s, namespace: %s", info.ServiceType, info.NsId))
+		}
 	}
 
 	if util.CheckMCK8SType(info.ServiceType) {

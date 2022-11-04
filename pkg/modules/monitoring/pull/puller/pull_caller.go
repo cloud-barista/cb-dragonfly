@@ -48,7 +48,7 @@ func (pc PullCaller) healthcheck(uuid string, agent agentmetadata.AgentInfo) err
 	client := http.Client{
 		Timeout: mcis.AgentTimeout * time.Second,
 	}
-	agentUrl := fmt.Sprintf("http://%s:%d/cb-dragonfly/healthcheck", agent.PublicIp, mcis.AgentPort)
+	agentUrl := fmt.Sprintf("http://%s:%d/cb-dragonfly/healthcheck", agent.PublicIp, types.AgentPort)
 	resp, _ := client.Get(agentUrl)
 	if resp != nil {
 		if resp.StatusCode == http.StatusNoContent {
@@ -79,7 +79,7 @@ func (pc PullCaller) pullMetric(uuid string, agent agentmetadata.AgentInfo) {
 			continue
 		}
 
-		fmt.Printf("[%d][%s][%s] CALL API: http://%s:%d/cb-dragonfly/metric/%s\n", pullerIdx, time.Now().Local().String(), uuid, agent.PublicIp, mcis.AgentPort, pullMetric.ToAgentMetricKey())
+		fmt.Printf("[%d][%s][%s] CALL API: http://%s:%d/cb-dragonfly/metric/%s\n", pullerIdx, time.Now().Local().String(), uuid, agent.PublicIp, types.AgentPort, pullMetric.ToAgentMetricKey())
 
 		// Pulling agent
 		result, statusCode, err := mcis.GetVMOnDemandMonInfo(pullMetric.ToString(), agent.PublicIp)

@@ -31,7 +31,8 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 	}
 
 	monConfig := config.Monitoring{
-		AgentInterval:           cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "agent_interval")),
+		MCISAgentInterval:       cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "mcis_agent_interval")),
+		MCK8SAgentInterval:      cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "mck8s_agent_interval")),
 		MCISCollectorInterval:   cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "mcis_collector_interval")),
 		MCK8SCollectorInterval:  cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "mck8s_collector_interval")),
 		MaxHostCount:            cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "max_host_count")),
@@ -49,7 +50,8 @@ func SetMonConfig(newMonConfig config.Monitoring) (*config.Monitoring, int, erro
 // 모니터링 정책 조회
 func GetMonConfig() (*config.Monitoring, int, error) {
 	monConfig := config.Monitoring{
-		AgentInterval:           cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "agent_interval")),
+		MCISAgentInterval:       cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "mcis_agent_interval")),
+		MCK8SAgentInterval:      cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "mck8s_agent_interval")),
 		MCISCollectorInterval:   cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "mcis_collector_interval")),
 		MCK8SCollectorInterval:  cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "mck8s_collector_interval")),
 		MaxHostCount:            cbstore.GetInstance().StoreGetToInt(fmt.Sprintf("%s/%s", types.MonConfig, "max_host_count")),
@@ -61,7 +63,7 @@ func GetMonConfig() (*config.Monitoring, int, error) {
 		DeployType:              cbstore.GetInstance().StoreGetToString(fmt.Sprintf("%s/%s", types.MonConfig, "deploy_type")),
 	}
 
-	if monConfig.AgentInterval == -1 || monConfig.MCISCollectorInterval == -1 || monConfig.MaxHostCount == -1 || monConfig.MonitoringPolicy == "" || monConfig.DefaultPolicy == "" || monConfig.PullerInterval == -1 || monConfig.PullerAggregateInterval == -1 || monConfig.AggregateType == "" || monConfig.DeployType == "" {
+	if monConfig.MCISAgentInterval == -1 || monConfig.MCK8SAgentInterval == -1 || monConfig.MCISCollectorInterval == -1 || monConfig.MaxHostCount == -1 || monConfig.MonitoringPolicy == "" || monConfig.DefaultPolicy == "" || monConfig.PullerInterval == -1 || monConfig.PullerAggregateInterval == -1 || monConfig.AggregateType == "" || monConfig.DeployType == "" {
 		return nil, http.StatusInternalServerError, nil
 	}
 
