@@ -75,7 +75,7 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 	// kafka 관리자 커넥션 설정
 	kafkaAdminClient, err := kafka.NewAdminClient(kafkaConfig)
 	if err != nil {
-		errMsg := fmt.Sprintf("fail to create mcks metic collector, kafka admin connection failed with error=%s", err)
+		errMsg := fmt.Sprintf("fail to create mck8s metic collector, kafka admin connection failed with error=%s", err)
 		util.GetLogger().Error(errMsg)
 		return MetricCollector{}, errors.New(errMsg)
 	}
@@ -83,7 +83,7 @@ func NewMetricCollector(aggregateType types.AggregateType, createOrder int) (Met
 	// kafka 컨슈머 커넥션 설정
 	kafkaConsumerConn, err := kafka.NewConsumer(kafkaConfig)
 	if err != nil {
-		errMsg := fmt.Sprintf("fail to create mcks metic collector, kafka consumer connection failed with error=%s", err)
+		errMsg := fmt.Sprintf("fail to create mck8s metic collector, kafka consumer connection failed with error=%s", err)
 		util.GetLogger().Error(errMsg)
 		return MetricCollector{}, errors.New(errMsg)
 	}
