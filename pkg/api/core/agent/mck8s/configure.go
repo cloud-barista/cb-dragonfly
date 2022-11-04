@@ -236,7 +236,9 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 			_, gvr, err := kubeserialize.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(ext.Raw, nil, &u)
 
 			// 전체 리소스 라벨 생성
-			u.SetLabels(agentLabel)
+			if !strings.EqualFold(u.GetKind(), "pod") {
+				u.SetLabels(agentLabel)
+			}
 
 			// 컨피그맵일 경우 데이터 설정 및 생성
 			if strings.EqualFold(u.GetKind(), "configmap") {

@@ -231,6 +231,32 @@ func GetMonInfo(info types.DBMetricRequestInfo) (interface{}, int, error) {
 		resultData.Name = string(types.MCK8S_POD)
 		resultData.Columns = util.Unique(resultData.Columns, false)
 		return resultData, http.StatusOK, nil
+
+	case types.MCK8S_CLUSTER:
+		if !util.CheckMCK8SType(info.ServiceType) {
+			return nil, http.StatusBadRequest, errors.New(fmt.Sprintf("not supported metric data for %s, metric=%s", info.ServiceType, info.MetricName))
+		}
+
+		info.MetricName = "kubernetes_cluster"
+		clusterMetric, err := v1.GetInstance().ReadMetric(info)
+		if err != nil {
+			return nil, http.StatusInternalServerError, err
+		}
+		if clusterMetric == nil {
+			return nil, http.StatusNotFound, errors.New(fmt.Sprintf("not found metric data, metric=%s", types.Cluster))
+		}
+
+		var resultData types.DBData
+		byteData, err := json.Marshal(clusterMetric)
+		if err != nil {
+			return nil, http.StatusInternalServerError, errors.New("internal server error with parsing metric data")
+		}
+		if err = json.Unmarshal(byteData, &resultData); err != nil {
+			return nil, http.StatusInternalServerError, errors.New("internal server error with parsing metric data")
+		}
+
+		resultData.Name = string(types.MCK8S_CLUSTER)
+		return resultData, http.StatusOK, nil
 	default:
 		return nil, http.StatusInternalServerError, errors.New(fmt.Sprintf("NOT FOUND METRIC : %s", info.MetricName))
 	}

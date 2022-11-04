@@ -113,6 +113,15 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 			networkQuery := getPerSecMetric(info, "rx_bytes", "rx_errors", "tx_bytes", "tx_errors")
 			return networkQuery, nil
 
+		case "kubernetes_cluster":
+			query = influxBuilder.NewQuery().On(info.MetricName).
+				Field("pod_capacity", info.AggegateType).
+				Field("pod_available", info.AggegateType).
+				Field("master_worker_rtt", info.AggegateType).
+				Field("worker_worker_rtt", info.AggegateType).
+				Field("file_read_speed", info.AggegateType).
+				Field("file_write_speed", info.AggegateType)
+
 		default:
 			return "", errors.New("not found metric")
 		}
@@ -157,6 +166,18 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 						GroupByTag("\"nsId\"").
 						GroupByTag("\"mck8sId\"").
 						GroupByTag("\"node_name\"").
+						Fill("0").
+						OrderByTime("ASC")
+				}
+
+			case "kubernetes_cluster":
+				if strings.EqualFold(info.MCK8SReqInfo.GroupBy, types.Cluster) {
+					query = query.Where("time", influxBuilder.MoreThan, timeDuration).
+						And("\"nsId\"", influxBuilder.Equal, "'"+info.NsID+"'").
+						And("\"mck8sId\"", influxBuilder.Equal, "'"+info.ServiceID+"'").
+						GroupByTime(timeCriteria).
+						GroupByTag("\"nsId\"").
+						GroupByTag("\"mck8sId\"").
 						Fill("0").
 						OrderByTime("ASC")
 				}

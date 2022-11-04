@@ -3,15 +3,16 @@ package types
 type Metric string
 
 const (
-	Cpu          Metric = "cpu"
-	CpuFrequency Metric = "cpufreq"
-	Memory       Metric = "memory"
-	Disk         Metric = "disk"
-	DiskIO       Metric = "diskio"
-	Network      Metric = "network"
-	None         Metric = "none"
-	MCK8S_NODE   Metric = "node"
-	MCK8S_POD    Metric = "pod"
+	Cpu           Metric = "cpu"
+	CpuFrequency  Metric = "cpufreq"
+	Memory        Metric = "memory"
+	Disk          Metric = "disk"
+	DiskIO        Metric = "diskio"
+	Network       Metric = "network"
+	None          Metric = "none"
+	MCK8S_NODE    Metric = "node"
+	MCK8S_POD     Metric = "pod"
+	MCK8S_CLUSTER Metric = "cluster"
 )
 
 const (

@@ -18,7 +18,7 @@ rules:
     resources: ["pods"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
-    resources: ["nodes/proxy", "nodes/stats"]
+    resources: ["nodes", "nodes/proxy", "nodes/stats"]
     verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -51,6 +51,9 @@ spec:
           configMap:
             name: cb-dragonfly-agent-configmap
             defaultMode: 420
+        - name: cache-volume
+          emptyDir: {}
+      hostNetwork: true
       containers:
         - name: cb-dragonfly-agent
           image: cloudbaristaorg/cb-dragonfly:agent-1.15.4
@@ -75,6 +78,8 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/telegraf
+            - name: cache-volume
+              mountPath: /cache
           imagePullPolicy: Always
       serviceAccountName: tbd-serviceaccount
   updateStrategy:
