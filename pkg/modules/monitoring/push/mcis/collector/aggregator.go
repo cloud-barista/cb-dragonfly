@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	agentmetadata "github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
 	"sort"
 	"time"
 
@@ -62,10 +63,39 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string)
 	if len(msgSlice) != 0 {
 		uniqueResponseSlice := make(map[string]map[string]map[string][]float64)
 		for idx, value := range msgSlice {
+			vmTopic := msgTopic[idx]
+
+			/* 에이전트 헬스상태 업데이트 start */
+			// 에이전트 메타데이터 정보 조회
+			agentInfo, err := agentmetadata.GetAgentByUUID(vmTopic)
+			if err != nil {
+				errMsg := fmt.Sprintf("failed to get agent metadata with UUID %s, error=%s", vmTopic, err.Error())
+				util.GetLogger().Error(errMsg)
+			}
+			// 토픽 데이터 처리 시 에이전트 메타데이터 헬스상태 변경
+			if agentInfo != nil {
+				if agentmetadata.AgentHealth(agentInfo.AgentHealth) == agentmetadata.Unhealthy {
+					// 에이전트 메타데이터 헬스체크 상태 변경
+					updatedAgentInfo := agentmetadata.AgentInstallInfo{
+						ServiceType: agentInfo.ServiceType,
+						NsId:        agentInfo.NsId,
+						McisId:      agentInfo.McisId,
+						VmId:        agentInfo.VmId,
+						CspType:     agentInfo.CspType,
+						PublicIp:    agentInfo.PublicIp,
+					}
+					_, _, err = agentmetadata.PutAgent(updatedAgentInfo, 0, agentmetadata.Enable, agentmetadata.Healthy)
+					if err != nil {
+						util.GetLogger().Error(err)
+					}
+					fmt.Printf("[%s] <MCIS> update %s AgentStatus %s\n", time.Now().Format(time.RFC3339), vmTopic, agentmetadata.Healthy)
+				}
+			}
+			/* 에이전트 헬스상태 업데이트 end */
+
 			response := TelegrafMetric{}
 			_ = json.Unmarshal(value, &response)
 
-			vmTopic := msgTopic[idx]
 			if _, ok := tagInfo[vmTopic]; ok {
 				for key, tag := range response.Tags {
 					if key == types.NsId || key == types.McisId || key == types.VmId || key == types.OsType || key == types.CspType {
