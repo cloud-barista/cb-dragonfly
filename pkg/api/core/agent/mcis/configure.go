@@ -212,7 +212,7 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 
 	// 메타데이터 저장
-	if _, _, err = common.PutAgent(info, 0, common.Enable, common.Healthy); err != nil {
+	if _, _, err = common.PutAgent(info, 0, common.Enable, common.Unhealthy); err != nil {
 		common.CleanAgentInstall(info, &sshInfo, &osType, nil)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))
 	}

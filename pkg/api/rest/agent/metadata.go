@@ -155,8 +155,8 @@ func PutAgentMetadata(c echo.Context) error {
 	// 메타데이터 수정
 	agentUUID, agentMetadata, err := common.PutAgent(requestInfo,
 		agentUnHealthyRespCnt,
-		common.AgentState(params.AgentState),
-		common.AgentHealth(params.AgentHealth))
+		common.AgentState(existAgentMetadata.AgentState),
+		common.AgentHealth(existAgentMetadata.AgentHealth))
 
 	errQue := util.RingQueuePut(types.TopicAdd, agentUUID)
 	if err != nil || errQue != nil {
