@@ -19,12 +19,14 @@ type AgentType struct {
 	NsId        string `json:"ns_id"`
 
 	// 쿠버네티스 모니터링
-	Mck8sId      string `json:"mck8s_id"`
-	APIServerURL string `json:"apiserver_url"`
-	ServerCA     string `json:"server_ca"`
-	ClientCA     string `json:"client_ca"`
-	ClientKey    string `json:"client_key"`
-	ClientToken  string `json:"client_token"`
+	Mck8sId       string  `json:"mck8s_id"`
+	APIServerURL  string  `json:"apiserver_url"`
+	ServerCA      string  `json:"server_ca"`
+	ClientCA      string  `json:"client_ca"`
+	ClientKey     string  `json:"client_key"`
+	ClientToken   string  `json:"client_token"`
+	PrivateDomain bool    `json:"private_domain"`
+	IP            *string `json:"ip"`
 
 	// MCIS 모니터링
 	McisId      string `json:"mcis_id"`

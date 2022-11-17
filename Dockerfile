@@ -66,6 +66,8 @@ RUN apk add --no-cache \
 FROM runtime-alpine as cb-dragonfly
 LABEL maintainer="innogrid <dev.cloudbarista@innogrid.com>"
 
+RUN apk add --no-cache sudo
+
 ENV GOPATH="/go"
 ENV CBSTORE_ROOT=${GOPATH}/src/github.com/cloud-barista/cb-dragonfly
 ENV CBLOG_ROOT=${GOPATH}/src/github.com/cloud-barista/cb-dragonfly

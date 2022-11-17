@@ -3,6 +3,7 @@ services:
 
   # CB-Dragonfly
   cb-dragonfly:
+    privileged: true
     build:
       context: .
       dockerfile: Dockerfile

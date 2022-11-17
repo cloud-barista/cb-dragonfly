@@ -52,6 +52,13 @@ func InstallTelegraf(c echo.Context) error {
 				}
 			}
 		}
+		if params.PrivateDomain {
+			if params.IP == nil {
+				return c.JSON(http.StatusBadRequest, rest.SetMessage("empty ip info for private domain k8s cluster"))
+			}
+		} else {
+			params.PrivateDomain = false
+		}
 	} else if util.CheckMCISType(params.ServiceType) {
 		// MCIS 에이전트 form 파라미터 값 체크
 		if !checkEmptyFormParam(params.NsId, params.McisId, params.VmId, params.PublicIp, params.UserName, params.SshKey, params.CspType) {
@@ -65,21 +72,23 @@ func InstallTelegraf(c echo.Context) error {
 	}
 
 	requestInfo := &agentcommon.AgentInstallInfo{
-		NsId:         params.NsId,
-		McisId:       params.McisId,
-		VmId:         params.VmId,
-		PublicIp:     params.PublicIp,
-		UserName:     params.UserName,
-		SshKey:       params.SshKey,
-		CspType:      params.CspType,
-		Port:         params.Port,
-		ServiceType:  params.ServiceType,
-		Mck8sId:      params.Mck8sId,
-		APIServerURL: params.APIServerURL,
-		ServerCA:     params.ServerCA,
-		ClientCA:     params.ClientCA,
-		ClientKey:    params.ClientKey,
-		ClientToken:  params.ClientToken,
+		NsId:          params.NsId,
+		McisId:        params.McisId,
+		VmId:          params.VmId,
+		PublicIp:      params.PublicIp,
+		UserName:      params.UserName,
+		SshKey:        params.SshKey,
+		CspType:       params.CspType,
+		Port:          params.Port,
+		ServiceType:   params.ServiceType,
+		Mck8sId:       params.Mck8sId,
+		APIServerURL:  params.APIServerURL,
+		ServerCA:      params.ServerCA,
+		ClientCA:      params.ClientCA,
+		ClientKey:     params.ClientKey,
+		ClientToken:   params.ClientToken,
+		PrivateDomain: params.PrivateDomain,
+		IP:            params.IP,
 	}
 
 	errCode, err := agent.InstallAgent(*requestInfo)
@@ -217,6 +226,13 @@ func UninstallAgent(c echo.Context) error {
 				}
 			}
 		}
+		if params.PrivateDomain {
+			if params.IP == nil {
+				return c.JSON(http.StatusBadRequest, rest.SetMessage("empty ip info for private domain k8s cluster"))
+			}
+		} else {
+			params.PrivateDomain = false
+		}
 	}
 
 	// MCIS 에이전트 form 파라미터 값 체크
@@ -230,21 +246,23 @@ func UninstallAgent(c echo.Context) error {
 	}
 
 	requestInfo := agentcommon.AgentInstallInfo{
-		NsId:         params.NsId,
-		McisId:       params.McisId,
-		VmId:         params.VmId,
-		PublicIp:     params.PublicIp,
-		UserName:     params.UserName,
-		SshKey:       params.SshKey,
-		CspType:      params.CspType,
-		Port:         params.Port,
-		ServiceType:  params.ServiceType,
-		Mck8sId:      params.Mck8sId,
-		APIServerURL: params.APIServerURL,
-		ServerCA:     params.ServerCA,
-		ClientCA:     params.ClientCA,
-		ClientKey:    params.ClientKey,
-		ClientToken:  params.ClientToken,
+		NsId:          params.NsId,
+		McisId:        params.McisId,
+		VmId:          params.VmId,
+		PublicIp:      params.PublicIp,
+		UserName:      params.UserName,
+		SshKey:        params.SshKey,
+		CspType:       params.CspType,
+		Port:          params.Port,
+		ServiceType:   params.ServiceType,
+		Mck8sId:       params.Mck8sId,
+		APIServerURL:  params.APIServerURL,
+		ServerCA:      params.ServerCA,
+		ClientCA:      params.ClientCA,
+		ClientKey:     params.ClientKey,
+		ClientToken:   params.ClientToken,
+		PrivateDomain: params.PrivateDomain,
+		IP:            params.IP,
 	}
 	errCode, err := agent.UninstallAgent(requestInfo)
 	if errCode != http.StatusOK {
