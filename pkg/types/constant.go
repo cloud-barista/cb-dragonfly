@@ -78,3 +78,8 @@ const (
 const (
 	TBRestAPIURL = "http://localhost:1323/tumblebug"
 )
+
+const (
+	CREATE = "create"
+	DELETE = "delete"
+)

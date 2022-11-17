@@ -24,21 +24,23 @@ const (
 )
 
 type AgentInstallInfo struct {
-	NsId         string
-	McisId       string
-	VmId         string
-	PublicIp     string
-	UserName     string
-	SshKey       string
-	CspType      string
-	Port         string
-	ServiceType  string
-	Mck8sId      string
-	APIServerURL string
-	ServerCA     string
-	ClientCA     string
-	ClientKey    string
-	ClientToken  string
+	NsId          string
+	McisId        string
+	VmId          string
+	PublicIp      string
+	UserName      string
+	SshKey        string
+	CspType       string
+	Port          string
+	ServiceType   string
+	Mck8sId       string
+	APIServerURL  string
+	ServerCA      string
+	ClientCA      string
+	ClientKey     string
+	ClientToken   string
+	PrivateDomain bool
+	IP            *string
 }
 
 func CleanAgentInstall(info AgentInstallInfo, sshInfo *sshrun.SSHInfo, osType *string, kubeClient *kubernetes.Clientset) {

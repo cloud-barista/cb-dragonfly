@@ -270,3 +270,19 @@ func CheckMCK8SType(serviceType string) bool {
 func CheckMCISType(serviceType string) bool {
 	return strings.EqualFold(serviceType, types.MCIS) || strings.EqualFold(serviceType, types.VM)
 }
+
+func GetProtocolDomainPort(url string) (protocol string, domain string, port string, err error) {
+	protocolSplit := strings.Split(url, "://")
+	if len(protocolSplit) < 2 {
+		return "", "", "", fmt.Errorf("invalid format for split to get protocol from url, url = %s", url)
+	}
+	protocol = protocolSplit[0]
+
+	domainSplit := strings.Split(protocolSplit[1], ":")
+	if len(domainSplit) < 2 {
+		return "", "", "", fmt.Errorf("invalid format for split to get domain and port from url, url = %s", url)
+	}
+	domain = domainSplit[0]
+	port = domainSplit[1]
+	return protocol, domain, port, nil
+}
