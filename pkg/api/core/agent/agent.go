@@ -22,7 +22,19 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 
 	if util.CheckMCK8SType(info.ServiceType) {
-		return mck8s.InstallAgent(info)
+		_, domain, _, err := util.GetProtocolDomainPort(info.APIServerURL)
+		if err != nil {
+			return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to get domain info from request, error=%s", err.Error()))
+		}
+		if err = mck8s.HandleDomain(info.PrivateDomain, types.CREATE, *info.IP, domain); err != nil {
+			return http.StatusInternalServerError, err
+		}
+
+		status, err := mck8s.InstallAgent(info)
+		if err != nil {
+			_ = mck8s.HandleDomain(info.PrivateDomain, types.DELETE, *info.IP, domain)
+		}
+		return status, nil
 	}
 	return mcis.InstallAgent(info)
 }
@@ -37,7 +49,18 @@ func UninstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 
 	if util.CheckMCK8SType(info.ServiceType) {
-		return mck8s.UninstallAgent(info)
+		_, domain, _, err := util.GetProtocolDomainPort(info.APIServerURL)
+		if err != nil {
+			return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to get domain info from request, error=%s", err.Error()))
+		}
+		if err = mck8s.HandleDomain(info.PrivateDomain, types.DELETE, *info.IP, domain); err != nil {
+			return http.StatusInternalServerError, err
+		}
+		status, err := mck8s.UninstallAgent(info)
+		if err != nil {
+			_ = mck8s.HandleDomain(info.PrivateDomain, types.CREATE, *info.IP, domain)
+		}
+		return status, nil
 	}
 	return mcis.UninstallAgent(info)
 }

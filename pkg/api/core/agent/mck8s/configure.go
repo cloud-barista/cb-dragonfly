@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/core/agent/common"
@@ -351,4 +352,32 @@ func UninstallAgent(info common.AgentInstallInfo) (int, error) {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to add agent metadata to queue, error=%s", err))
 	}
 	return http.StatusOK, nil
+}
+
+func HandleDomain(privateDomain bool, method string, ipInfo string, domain ...string) (err error) {
+	if privateDomain {
+		var domainInfo string
+		for index, content := range domain {
+			if index == 0 {
+				domainInfo = content
+				continue
+			}
+			domainInfo += fmt.Sprintf(" %s", content)
+		}
+
+		var cmd string
+
+		if strings.EqualFold(method, types.CREATE) {
+			cmd = fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", ipInfo, domainInfo)
+		}
+		if strings.EqualFold(method, types.DELETE) {
+			cmd = fmt.Sprintf("sudo cp /etc/hosts /etc/hosts2 && sudo sed -i 's/^%s.*%s$//g' /etc/hosts2 && sudo cat /etc/hosts2 > /etc/hosts", ipInfo, domainInfo)
+		}
+
+		if _, err = exec.Command("sh", "-c", cmd).Output(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
