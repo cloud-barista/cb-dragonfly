@@ -372,8 +372,8 @@ func (c MonitoringService) GetVMMonNetworkInfo(ctx context.Context, request *pb.
 func (c MonitoringService) SetMonConfig(ctx context.Context, request *pb.MonitoringConfigRequest) (*pb.MonitoringConfigResponse, error) {
 	// convert grpc request to config struct
 	reqParams := config.Monitoring{
-		AgentInterval:         int(request.Item.AgentInterval),
-		MCISCollectorInterval: int(request.Item.CollectorInterval),
+		MCISAgentInterval:     int(request.Item.McisAgentInterval),
+		MCISCollectorInterval: int(request.Item.McisCollectorInterval),
 		MonitoringPolicy:      request.Item.MonitoringPolicy,
 		MaxHostCount:          int(request.Item.MaxHostCount),
 	}
@@ -429,10 +429,10 @@ func (c MonitoringService) InstallAgent(ctx context.Context, request *pb.Install
 		CspType:      request.CspType,
 		Port:         request.Port,
 		ServiceType:  request.ServiceType,
-		Mck8sId:      request.Mck8sId,
-		APIServerURL: request.APIServerURL,
-		ServerCA:     request.ServerCA,
-		ClientCA:     request.ClientCA,
+		Mck8sId:      request.Mck8SId,
+		APIServerURL: request.ApiserverUrl,
+		ServerCA:     request.ServerCa,
+		ClientCA:     request.ClientCa,
 		ClientKey:    request.ClientKey,
 		ClientToken:  request.ClientToken,
 	}
