@@ -371,7 +371,7 @@ func HandleDomain(privateDomain bool, method string, ipInfo string, domain ...st
 			cmd = fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", ipInfo, domainInfo)
 		}
 		if strings.EqualFold(method, types.DELETE) {
-			cmd = fmt.Sprintf("sudo cp /etc/hosts /etc/hosts2 && sudo sed -i 's/^%s.*%s$//g' /etc/hosts2 && sudo cat /etc/hosts2 > /etc/hosts", ipInfo, domainInfo)
+			cmd = fmt.Sprintf("sudo cp /etc/hosts /etc/hosts2 && sudo sed -i 's/^%s.*%s$//g' /etc/hosts2 && sudo cat /etc/hosts2 | sudo tee /etc/hosts", ipInfo, domainInfo)
 		}
 
 		if _, err = exec.Command("sh", "-c", cmd).Output(); err != nil {
