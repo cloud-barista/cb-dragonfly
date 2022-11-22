@@ -2,7 +2,6 @@ package set
 
 import (
 	"fmt"
-
 	"github.com/spf13/cobra"
 
 	pb "github.com/cloud-barista/cb-dragonfly/pkg/api/grpc/protobuf/cbdragonfly"
@@ -30,10 +29,10 @@ func setConfigRun(cmd *cobra.Command, args []string) error {
 	monitoringPolicy, _ := cmd.Flags().GetString("mon-policy")
 
 	reqParams := pb.MonitoringConfigInfo{
-		AgentInterval:     agentInterval,
-		CollectorInterval: collectorInterval,
-		MaxHostCount:      maxHostCnt,
-		MonitoringPolicy:  monitoringPolicy,
+		McisAgentInterval:     agentInterval,
+		McisCollectorInterval: collectorInterval,
+		MaxHostCount:          maxHostCnt,
+		MonitoringPolicy:      monitoringPolicy,
 	}
 
 	monApi := request.GetMonitoringAPI()

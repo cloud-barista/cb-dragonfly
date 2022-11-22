@@ -52,9 +52,6 @@ type Agent struct {
 }
 
 type Monitoring struct {
-	// TODO: AgentInterval는 필요없는 항목이지만 GRPC 로 인해 남아있음. GRPC 업데이트 후 삭제 필요
-	AgentInterval int `json:"agent_interval" mapstructure:"agent_interval"` // 모니터링 에이전트 수집주기
-
 	MCISAgentInterval       int    `json:"mcis_agent_interval" mapstructure:"mcis_agent_interval"`           // 모니터링 에이전트 수집주기
 	MCK8SAgentInterval      int    `json:"mck8s_agent_interval" mapstructure:"mck8s_agent_interval"`         // 모니터링 에이전트 수집주기
 	MCISCollectorInterval   int    `json:"mcis_collector_interval" mapstructure:"mcis_collector_interval"`   // MCIS 모니터링 콜렉터 Aggregate 주기

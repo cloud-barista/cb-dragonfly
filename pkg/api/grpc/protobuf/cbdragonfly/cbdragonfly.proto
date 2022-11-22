@@ -418,10 +418,12 @@ message MonitoringConfigResponse {
 }
 
 message MonitoringConfigInfo {
-	int32 agent_interval = 1 [json_name="agent_interval", (gogoproto.jsontag) = "agent_interval", (gogoproto.moretags) = "yaml:\"agent_interval\""];
-	int32 collector_interval = 2 [json_name="collector_interval", (gogoproto.jsontag) = "collector_interval", (gogoproto.moretags) = "yaml:\"collector_interval\""];
-	int32 max_host_count = 4 [json_name="max_host_count", (gogoproto.jsontag) = "max_host_count", (gogoproto.moretags) = "yaml:\"max_host_count\""];
-	string monitoring_policy = 5 [json_name="monitoring_policy", (gogoproto.jsontag) = "monitoring_policy", (gogoproto.moretags) = "yaml:\"monitoring_policy\""];
+//	MCISAgentInterval
+	int32 mcis_agent_interval = 1 [json_name="mcis_agent_interval", (gogoproto.jsontag) = "mcis_agent_interval", (gogoproto.moretags) = "yaml:\"mcis_agent_interval\""];
+//	MCISCollectorInterval
+	int32 mcis_collector_interval = 2 [json_name="mcis_collector_interval", (gogoproto.jsontag) = "mcis_collector_interval", (gogoproto.moretags) = "yaml:\"mcis_collector_interval\""];
+	int32 max_host_count = 3 [json_name="max_host_count", (gogoproto.jsontag) = "max_host_count", (gogoproto.moretags) = "yaml:\"max_host_count\""];
+	string monitoring_policy = 4 [json_name="monitoring_policy", (gogoproto.jsontag) = "monitoring_policy", (gogoproto.moretags) = "yaml:\"monitoring_policy\""];
 }
 
 //////////////////////////////////
@@ -437,4 +439,11 @@ message InstallAgentRequest {
 	string ssh_key = 6 [json_name="ssh_key", (gogoproto.jsontag) = "ssh_key", (gogoproto.moretags) = "yaml:\"ssh_key\""];
 	string csp_type = 7 [json_name="csp_type", (gogoproto.jsontag) = "csp_type", (gogoproto.moretags) = "yaml:\"csp_type\""];
 	string port = 8 [json_name="port", (gogoproto.jsontag) = "port", (gogoproto.moretags) = "yaml:\"port\""];
+	string service_type = 9 [json_name="service_type", (gogoproto.jsontag) = "service_type", (gogoproto.moretags) = "yaml:\"service_type\""];
+	string mck8s_id = 10 [json_name="mck8s_id", (gogoproto.jsontag) = "mck8s_id", (gogoproto.moretags) = "yaml:\"mck8s_id\""];
+	string apiserver_url = 11 [json_name="apiserver_url", (gogoproto.jsontag) = "apiserver_url", (gogoproto.moretags) = "yaml:\"apiserver_url\""];
+	string server_ca = 12 [json_name="server_ca", (gogoproto.jsontag) = "server_ca", (gogoproto.moretags) = "yaml:\"server_ca\""];
+	string client_ca = 13 [json_name="client_ca", (gogoproto.jsontag) = "client_ca", (gogoproto.moretags) = "yaml:\"client_ca\""];
+	string client_key = 14 [json_name="client_key", (gogoproto.jsontag) = "client_key", (gogoproto.moretags) = "yaml:\"client_key\""];
+	string client_token = 15 [json_name="client_token", (gogoproto.jsontag) = "client_token", (gogoproto.moretags) = "yaml:\"client_token\""];
 }
