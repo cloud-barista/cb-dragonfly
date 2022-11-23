@@ -27,7 +27,7 @@ dragonfly:
 agent:
   mck8s_serviceaccount: cb-dragonfly
   mck8s_namespace: cb-dragonfly
-  image: "cloudbaristaorg/cb-dragonfly:agent-1.15.4"
+  image: "cloudbaristaorg/cb-dragonfly:agent-1.15.5"
   timeout: 60
 
 # monitoring interval configuration info

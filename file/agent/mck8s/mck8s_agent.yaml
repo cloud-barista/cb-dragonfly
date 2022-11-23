@@ -56,7 +56,7 @@ spec:
       hostNetwork: true
       containers:
         - name: cb-dragonfly-agent
-          image: cloudbaristaorg/cb-dragonfly:agent-1.15.4
+          image: cloudbaristaorg/cb-dragonfly:agent-1.15.5
           env:
             - name: HOST_IP
               valueFrom:
