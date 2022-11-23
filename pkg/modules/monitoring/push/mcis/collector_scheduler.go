@@ -87,22 +87,40 @@ func NewCollectorScheduler(wg *sync.WaitGroup, manager *CollectManager) (*Collec
 		}
 	} else {
 		// docker-compose 일 경우, cb-store 를 통하여 데이터를 로드합니다. (To InMemoryTopic)
-		_ = c.StoreDelList(types.Topic)
-		cPolicy, _ := c.StoreGet(types.CollectorPolicy)
+		if err := c.StoreDelList(types.Topic); err != nil {
+			util.GetLogger().Error(fmt.Sprintf("failed to delete topic list, error=%s", err))
+		}
+		cPolicy, err := c.StoreGet(types.CollectorPolicy)
+		if err != nil {
+			util.GetLogger().Error(fmt.Sprintf("failed to get collector policy, error=%s", err))
+		}
 		if cPolicy != nil {
 			if *cPolicy == manager.CollectorPolicy {
-				getCMapFromStore, _ := c.StoreGet(fmt.Sprintf("%s", types.CollectorTopicMap))
+				getCMapFromStore, err := c.StoreGet(fmt.Sprintf("%s", types.CollectorTopicMap))
+				if err != nil {
+					util.GetLogger().Error(fmt.Sprintf("failed to get collector topic map, error=%s", err))
+				}
+
 				if getCMapFromStore != nil {
-					_ = json.Unmarshal([]byte(*getCMapFromStore), &inMemoryTopic)
+					err = json.Unmarshal([]byte(*getCMapFromStore), &inMemoryTopic)
+					if err != nil {
+						util.GetLogger().Error(fmt.Sprintf("failed to unmarshal, error=%s", err))
+					}
 					for collectorIdx, topicSlice := range inMemoryTopic.TopicMap {
 						for i := 0; i < len(topicSlice); i++ {
-							_ = c.StorePut(fmt.Sprintf("%s/%s", types.Topic, topicSlice[i]), strconv.Itoa(collectorIdx))
+							err = c.StorePut(fmt.Sprintf("%s/%s", types.Topic, topicSlice[i]), strconv.Itoa(collectorIdx))
+							if err != nil {
+								util.GetLogger().Error(fmt.Sprintf("failed to put topic, error=%s", err))
+							}
 						}
 					}
 				}
 			}
 		}
-		_ = c.StorePut(types.CollectorPolicy, manager.CollectorPolicy)
+		err = c.StorePut(types.CollectorPolicy, manager.CollectorPolicy)
+		if err != nil {
+			util.GetLogger().Error(fmt.Sprintf("failed to put topic, error=%s", err))
+		}
 	}
 	// CollectorScheduler Struct
 	// cm : 콜렉터 생성 및 시작, 중지 및 삭제 를 위한 매니저 객체
