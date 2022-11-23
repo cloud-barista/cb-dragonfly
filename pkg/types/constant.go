@@ -71,8 +71,8 @@ const (
 	LabelKey = "name"
 	//Namespace = "dragonfly"
 
-	MCISCollectorImage  = "cloudbarista/cb-dragonfly:0.7.0-mcis-collector"
-	MCK8SCollectorImage = "cloudbarista/cb-dragonfly:0.7.0-mcks-collector"
+	MCISCollectorImage  = "cloudbaristaorg/cb-dragonfly:0.7.0-mcis-collector"
+	MCK8SCollectorImage = "cloudbaristaorg/cb-dragonfly:0.7.0-mck8s-collector"
 )
 
 const (
