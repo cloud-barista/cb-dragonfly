@@ -206,7 +206,7 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 
 	// 에이전트 권한 변경
-	stopcmd := fmt.Sprintf("sudo systemctl stop telegraf && sudo usermod -u 0 -o telegraf && sudo systemctl restart telegraf")
+	stopcmd := fmt.Sprintf("sudo systemctl stop telegraf && sudo usermod -u 0 -o telegraf && sudo systemctl daemon-reload && sudo systemctl restart telegraf")
 	if _, err = sshrun.SSHRun(sshInfo, stopcmd); err != nil {
 		common.CleanAgentInstall(info, &sshInfo, &osType, nil)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to change telegraf permission, err=%s", err))
