@@ -112,6 +112,7 @@ func GetTelegrafConfFile(c echo.Context) error {
 	mcisId := c.QueryParam("mcis_id")
 	vmId := c.QueryParam("vm_id")
 	cspType := c.QueryParam("csp_type")
+	serviceType := c.QueryParam("service_type")
 
 	// Query 파라미터 값 체크
 	if nsId == "" || mcisId == "" || vmId == "" || cspType == "" {
@@ -133,6 +134,7 @@ func GetTelegrafConfFile(c echo.Context) error {
 	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", mcisId)
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", vmId)
 	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", cspType)
+	strConf = strings.ReplaceAll(strConf, "{{service_type}}", serviceType)
 
 	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", config.GetInstance().Monitoring.DefaultPolicy)
 	strConf = strings.ReplaceAll(strConf, "{{agent_collect_interval}}", fmt.Sprintf("%ds", config.GetInstance().Monitoring.MCISAgentInterval))
@@ -150,7 +152,7 @@ func GetTelegrafConfFile(c echo.Context) error {
 	}
 	kafkaAddr := fmt.Sprintf("%s:%d", config.GetInstance().Kafka.EndpointUrl, kafkaPort)
 	strConf = strings.ReplaceAll(strConf, "{{broker_server}}", kafkaAddr)
-	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_mcis_%s_%s_%s", nsId, mcisId, vmId, cspType))
+	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_%s_%s_%s_%s", nsId, serviceType, mcisId, vmId, cspType))
 
 	return c.Blob(http.StatusOK, "text/plain", []byte(strConf))
 }

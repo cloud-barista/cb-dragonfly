@@ -65,34 +65,6 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string)
 		for idx, value := range msgSlice {
 			vmTopic := msgTopic[idx]
 
-			/* 에이전트 헬스상태 업데이트 start */
-			// 에이전트 메타데이터 정보 조회
-			agentInfo, err := agentmetadata.GetAgentByUUID(vmTopic)
-			if err != nil {
-				errMsg := fmt.Sprintf("failed to get agent metadata with UUID %s, error=%s", vmTopic, err.Error())
-				util.GetLogger().Error(errMsg)
-			}
-			// 토픽 데이터 처리 시 에이전트 메타데이터 헬스상태 변경
-			if agentInfo != nil {
-				if agentmetadata.AgentHealth(agentInfo.AgentHealth) == agentmetadata.Unhealthy {
-					// 에이전트 메타데이터 헬스체크 상태 변경
-					updatedAgentInfo := agentmetadata.AgentInstallInfo{
-						ServiceType: agentInfo.ServiceType,
-						NsId:        agentInfo.NsId,
-						McisId:      agentInfo.McisId,
-						VmId:        agentInfo.VmId,
-						CspType:     agentInfo.CspType,
-						PublicIp:    agentInfo.PublicIp,
-					}
-					_, _, err = agentmetadata.PutAgent(updatedAgentInfo, 0, agentmetadata.Enable, agentmetadata.Healthy)
-					if err != nil {
-						util.GetLogger().Error(err)
-					}
-					fmt.Printf("[%s] <MCIS> update %s AgentStatus %s\n", time.Now().Format(time.RFC3339), vmTopic, agentmetadata.Healthy)
-				}
-			}
-			/* 에이전트 헬스상태 업데이트 end */
-
 			response := TelegrafMetric{}
 			_ = json.Unmarshal(value, &response)
 
@@ -137,6 +109,36 @@ func (a *Aggregator) AggregateMetric(kafkaConn *kafka.Consumer, topics []string)
 		err = v1.GetInstance().WriteMetric(v1.DefaultDatabase, result)
 		if err != nil {
 			return []string{}, err
+		}
+
+		for _, topic := range topics {
+			/* 에이전트 헬스상태 업데이트 start */
+			// 에이전트 메타데이터 정보 조회
+			agentInfo, err := agentmetadata.GetAgentByUUID(topic)
+			if err != nil {
+				errMsg := fmt.Sprintf("failed to get agent metadata with UUID %s, error=%s", topic, err.Error())
+				util.GetLogger().Error(errMsg)
+			}
+			// 토픽 데이터 처리 시 에이전트 메타데이터 헬스상태 변경
+			if agentInfo != nil {
+				if agentmetadata.AgentHealth(agentInfo.AgentHealth) == agentmetadata.Unhealthy {
+					// 에이전트 메타데이터 헬스체크 상태 변경
+					updatedAgentInfo := agentmetadata.AgentInstallInfo{
+						ServiceType: agentInfo.ServiceType,
+						NsId:        agentInfo.NsId,
+						McisId:      agentInfo.McisId,
+						VmId:        agentInfo.VmId,
+						CspType:     agentInfo.CspType,
+						PublicIp:    agentInfo.PublicIp,
+					}
+					_, _, err = agentmetadata.PutAgent(updatedAgentInfo, 0, agentmetadata.Enable, agentmetadata.Healthy)
+					if err != nil {
+						util.GetLogger().Error(err)
+					}
+					fmt.Printf("[%s] <MCIS> update %s AgentStatus %s\n", time.Now().Format(time.RFC3339), topic, agentmetadata.Healthy)
+				}
+			}
+			/* 에이전트 헬스상태 업데이트 end */
 		}
 	}
 

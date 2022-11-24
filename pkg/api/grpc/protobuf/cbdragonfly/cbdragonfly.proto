@@ -86,6 +86,7 @@ message VMMonQryRequest {
 	string period_type = 4 [json_name="periodType", (gogoproto.jsontag) = "periodType", (gogoproto.moretags) = "yaml:\"periodType\""];
 	string statistics_criteria = 5 [json_name="statisticsCriteria", (gogoproto.jsontag) = "statisticsCriteria", (gogoproto.moretags) = "yaml:\"statisticsCriteria\""];
 	string duration = 6 [json_name="duration", (gogoproto.jsontag) = "duration", (gogoproto.moretags) = "yaml:\"duration\""];
+	string service_type = 7 [json_name="duration", (gogoproto.jsontag) = "duration", (gogoproto.moretags) = "yaml:\"duration\""];
 }
 
 message VMOnDemandMonQryRequest {

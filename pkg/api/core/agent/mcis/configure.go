@@ -43,10 +43,11 @@ func CreateTelegrafConfigFile(installInfo common.AgentInstallInfo) (string, erro
 	strConf = strings.ReplaceAll(strConf, "{{mcis_id}}", installInfo.McisId)
 	strConf = strings.ReplaceAll(strConf, "{{vm_id}}", installInfo.VmId)
 	strConf = strings.ReplaceAll(strConf, "{{csp_type}}", installInfo.CspType)
+	strConf = strings.ReplaceAll(strConf, "{{service_type}}", installInfo.ServiceType)
 	strConf = strings.ReplaceAll(strConf, "{{mechanism}}", mechanism)
 	strConf = strings.ReplaceAll(strConf, "{{server_port}}", fmt.Sprintf("%d", serverPort))
 
-	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_mcis_%s_%s_%s", installInfo.NsId, installInfo.McisId, installInfo.VmId, installInfo.CspType))
+	strConf = strings.ReplaceAll(strConf, "{{topic}}", fmt.Sprintf("%s_%s_%s_%s_%s", installInfo.NsId, installInfo.ServiceType, installInfo.McisId, installInfo.VmId, installInfo.CspType))
 	strConf = strings.ReplaceAll(strConf, "{{agent_collect_interval}}", fmt.Sprintf("%ds", config.GetInstance().Monitoring.MCISAgentInterval))
 
 	var kafkaPort int

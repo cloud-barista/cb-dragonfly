@@ -63,7 +63,7 @@ func (pa *PullAggregator) AggregateMetric(agentList map[string]common.AgentInfo,
 			monRequestInfo := types.DBMetricRequestInfo{
 				MonitoringMechanism: config.GetInstance().Monitoring.DefaultPolicy == types.PushPolicy,
 				NsID:                targetAgent.NsId,
-				ServiceType:         types.MCIS,
+				ServiceType:         targetAgent.ServiceType,
 				ServiceID:           targetAgent.McisId,
 				VMID:                targetAgent.VmId,
 				MetricName:          metricKind.ToAgentMetricKey(),
