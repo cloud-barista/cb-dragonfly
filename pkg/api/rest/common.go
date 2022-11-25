@@ -84,10 +84,3 @@ type VMMonInfoType struct {
 	Time   string            `json:"time"`
 	Values []VMMonInfoValues `json:"values"`
 }
-
-// JSONResult's data field will be overridden by the specific type
-type JSONResult struct {
-	//Code    int          `json:"code" `
-	//Message string       `json:"message"`
-	//Data    interface{}  `json:"data"`
-}
