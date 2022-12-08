@@ -348,6 +348,14 @@ func ConfigureSnapshotAgent(info common.SnapshotAgentInstallInfo) (int, error) {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to remove temporary telegraf.conf file, error=%s", err))
 	}
 
+	// 에이전트 설치에 사용한 파일 폴더 채로 제거
+	removeRpmCmd := fmt.Sprintf("sudo rm -rf $HOME/cb-dragonfly")
+	if _, err := sshrun.SSHRun(sshInfo, removeRpmCmd); err != nil {
+		common.ChangeSnapshotAgentHosts(info.NewAgent.PublicIp, info.BaseAgent.PublicIp, &sshInfo)
+		common.RestoreSnapshotAgent(&sshInfo)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to remove cb-dragonfly directory, error=%s", err))
+	}
+
 	// 메타데이터 저장
 	if _, _, err = common.PutAgent(info.NewAgent, 0, common.Enable, common.Unhealthy); err != nil {
 		common.ChangeSnapshotAgentHosts(info.NewAgent.PublicIp, info.BaseAgent.PublicIp, &sshInfo)

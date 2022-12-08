@@ -102,6 +102,7 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.GET("/agents/metadata", agent.ListAgentMetadata)
 	dragonfly.GET("/agent/metadata", agent.GetAgentMetadata)
 	dragonfly.PUT("/agent/metadata", agent.PutAgentMetadata)
+	dragonfly.DELETE("/agent/metadata", agent.DeleteAgentMetadata)
 	dragonfly.POST("/windows/agent/metadata", agent.CreateWindowAgentMetadata)
 	dragonfly.DELETE("/windows/agent/metadata", agent.DeleteWindowAgentMetadata)
 
