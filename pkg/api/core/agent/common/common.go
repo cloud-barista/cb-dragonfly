@@ -43,6 +43,11 @@ type AgentInstallInfo struct {
 	IP            *string
 }
 
+type SnapshotAgentInstallInfo struct {
+	BaseAgent AgentInstallInfo `json:"base"`
+	NewAgent  AgentInstallInfo `json:"new"`
+}
+
 func CleanAgentInstall(info AgentInstallInfo, sshInfo *sshrun.SSHInfo, osType *string, kubeClient *kubernetes.Clientset) {
 	if util.CheckMCK8SType(info.ServiceType) {
 		_ = kubeClient.RbacV1().ClusterRoleBindings().Delete(context.TODO(), AGENT_CLUSTERROLEBINDING, metav1.DeleteOptions{})
@@ -72,6 +77,27 @@ func CleanAgentInstall(info AgentInstallInfo, sshInfo *sshrun.SSHInfo, osType *s
 
 	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", info.PublicIp, "cb-agent")
 	sshrun.SSHRun(*sshInfo, Cmd)
+}
+
+func RestoreSnapshotAgent(sshInfo *sshrun.SSHInfo) {
+	removeRpmCmd := fmt.Sprintf("sudo rm -rf $HOME/cb-dragonfly")
+	sshrun.SSHRun(*sshInfo, removeRpmCmd)
+	removeDirCmd := fmt.Sprintf("sudo rm -rf /etc/telegraf/telegraf.conf")
+	sshrun.SSHRun(*sshInfo, removeDirCmd)
+
+	restoreConf := fmt.Sprintf("sudo mv /etc/telegraf/telegraf.conf.back /etc/telegraf/telegraf.conf")
+	sshrun.SSHRun(*sshInfo, restoreConf)
+
+	restartCmd := fmt.Sprintf("sudo systemctl restart telegraf")
+	sshrun.SSHRun(*sshInfo, restartCmd)
+}
+
+func ChangeSnapshotAgentHosts(sourceIP, targetIP string, sshInfo *sshrun.SSHInfo) error {
+	cmd := fmt.Sprintf("sudo perl -pi -e \"s/%s %s/%s %s/g\" /etc/hosts", sourceIP, "cb-agent", targetIP, "cb-agent")
+	if _, err := sshrun.SSHRun(*sshInfo, cmd); err != nil {
+		return err
+	}
+	return nil
 }
 
 func GetPackageName(path string) (string, error) {

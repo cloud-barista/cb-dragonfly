@@ -95,6 +95,8 @@ func (apiServer *APIServer) SetRoutingRule(e *echo.Echo) {
 	dragonfly.POST("/agent", agent.InstallTelegraf)
 	// 에이전트 삭제
 	dragonfly.DELETE("/agent", agent.UninstallAgent)
+	// 스냅샷 에이전트 수정
+	dragonfly.POST("/agent/snapshot", agent.RegisterSnapshotAgent)
 
 	// 에이전트 메타데이터
 	dragonfly.GET("/agents/metadata", agent.ListAgentMetadata)
