@@ -241,3 +241,53 @@ func DeleteWindowAgentMetadata(c echo.Context) error {
 
 	return c.JSON(http.StatusNoContent, nil)
 }
+
+// Snapshot 에이전트의 Base VM이 정상적이지 않을 경우 외부 요청으로 메타데이터 삭제 처리
+func DeleteAgentMetadata(c echo.Context) error {
+	// 에이전트 UUID 파라미터 값 추출
+	serviceType := c.QueryParam("service_type")
+	nsId := c.QueryParam("ns_id")
+	service_id := c.QueryParam("service_id")
+
+	targetAgentInfo := common.AgentInfo{
+		ServiceType: strings.TrimSpace(serviceType),
+		NsId:        strings.TrimSpace(nsId),
+	}
+
+	if len(strings.TrimSpace(serviceType)) == 0 || len(strings.TrimSpace(nsId)) == 0 || len(strings.TrimSpace(service_id)) == 0 {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage("empty agent info from query parameter"))
+	}
+
+	if util.CheckMCISType(serviceType) {
+		vmId := c.QueryParam("vm_id")
+		cspType := c.QueryParam("csp_type")
+
+		if len(strings.TrimSpace(vmId)) == 0 || len(strings.TrimSpace(cspType)) == 0 {
+			return c.JSON(http.StatusBadRequest, rest.SetMessage("empty mcis agent info from query parameter"))
+		}
+
+		targetAgentInfo.McisId = strings.TrimSpace(service_id)
+		targetAgentInfo.VmId = strings.TrimSpace(vmId)
+		targetAgentInfo.CspType = strings.TrimSpace(cspType)
+	}
+	if util.CheckMCK8SType(serviceType) {
+		targetAgentInfo.Mck8sId = service_id
+	}
+
+	uuid := common.MakeAgentUUIDByInfo(targetAgentInfo)
+
+	metadata, err := common.GetAgentByUUID(uuid)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("faild to find agent '%s' metadata, error=%s", uuid, err)))
+	}
+	if metadata == nil {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage(fmt.Sprintf("unregistered agent '%s'", uuid)))
+	}
+
+	// 메타데이터 삭제
+	if err = common.DeleteAgentByUUID(uuid); err != nil {
+		return c.JSON(http.StatusInternalServerError, rest.SetMessage(fmt.Sprintf("failed to delete agent '%s' metadata, error=%s", uuid, err)))
+	}
+
+	return c.JSON(http.StatusNoContent, nil)
+}
