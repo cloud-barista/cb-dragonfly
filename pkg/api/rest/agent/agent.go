@@ -292,6 +292,11 @@ func RegisterSnapshotAgent(c echo.Context) error {
 		}
 		return c.JSON(http.StatusBadRequest, rest.SetMessage(fmt.Sprintf("Unsupported registration for snapshot %s agents of different service type", serviceType)))
 	}
+
+	// MCK8S Agent 타입 검사
+	if util.CheckMCK8SType(params.New.ServiceType) || util.CheckMCK8SType(params.Base.ServiceType) {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage("Unsupported for snapshot agent registration for mck8s agent"))
+	}
 	// base가 비어있을 경우 검사
 	if reflect.DeepEqual(params.Base, rest.AgentType{}) {
 		return c.JSON(http.StatusBadRequest, rest.SetMessage("Empty base parameter for registration of snapshot agents"))
