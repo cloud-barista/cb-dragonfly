@@ -64,3 +64,7 @@ func UninstallAgent(info common.AgentInstallInfo) (int, error) {
 	}
 	return mcis.UninstallAgent(info)
 }
+
+func RegisterSnapshotAgent(info common.SnapshotAgentInstallInfo) (int, error) {
+	return mcis.ConfigureSnapshotAgent(info)
+}

@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/cloud-barista/cb-dragonfly/pkg/api/rest"
@@ -32,7 +33,7 @@ import (
 func InstallTelegraf(c echo.Context) error {
 	params := &rest.AgentType{}
 	if err := c.Bind(params); err != nil {
-		return err
+		return c.JSON(http.StatusBadRequest, rest.SetMessage(err.Error()))
 	}
 
 	if !checkEmptyFormParam(params.ServiceType) {
@@ -208,7 +209,7 @@ func GetTelegrafPkgFile(c echo.Context) error {
 func UninstallAgent(c echo.Context) error {
 	params := &rest.AgentType{}
 	if err := c.Bind(params); err != nil {
-		return err
+		return c.JSON(http.StatusBadRequest, rest.SetMessage(err.Error()))
 	}
 
 	if !checkEmptyFormParam(params.ServiceType) {
@@ -271,6 +272,80 @@ func UninstallAgent(c echo.Context) error {
 		return c.JSON(errCode, rest.SetMessage(err.Error()))
 	}
 	return c.JSON(http.StatusOK, rest.SetMessage("Agent Uninstallation is finished"))
+}
+
+func RegisterSnapshotAgent(c echo.Context) error {
+	params := &rest.SnapShotAgentType{}
+	if err := c.Bind(params); err != nil {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage(err.Error()))
+	}
+
+	// 서비스 타입 검사
+	if !strings.EqualFold(params.New.ServiceType, params.Base.ServiceType) {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage("Unsupported agent info for snapshot agents of different service type"))
+	}
+	// MCIS Agent 타입 검사
+	if !util.CheckMCISType(params.Base.ServiceType) || !util.CheckMCISType(params.New.ServiceType) {
+		serviceType := params.Base.ServiceType
+		if !util.CheckMCISType(params.New.ServiceType) {
+			serviceType = params.New.ServiceType
+		}
+		return c.JSON(http.StatusBadRequest, rest.SetMessage(fmt.Sprintf("Unsupported registration for snapshot %s agents of different service type", serviceType)))
+	}
+	// base가 비어있을 경우 검사
+	if reflect.DeepEqual(params.Base, rest.AgentType{}) {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage("Empty base parameter for registration of snapshot agents"))
+	}
+
+	// new가 비어있을 경우 검사
+	if reflect.DeepEqual(params.New, rest.AgentType{}) {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage("Empty new parameter for registration of snapshot agents"))
+	}
+
+	// base 메타데이터 있는지 검사
+	snapshotAgentInfo := agentcommon.SnapshotAgentInstallInfo{
+		BaseAgent: agentcommon.AgentInstallInfo{
+			ServiceType: params.Base.ServiceType,
+			NsId:        params.Base.NsId,
+			McisId:      params.Base.McisId,
+			VmId:        params.Base.VmId,
+			UserName:    params.Base.UserName,
+			SshKey:      params.Base.SshKey,
+			PublicIp:    params.Base.PublicIp,
+			Port:        params.Base.Port,
+			CspType:     params.Base.CspType,
+		},
+		NewAgent: agentcommon.AgentInstallInfo{
+			ServiceType: params.New.ServiceType,
+			NsId:        params.New.NsId,
+			McisId:      params.New.McisId,
+			VmId:        params.New.VmId,
+			UserName:    params.New.UserName,
+			SshKey:      params.New.SshKey,
+			PublicIp:    params.New.PublicIp,
+			Port:        params.New.Port,
+			CspType:     params.New.CspType,
+		},
+	}
+
+	baseMetadata, err := agentcommon.GetAgent(snapshotAgentInfo.BaseAgent)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, rest.SetMessage(err.Error()))
+	}
+	if baseMetadata == nil {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage("Not found base agent info"))
+	}
+
+	// 기존 에이전트 Public IP 수정 메타데이터 수정
+	if err = agentcommon.ChangeAgentPublicIP(snapshotAgentInfo.BaseAgent); err != nil {
+		return c.JSON(http.StatusBadRequest, rest.SetMessage("Failed to rollback base agent info"))
+	}
+
+	errCode, err := agent.RegisterSnapshotAgent(snapshotAgentInfo)
+	if errCode != http.StatusOK {
+		return c.JSON(errCode, rest.SetMessage(err.Error()))
+	}
+	return c.JSON(http.StatusOK, rest.SetMessage("Snapshot agent registration is finished"))
 }
 
 func checkEmptyFormParam(datas ...string) bool {

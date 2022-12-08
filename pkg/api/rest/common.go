@@ -40,6 +40,11 @@ type AgentType struct {
 	AgentHealth string `json:"agent_health"`
 }
 
+type SnapShotAgentType struct {
+	Base AgentType `json:"base"`
+	New  AgentType `json:"new"`
+}
+
 type VMOnDemandMetricTags struct {
 	McisId string `json:"mcis_id"`
 	NsId   string `json:"ns_id"`

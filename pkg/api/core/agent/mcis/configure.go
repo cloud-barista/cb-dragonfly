@@ -271,7 +271,7 @@ func UninstallAgent(info common.AgentInstallInfo) (int, error) {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete dragonfly domain list, error=%s", err))
 	}
 
-	Cmd = fmt.Sprintf("sudo perl -pi -e 's,^%s.*%s\n$,,' /etc/hosts", info.PublicIp, "cb-agent")
+	Cmd = fmt.Sprintf("sudo perl -piw -e 's,^%s.*%s\n$,,' /etc/hosts", info.PublicIp, "cb-agent")
 	if _, err = sshrun.SSHRun(sshInfo, Cmd); err != nil {
 		common.CleanAgentInstall(info, &sshInfo, &osType, nil)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to delete agent domain, error=%s", err))
@@ -292,6 +292,69 @@ func UninstallAgent(info common.AgentInstallInfo) (int, error) {
 			util.GetLogger().Error(err)
 		}
 	}
+	return http.StatusOK, nil
+}
+
+func ConfigureSnapshotAgent(info common.SnapshotAgentInstallInfo) (int, error) {
+	var err error
+	sshInfo := sshrun.SSHInfo{
+		ServerPort: info.NewAgent.PublicIp + ":" + info.NewAgent.Port,
+		UserName:   info.NewAgent.UserName,
+		PrivateKey: []byte(info.NewAgent.SshKey),
+	}
+
+	// {사용자계정}/cb-dragonfly 폴더 생성
+	createFolderCmd := fmt.Sprintf("mkdir $HOME/cb-dragonfly")
+	if _, err = sshrun.SSHRun(sshInfo, createFolderCmd); err != nil {
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to make directory cb-dragonfly, error=%s", err))
+	}
+
+	// telegraf_conf 파일 복사
+	telegrafConfSourceFile, err := CreateTelegrafConfigFile(info.NewAgent)
+	telegrafConfTargetFile := "$HOME/cb-dragonfly/telegraf.conf"
+	if err != nil {
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to create telegraf.conf, error=%s", err.Error()))
+	}
+	if err = sshrun.SSHCopy(sshInfo, telegrafConfSourceFile, telegrafConfTargetFile); err != nil {
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to copy telegraf.conf, error=%s", err.Error()))
+	}
+	// 원본 BASE 설정 파일 유지
+	if _, err = sshrun.SSHRun(sshInfo, "sudo mv /etc/telegraf/telegraf.conf /etc/telegraf/telegraf.conf.back"); err != nil {
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to backup original telegraf.conf, error=%s", err.Error()))
+	}
+
+	if _, err = sshrun.SSHRun(sshInfo, "sudo mv $HOME/cb-dragonfly/telegraf.conf /etc/telegraf/"); err != nil {
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to move telegraf.conf, error=%s", err.Error()))
+	}
+
+	if err = common.ChangeSnapshotAgentHosts(info.BaseAgent.PublicIp, info.NewAgent.PublicIp, &sshInfo); err != nil {
+		common.RestoreSnapshotAgent(&sshInfo)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to change agent hosts file, error=%s", err.Error()))
+	}
+
+	// 에이전트 권한 변경
+	restartCmd := fmt.Sprintf("sudo systemctl restart telegraf")
+	if _, err = sshrun.SSHRun(sshInfo, restartCmd); err != nil {
+		common.ChangeSnapshotAgentHosts(info.NewAgent.PublicIp, info.BaseAgent.PublicIp, &sshInfo)
+		common.RestoreSnapshotAgent(&sshInfo)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to restart telegraf, err=%s", err))
+	}
+
+	// telegraf UUId conf 파일 삭제
+	err = os.Remove(telegrafConfSourceFile)
+	if err != nil {
+		common.ChangeSnapshotAgentHosts(info.NewAgent.PublicIp, info.BaseAgent.PublicIp, &sshInfo)
+		common.RestoreSnapshotAgent(&sshInfo)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to remove temporary telegraf.conf file, error=%s", err))
+	}
+
+	// 메타데이터 저장
+	if _, _, err = common.PutAgent(info.NewAgent, 0, common.Enable, common.Unhealthy); err != nil {
+		common.ChangeSnapshotAgentHosts(info.NewAgent.PublicIp, info.BaseAgent.PublicIp, &sshInfo)
+		common.RestoreSnapshotAgent(&sshInfo)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))
+	}
+
 	return http.StatusOK, nil
 }
 
