@@ -332,6 +332,13 @@ func ConfigureSnapshotAgent(info common.SnapshotAgentInstallInfo) (int, error) {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to change agent hosts file, error=%s", err.Error()))
 	}
 
+	// 메타데이터 저장
+	if _, _, err = common.PutAgent(info.NewAgent, 0, common.Enable, common.Unhealthy); err != nil {
+		common.ChangeSnapshotAgentHosts(info.NewAgent.PublicIp, info.BaseAgent.PublicIp, &sshInfo)
+		common.RestoreSnapshotAgent(&sshInfo)
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))
+	}
+
 	// 에이전트 권한 변경
 	restartCmd := fmt.Sprintf("sudo systemctl restart telegraf")
 	if _, err = sshrun.SSHRun(sshInfo, restartCmd); err != nil {
@@ -354,13 +361,6 @@ func ConfigureSnapshotAgent(info common.SnapshotAgentInstallInfo) (int, error) {
 		common.ChangeSnapshotAgentHosts(info.NewAgent.PublicIp, info.BaseAgent.PublicIp, &sshInfo)
 		common.RestoreSnapshotAgent(&sshInfo)
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to remove cb-dragonfly directory, error=%s", err))
-	}
-
-	// 메타데이터 저장
-	if _, _, err = common.PutAgent(info.NewAgent, 0, common.Enable, common.Unhealthy); err != nil {
-		common.ChangeSnapshotAgentHosts(info.NewAgent.PublicIp, info.BaseAgent.PublicIp, &sshInfo)
-		common.RestoreSnapshotAgent(&sshInfo)
-		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to put metadata to cb-store, error=%s", err))
 	}
 
 	return http.StatusOK, nil
