@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
 	"github.com/cloud-barista/cb-dragonfly/pkg/config"
 	"github.com/cloud-barista/cb-dragonfly/pkg/storage/cbstore"
 	"github.com/cloud-barista/cb-dragonfly/pkg/types"
@@ -177,23 +176,4 @@ func PutAgent(info AgentInstallInfo, unHealthyRespCnt int, agentState AgentState
 		return "", AgentInfo{}, errors.New(fmt.Sprintf("failed to put metadata, error=%s", err))
 	}
 	return agentUUID, agentInfo, nil
-}
-
-// ChangeAgentPublicIP 에이전트 메타데이터 수정
-func ChangeAgentPublicIP(info AgentInstallInfo) error {
-	agentUUID := MakeAgentUUID(info)
-
-	existInfo, err := GetAgentByUUID(agentUUID)
-
-	existInfo.PublicIp = info.PublicIp
-
-	agentInfoBytes, err := json.Marshal(existInfo)
-	if err != nil {
-		return errors.New(fmt.Sprintf("failed to convert metadata format to json, error=%s", err.Error()))
-	}
-	err = cbstore.GetInstance().StorePut(types.Agent+agentUUID, string(agentInfoBytes))
-	if err != nil {
-		return errors.New(fmt.Sprintf("failed to put metadata, error=%s", err.Error()))
-	}
-	return nil
 }

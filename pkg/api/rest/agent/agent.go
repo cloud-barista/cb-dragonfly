@@ -341,14 +341,15 @@ func RegisterSnapshotAgent(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, rest.SetMessage("Not found base agent info"))
 	}
 
-	// 기존 에이전트 Public IP 수정 메타데이터 수정
-	if err = agentcommon.ChangeAgentPublicIP(snapshotAgentInfo.BaseAgent); err != nil {
-		return c.JSON(http.StatusBadRequest, rest.SetMessage("Failed to rollback base agent info"))
-	}
-
 	errCode, err := agent.RegisterSnapshotAgent(snapshotAgentInfo)
 	if errCode != http.StatusOK {
 		return c.JSON(errCode, rest.SetMessage(err.Error()))
+	}
+
+	agentUUID := agentcommon.MakeAgentUUID(snapshotAgentInfo.NewAgent)
+	errQue := util.RingQueuePut(types.TopicAdd, agentUUID)
+	if errQue != nil {
+		return c.JSON(http.StatusBadRequest, errQue)
 	}
 	return c.JSON(http.StatusOK, rest.SetMessage("Snapshot agent registration is finished"))
 }
