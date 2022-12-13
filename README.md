@@ -33,6 +33,7 @@ If you have any difficulties in using CB-Dragonfly, please let us know.
 5. [API 규격](#5-API-규격)
 6. [특이 사항](#6-특이-사항)
 7. [활용 정보](#7-활용-정보)
+8. [이슈](#8-이슈)
  
 ***
 
@@ -66,3 +67,6 @@ If you have any difficulties in using CB-Dragonfly, please let us know.
 
 #### 7. 활용 정보
 - 위키: https://github.com/cloud-barista/cb-dragonfly/wiki
+
+#### 8. 이슈
+- 위키: https://github.com/cloud-barista/cb-dragonfly/wiki/cb-dragonfly-issue
