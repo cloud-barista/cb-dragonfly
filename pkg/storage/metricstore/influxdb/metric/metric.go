@@ -6,7 +6,7 @@ import (
 	"github.com/cloud-barista/cb-dragonfly/pkg/util"
 )
 
-// Cpu cpu 메트릭
+// Cpu 메트릭
 type Cpu struct {
 	CpuGuest       float64 `json:"cpu_guest"`
 	CpuGuestNice   float64 `json:"cpu_guest_nice"`
@@ -34,7 +34,7 @@ func (c Cpu) GetField() []string {
 	return util.GetFields(val)
 }
 
-// memory 메트릭
+// Memory 메트릭
 type Memory struct {
 	MemBuffers     float64 `json:"mem_buffers"`
 	MemCached      float64 `json:"mem_cached"`
@@ -50,16 +50,12 @@ func (m Memory) GetField() []string {
 	return util.GetFields(val)
 }
 
-// disk 메트릭
+// Disk 메트릭
 type Disk struct {
-	DiskFree        string `json:"disk_free"`
+	DiskUtilization string `json:"disk_utilization"`
 	DiskTotal       string `json:"disk_total"`
 	DiskUsed        string `json:"disk_used"`
-	DiskUtilization string `json:"disk_utilization"`
-	DiskReadBytes   string `json:"kb_read"`
-	DiskWriteBytes  string `json:"kb_written"`
-	DIskReadIOPS    int64  `json:"ops_read"`
-	DIskWriteIOPS   int64  `json:"ops_write"`
+	DiskFree        string `json:"disk_free"`
 }
 
 func (d Disk) GetField() []string {
@@ -67,7 +63,7 @@ func (d Disk) GetField() []string {
 	return util.GetFields(val)
 }
 
-// diskio 메트릭
+// DiskIO 메트릭
 type DiskIO struct {
 	DiskReadBytes  string `json:"kb_read"`
 	DiskWriteBytes string `json:"kb_written"`
@@ -80,7 +76,7 @@ func (dio DiskIO) GetField() []string {
 	return util.GetFields(val)
 }
 
-// network 메트릭
+// Network 메트릭
 type Network struct {
 	NetBytesIn   int64 `json:"bytes_in"`
 	NetBytesOut  int64 `json:"bytes_out"`
