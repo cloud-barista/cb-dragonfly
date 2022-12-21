@@ -33,7 +33,6 @@ import (
 func GetVMMonInfo(c echo.Context) error {
 	// Path 파라미터 가져오기
 	nsId := c.Param("ns_id")
-	serviceType := c.Param("service_type")
 	mcisId := c.Param("mcis_id")
 	vmId := c.Param("vm_id")
 	metricName := c.Param("metric_name")
@@ -50,7 +49,7 @@ func GetVMMonInfo(c echo.Context) error {
 
 	dbInfo := types.DBMetricRequestInfo{
 		NsID:                nsId,
-		ServiceType:         serviceType,
+		ServiceType:         types.MCIS,
 		ServiceID:           mcisId,
 		VMID:                vmId,
 		MetricName:          metricName,
