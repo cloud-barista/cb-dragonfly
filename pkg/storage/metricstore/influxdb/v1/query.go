@@ -31,7 +31,7 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 	if mcisType {
 		switch info.MetricName {
 
-		case "cpu":
+		case string(types.Cpu):
 			query = influxBuilder.NewQuery().On(info.MetricName).
 				Field("cpu_utilization", info.AggegateType).
 				Field("cpu_system", info.AggegateType).
@@ -45,11 +45,12 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 				Field("cpu_guest", info.AggegateType).
 				Field("cpu_guest_nice", info.AggegateType)
 
-		case "cpufreq":
+		case string(types.CpuFrequency):
 			query = influxBuilder.NewQuery().On(info.MetricName).
 				Field("cpu_speed", info.AggegateType)
 
-		case "mem":
+		case string(types.Memory):
+			info.MetricName = "mem"
 			query = influxBuilder.NewQuery().On(info.MetricName).
 				Field("mem_utilization", info.AggegateType).
 				Field("mem_total", info.AggegateType).
@@ -59,18 +60,19 @@ func BuildQuery(info types.DBMetricRequestInfo) (string, error) {
 				Field("mem_buffers", info.AggegateType).
 				Field("mem_cached", info.AggegateType)
 
-		case "disk":
+		case string(types.Disk):
 			query = influxBuilder.NewQuery().On(info.MetricName).
 				Field("disk_utilization", info.AggegateType).
 				Field("disk_total", info.AggegateType).
 				Field("disk_used", info.AggegateType).
 				Field("disk_free", info.AggegateType)
 
-		case "diskio":
+		case string(types.DiskIO):
 			diskQuery = getPerSecMetric(info, "kb_read", "kb_written", "ops_read", "ops_write", "read_time", "write_time")
 			return diskQuery, nil
 
-		case "net":
+		case string(types.Network):
+			info.MetricName = "net"
 			diskQuery = getPerSecMetric(info, "bytes_in", "bytes_out", "pkts_in", "pkts_out", "err_in", "err_out", "drop_in", "drop_out")
 			return diskQuery, nil
 
