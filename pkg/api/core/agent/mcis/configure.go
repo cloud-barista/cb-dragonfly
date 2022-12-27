@@ -34,7 +34,7 @@ func CreateTelegrafConfigFile(installInfo common.AgentInstallInfo) (string, erro
 	strConf := string(read)
 
 	serverPort := config.GetInstance().Dragonfly.Port
-	if config.GetInstance().GetMonConfig().DeployType == types.Helm {
+	if strings.EqualFold(config.GetInstance().GetMonConfig().DeployType, types.Helm) {
 		serverPort = config.GetInstance().Dragonfly.HelmPort
 	}
 
@@ -51,7 +51,7 @@ func CreateTelegrafConfigFile(installInfo common.AgentInstallInfo) (string, erro
 	strConf = strings.ReplaceAll(strConf, "{{agent_collect_interval}}", fmt.Sprintf("%ds", config.GetInstance().Monitoring.MCISAgentInterval))
 
 	var kafkaPort int
-	if config.GetInstance().GetMonConfig().DeployType == types.Helm {
+	if strings.EqualFold(config.GetInstance().GetMonConfig().DeployType, types.Helm) {
 		kafkaPort = config.GetInstance().Kafka.HelmPort
 	} else {
 		kafkaPort = types.KafkaDefaultPort
