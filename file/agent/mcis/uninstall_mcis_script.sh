@@ -11,6 +11,10 @@ sudo mysql -u root -ppsetri1234ak -e "DROP DATABASE sysbench;"
 
 echo "[MCIS-Agent: UnInstall MySQL]"
 sudo apt-get -y purge mariadb-server
+sudo apt-get -y purge mariadb-common
+sudo rm -rf /var/log/mysql*
+sudo rm -rf /var/lib/mysql
+sudo rm -rf /var/etc/mysql
 
 echo "[MCIS-Agent: UnInstall Ping]"
 sudo apt-get purge -y iputils-ping
