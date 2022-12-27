@@ -27,7 +27,7 @@ func newClient() (*kclient.Client, error) {
 	}
 	kapacitorConfig := kclient.Config{
 		URL:                fmt.Sprintf("http://%s:%d", config.GetDefaultConfig().Kapacitor.EndpointUrl, kapacitorPort),
-		Timeout:            time.Duration(kapacitorTimeout),
+		Timeout:            kapacitorTimeout,
 		InsecureSkipVerify: true,
 	}
 	client, err := kclient.New(kapacitorConfig)
