@@ -43,7 +43,7 @@ func CreateEventLog(eventLog alerttypes.AlertEventLog) error {
 
 func ListEventLog(taskId string, logLevel string) ([]alerttypes.AlertEventLog, error) {
 	var eventLogArr []alerttypes.AlertEventLog
-	eventLogStr, err := cbstore.GetInstance().StoreGet(taskId)
+	eventLogStr, err := cbstore.GetInstance().StoreGet(fmt.Sprintf("%s/%s", types.EventLog, taskId))
 	if err != nil {
 		return []alerttypes.AlertEventLog{}, err
 	}
