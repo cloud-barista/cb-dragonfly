@@ -24,7 +24,15 @@ sudo debconf-set-selections <<< 'mariadb-server mysql-server/root_password passw
 sudo debconf-set-selections <<< 'mariadb-server mysql-server/root_password_again password psetri1234ak'
 
 echo "[MCIS-Agent: Install MySQL]"
-sudo apt-get -y install mariadb-server
+sudo apt-get -y install mariadb-server --fix-missing --fix-broken
+
+sudo systemctl stop mariadb
+echo "/usr/sbin/mysqld { }" | sudo tee /etc/apparmor.d/usr.sbin.mysqld
+sudo apparmor_parser -v -R /etc/apparmor.d/usr.sbin.mysqld
+
+sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/usr.sbin.mysqld
+
+sudo systemctl start mariadb
 
 echo "[MCIS-Agent: Generate dump tables for evaluation]"
 sudo mysql -u root -ppsetri1234ak -e "CREATE DATABASE sysbench;"
