@@ -78,7 +78,7 @@ func GetAgentMetadata(c echo.Context) error {
 		if !checkEmptyFormParam(nsId, serviceId, vmId, cspType) {
 			return c.JSON(http.StatusBadRequest, rest.SetMessage("bad request parameter to get mcis agent metadata"))
 		}
-		requestInfo.Mck8sId = serviceId
+		requestInfo.McisId = serviceId
 		requestInfo.VmId = vmId
 		requestInfo.CspType = cspType
 	}
