@@ -64,7 +64,7 @@ func (s SmtpHandler) UpdateEventHandler(name string, updateOpts types.AlertEvent
 	if err != nil {
 		return types.AlertEventHandler{}, err
 	}
-	return s.GetEventHandler(updateOpts.Name)
+	return s.GetEventHandler(name)
 }
 
 func (s SmtpHandler) DeleteEventHandler(name string) error {
