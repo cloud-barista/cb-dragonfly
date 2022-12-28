@@ -23,15 +23,12 @@ kapacitor:
   enabled: true
 #  nameOverride: "dragonfly-kapacitor"
   fullnameOverride: "cb-dragonfly-kapacitor"
-  envVars:
-    #KAPACITOR_INFLUXDB_0_URLS_0: http://cb-dragonfly-influxdb:8086
-    KAPACITOR_INFLUXDB_0_USERNAME: cbmon
-    KAPACITOR_INFLUXDB_0_PASSWORD: password
   persistence:
     enabled: false
     size: "8Gi"
     accessModes: "ReadWriteMany"
   influxURL: http://cb-dragonfly-influxdb:8086
+  existingSecret: influxdb-auth
   #  namespaceOverride: cloud-barista
 
 ## external : kafka
