@@ -74,7 +74,7 @@ func (s SlackHandler) UpdateEventHandler(name string, updateOpts types.AlertEven
 	// Set slack update options
 	options := map[string]interface{}{}
 	options["enabled"] = true
-	options["workspace"] = updateOpts.Name
+	options["workspace"] = name
 	options["url"] = updateOpts.Url
 	options["channel"] = updateOpts.Channel
 
