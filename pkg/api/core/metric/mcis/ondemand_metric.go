@@ -116,7 +116,7 @@ func GetMCISOnDemandPacketInfo(nsId string, mcisId string, vmId string, watchTim
 	}
 
 	if sourceAgentIP == "" || len(targetAgentInfo) == 0 {
-		return NetworkPacketsResult{}, http.StatusOK, nil
+		return NetworkPacketsResult{}, http.StatusInternalServerError, errors.New("two or more agents must be installed, and each agent must have a different vm_id")
 	}
 
 	client := http.Client{
