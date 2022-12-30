@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # CB-Dragonfly Image
-sudo docker build -t cloudbaristaorg/cb-dragonfly:0.7.2 . --no-cache
-sudo docker push cloudbaristaorg/cb-dragonfly:0.7.2
+sudo docker build -t cloudbaristaorg/cb-dragonfly:0.7.3 . --no-cache
+sudo docker push cloudbaristaorg/cb-dragonfly:0.7.3
 
 # MCIS Collector Image
 sudo docker build -t cloudbaristaorg/cb-dragonfly:0.7.0-mcis-collector -f Collector.MCIS.Dockerfile . --no-cache
