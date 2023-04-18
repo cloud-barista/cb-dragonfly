@@ -167,12 +167,6 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to register dragonfly domain, error=%s", err))
 	}
 
-	inputAgentPublicIP := fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts", info.PublicIp, "cb-agent")
-	if _, err = sshrun.SSHRun(sshInfo, inputAgentPublicIP); err != nil {
-		common.CleanAgentInstall(info, &sshInfo, &osType, nil)
-		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to register agent domain, error=%s", err))
-	}
-
 	// 공통 서비스 활성화 및 실행
 	if _, err = sshrun.SSHRun(sshInfo, "sudo systemctl enable telegraf && sudo systemctl restart telegraf"); err != nil {
 		common.CleanAgentInstall(info, &sshInfo, &osType, nil)
