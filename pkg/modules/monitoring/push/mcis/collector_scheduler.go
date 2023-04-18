@@ -38,6 +38,7 @@ type CollectorScheduler struct {
 
 func StartScheduler(wg *sync.WaitGroup, manager *CollectManager) error {
 	// WaitGroup Start, Initialize Collector
+	var err error
 	scheduler, err := NewCollectorScheduler(wg, manager)
 	if err != nil {
 		util.GetLogger().Error("Failed to initialize influxDB")
@@ -46,12 +47,8 @@ func StartScheduler(wg *sync.WaitGroup, manager *CollectManager) error {
 
 	// Start Scheduler(Go-routine)
 	go func() {
-		err = scheduler.Scheduler()
+		scheduler.Scheduler()
 	}()
-	if err != nil {
-		util.GetLogger().Error("Failed to make scheduler")
-		return err
-	}
 	// WaitGroup End
 	defer wg.Done()
 	return nil
@@ -134,7 +131,7 @@ func NewCollectorScheduler(wg *sync.WaitGroup, manager *CollectManager) (*Collec
 	return &cScheduler, nil
 }
 
-func (cScheduler CollectorScheduler) Scheduler() error {
+func (cScheduler CollectorScheduler) Scheduler() {
 
 	interval, _ := cbstore.GetInstance().StoreGet(types.MonConfig + "/" + "mcis_collector_interval")
 	aggreTime, _ := strconv.Atoi(*interval)
@@ -150,12 +147,14 @@ func (cScheduler CollectorScheduler) Scheduler() error {
 		if topicQue.Len() != 0 {
 			topicBytesList, err := topicQue.Get(topicQue.Len())
 			if err != nil {
-				return err
+				util.GetLogger().Error("Failed to get topics from kafka to schedule")
+				continue
 			}
 			for _, topicBytes := range topicBytesList {
 				topicStructure := util.TopicStructure{}
-				if err := json.Unmarshal(topicBytes.([]byte), &topicStructure); err != nil {
-					return err
+				if err = json.Unmarshal(topicBytes.([]byte), &topicStructure); err != nil {
+					util.GetLogger().Error("Failed to convert topic messages from kafka")
+					continue
 				}
 				if topicStructure.Policy == types.TopicAdd {
 					addTopicList = append(addTopicList, topicStructure.Topic)
