@@ -94,23 +94,36 @@ func InstallAgent(info common.AgentInstallInfo) (int, error) {
 
 	// 제공 설치 파일 탐색
 	filepath := rootPath + fmt.Sprintf("/file/pkg/%s/x64/", strings.ToLower(osType))
-	filename, err := common.GetPackageName(filepath)
-	if err != nil {
-		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to get package. osType %s not supported", osType))
-	}
-	sourceFile := filepath + filename
 
 	var targetFile, installCmd string
 	if strings.Contains(osType, common.CENTOS) {
 		targetFile = fmt.Sprintf("$HOME/cb-dragonfly/cb-agent.rpm")
 		installCmd = fmt.Sprintf("sudo rpm -ivh $HOME/cb-dragonfly/cb-agent.rpm")
 	} else if strings.Contains(osType, common.UBUNTU) {
+		osRelease, err := sshrun.SSHRun(sshInfo, "hostnamectl | grep 'Operating System' | awk '{print $4}' | tr 'a-z' 'A-Z'")
+		if err != nil {
+			common.CleanAgentInstall(info, &sshInfo, &osType, nil)
+			return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to check linux OS environments, error=%s", err))
+		}
+
+		splitedOSRelease := strings.Split(osRelease, ".")
+		if len(splitedOSRelease) < 1 {
+			common.CleanAgentInstall(info, &sshInfo, &osType, nil)
+			return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to check linux OS release info, error=%s", err))
+		}
+		filepath = filepath + splitedOSRelease[0] + "/"
 		targetFile = fmt.Sprintf("$HOME/cb-dragonfly/cb-agent.deb")
 		installCmd = fmt.Sprintf("sudo dpkg -i $HOME/cb-dragonfly/cb-agent.deb")
 	} else if strings.Contains(osType, common.DEBIAN) {
 		targetFile = fmt.Sprintf("$HOME/cb-dragonfly/cb-agent.deb")
 		installCmd = fmt.Sprintf("sudo dpkg -i $HOME/cb-dragonfly/cb-agent.deb")
 	}
+
+	filename, err := common.GetPackageName(filepath)
+	if err != nil {
+		return http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to get package. osType %s not supported", osType))
+	}
+	sourceFile := filepath + filename
 
 	mcisInstallFile := rootPath + fmt.Sprintf("/file/agent/mcis/install_mcis_script.sh")
 	targetmcisInstallFile := fmt.Sprintf("$HOME/cb-dragonfly/install_mcis_script.sh")
