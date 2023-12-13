@@ -13,7 +13,7 @@ Cloud-Barista Integrated Monitoring Framework
 
 ```
 [NOTE]
-CB-Dragonfly is currently under development. (The latest version is v0.6.0 (Cafe Latte))
+CB-Dragonfly is currently under development. (The latest version is v0.8.0 )
 So, we do not recommend using the current release in production.
 Please note that the functionalities of CB-Dragonfly are not stable and secure yet.
 If you have any difficulties in using CB-Dragonfly, please let us know.
@@ -40,11 +40,11 @@ If you have any difficulties in using CB-Dragonfly, please let us know.
 #### 1. 실행 환경
 
 - ##### 공식환경
-  - OS: Ubuntu 18.04
-  - Container: Docker 19.03
-  - Build: Go 1.16
+  - OS: Ubuntu 18.04, Ubuntu 22.04
+  - Container: Docker 19.03, 24.0.5
+  - Build: Go 1.16, Go 1.21.4
 - ##### 시험환경
-  - OS: Ubuntu 18.04
+  - OS: Ubuntu 18.04, Ubuntu 22.04
   - Container: latest Docker
 
 #### 2. 실행 방법
