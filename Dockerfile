@@ -4,7 +4,7 @@
 
 # Go 빌드 이미지 버전 및 알파인 OS 버전 정보
 ARG BASE_IMAGE_BUILDER=golang
-ARG GO_VERSION=1.21.4
+ARG GO_VERSION=1.24.0
 ARG ALPINE_VERSION=3
 
 ###################################################
@@ -63,7 +63,7 @@ RUN apk add --no-cache \
 # 3. Execute CB-Dragonfly Module
 ###################################################
 
-FROM runtime-alpine as cb-dragonfly
+FROM runtime-alpine AS cb-dragonfly
 LABEL maintainer="innogrid <dev.cloudbarista@innogrid.com>"
 
 RUN apk add --no-cache sudo
