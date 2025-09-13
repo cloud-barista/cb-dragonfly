@@ -11,6 +11,14 @@ Cloud-Barista Integrated Monitoring Framework
 [![Release Version](https://img.shields.io/github/v/release/cloud-barista/cb-dragonfly?color=blue)](https://github.com/cloud-barista/cb-dragonfly/releases/latest)
 [![License](https://img.shields.io/github/license/cloud-barista/cb-dragonfly?color=blue)](https://github.com/cloud-barista/cb-dragonfly/blob/master/LICENSE)
 
+---
+
+> ⚠️ **Archived Repository**  
+> This repository has been archived and is no longer actively maintained.  
+> It is kept for historical reference, and no new issues or pull requests are being accepted.  
+
+---
+
 ```
 [NOTE]
 CB-Dragonfly is currently under development. (The latest version is v0.8.0 )
